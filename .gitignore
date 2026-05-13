@@ -1,0 +1,48 @@
+# Generated experiment artifacts
+outputs/
+wandb/
+*.npy
+*.npz
+*.pt
+*.pkl
+*.pickle
+*.ckpt
+*.pth
+*.log
+
+# Local cleanup notes
+BASELINE_CLEANUP_REPORT.md
+CLEANUP_REPORT.md
+
+# Local data
+data/processed/
+data/raw/
+data/external/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

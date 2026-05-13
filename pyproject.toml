@@ -1,0 +1,90 @@
+[project]
+name = "time-causal-vae"
+version = "0.1.0"
+description = "Clean Python-package rewrite of Time-Causal VAE for financial time-series generation."
+authors = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = "MIT"
+keywords = ["time-series", "vae", "finance", "generative-models", "pytorch"]
+dependencies = [
+    "torch>=2.5,<3.0",
+    "numpy>=1.26,<3.0",
+    "scipy>=1.12,<2.0",
+    "pandas>=2.2,<3.0",
+    "matplotlib>=3.8,<4.0",
+    "pyyaml>=6.0,<7.0",
+    "ml-collections>=0.1.1,<1.0",
+    "tqdm (>=4.65.0,<5.0.0)",
+    "types-pyyaml (>=6.0.12.20260508,<7.0.0.0)",
+    "absl-py==2.1.0",
+    "joblib==1.4.2",
+    "neuralhedge==0.1.0",
+    "pot==0.9.4",
+    "psutil==6.1.0",
+    "scikit-learn==1.5.2",
+    "statsmodels==0.14.4",
+]
+
+[project.scripts]
+tcvae-train = "time_causal_vae.cli.train:main"
+tcvae-evaluate = "time_causal_vae.cli.evaluate:main"
+tcvae-inspect-checkpoint = "time_causal_vae.cli.inspect_checkpoint:main"
+
+[tool.poetry]
+packages = [
+    { include = "time_causal_vae", from = "src" },
+]
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.8.0,<1.0"
+mypy = ">=1.13,<2.0"
+pre-commit = ">=4.0,<5.0"
+commitizen = ">=4.0,<5.0"
+nbstripout = ">=0.7,<1.0"
+ipykernel = ">=6.29,<7.0"
+
+[tool.poetry.group.notebooks.dependencies]
+jupyter = ">=1.1,<2.0"
+seaborn = ">=0.13,<1.0"
+
+[tool.poetry.group.tracking.dependencies]
+wandb = ">=0.17,<1.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src"]
+extend-exclude = ["src/time_causal_vae/evaluation/external"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "ANN", "D", "N", "RUF"]
+ignore = ["D100", "D104", "ANN401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["time_causal_vae"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+ignore_missing_imports = true
+exclude = ["^src/time_causal_vae/evaluation/external/"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+version_files = ["pyproject.toml:^version"]
+tag_format = "v$version"
