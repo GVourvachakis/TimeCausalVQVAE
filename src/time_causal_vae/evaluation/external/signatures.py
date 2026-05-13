@@ -3,10 +3,9 @@
 This module contains borrowed/adapted signature metric utilities referenced by the
 upstream Time-Causal VAE release. It is optional and not required for selected
 checkpoint reproduction. Calling ``compute_exp_sig`` requires the optional
-``signatory`` package.
-
-Related references include Sig-Wasserstein-GANs by Ni et al. (2021) and
-Randomised-Signature-TimeSeries-Generation by Biagini, Gonon, and Walter.
+``signatory`` package. Relevant upstream methods include Sig-Wasserstein-GANs by
+Ni et al. (2021) and Randomised-Signature-TimeSeries-Generation by Biagini,
+Gonon, and Walter.
 """
 
 import math

@@ -1,0 +1,28 @@
+experiment:
+  name: black_scholes_causal_vq_tokenizer
+  dataset: black_scholes
+  seed: 0
+data:
+  n_samples: 2560
+  n_timesteps: 60
+  data_dim: 1
+  condition_dim: 0
+  data_params: {}
+model:
+  family: causal_vq_tokenizer
+  data_dim: 1
+  data_length: 60
+  embedding_dim: 64
+  codebook_size: 512
+  commitment_weight: 0.25
+  encoder_hidden_dim: 64
+  decoder_hidden_dim: 64
+  num_layers: 4
+  dilations: [1, 2, 4, 8]
+  dropout: 0.0
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 256
+  eval_batch_size: 256
+  epochs: 20

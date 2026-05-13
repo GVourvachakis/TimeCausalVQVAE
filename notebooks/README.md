@@ -1,7 +1,14 @@
-# Notebooks
+# Notebook Guidance
 
-No public notebooks are included in this baseline branch. Use the selected YAML configs
-and command-line tools from the repository root for reproducible training and evaluation.
+Notebooks are demonstrative only. The canonical workflow is the CLI/script route in the
+repository README.
 
-Generated notebook outputs, figures, checkpoints, and local data should stay under ignored
-paths such as `outputs/`, `data/raw/`, and `data/processed/`.
+Kept notebooks:
+
+- `black_scholes.ipynb`
+- `heston.ipynb`
+- `pdv.ipynb`
+- `sp500_vix.ipynb`
+
+These notebooks should stay output-stripped and should not contain generated figures,
+checkpoints, or local data. Generated artefacts belong under ignored `outputs/` paths.

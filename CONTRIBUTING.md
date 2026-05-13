@@ -51,7 +51,7 @@ docs(readme): document selected TC-VAE paper checkpoints
 4. Document every public class that remains.
 5. Convert notebooks into scripts or reusable functions where possible.
 6. Keep generated artifacts out of Git unless they are small reference fixtures.
-7. Record substantial deviations from the original repository in the relevant change notes.
+7. Record deviations from the original repository in `docs/migration_log.md`.
 
 ## No pytest requirement
 

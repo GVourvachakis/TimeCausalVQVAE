@@ -24,12 +24,18 @@ dependencies = [
     "psutil==6.1.0",
     "scikit-learn==1.5.2",
     "statsmodels==0.14.4",
+    "vector-quantize-pytorch>=1.24,<2.0",
 ]
 
 [project.scripts]
 tcvae-train = "time_causal_vae.cli.train:main"
+tcvae-train-tokenizer = "time_causal_vae.cli.train_tokenizer:main"
+tcvae-train-token-prior = "time_causal_vae.cli.train_token_prior:main"
 tcvae-evaluate = "time_causal_vae.cli.evaluate:main"
+tcvae-evaluate-tokenizer = "time_causal_vae.cli.evaluate_tokenizer:main"
+tcvae-evaluate-token-prior = "time_causal_vae.cli.evaluate_token_prior:main"
 tcvae-inspect-checkpoint = "time_causal_vae.cli.inspect_checkpoint:main"
+tcvae-select-model = "time_causal_vae.cli.select_model:main"
 
 [tool.poetry]
 packages = [
