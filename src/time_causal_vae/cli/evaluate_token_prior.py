@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import ml_collections
+import numpy as np
 import torch
 import yaml
 
@@ -99,6 +100,7 @@ def main() -> None:
     )
     condition_sampling_convention = "unconditional_no_conditions"
     sample_conditions = None
+    decoder_conditions = None
     if conditional_payload is None:
         real_dataset = build_comparison_dataset(
             raw_config,
@@ -111,6 +113,11 @@ def main() -> None:
     else:
         real_paths = conditional_payload["data"].to(device)
         sample_conditions = conditional_payload["labels"].to(device)
+        decoder_conditions = select_decoder_conditions(
+            conditional_payload,
+            tokenizer_condition_dim=tokenizer_config.condition_dim,
+            device=device,
+        )
         real_tokens = conditional_payload["indices"].detach().cpu().long()
         condition_sampling_convention = "paired_eval_labels_from_token_artifacts"
 
@@ -124,7 +131,7 @@ def main() -> None:
     quantized, decoded_paths = decode_token_indices(
         tokenizer,
         sampled_tokens,
-        conditions=sample_conditions,
+        conditions=decoder_conditions,
     )
     metrics = compute_token_prior_sample_metrics(
         sampled_tokens=sampled_tokens,
@@ -157,6 +164,9 @@ def main() -> None:
     }
     if sample_conditions is not None:
         tensor_shapes["conditions"] = list(sample_conditions.shape)
+    if decoder_conditions is not None:
+        tensor_shapes["decoder_conditions"] = list(decoder_conditions.shape)
+    if sample_conditions is not None:
         metrics["condition_buckets"] = compute_condition_bucket_sample_metrics(
             sampled_tokens=sampled_tokens,
             decoded_paths=decoded_paths,
@@ -240,6 +250,8 @@ def main() -> None:
     print(f"condition_sampling_convention: {condition_sampling_convention}")
     if sample_conditions is not None:
         print(f"conditions_shape: {tuple(sample_conditions.shape)}")
+    if decoder_conditions is not None:
+        print(f"decoder_conditions_shape: {tuple(decoder_conditions.shape)}")
     print(
         "sampled codes: "
         f"active={metrics['sampled_token_active_code_count']}/"
@@ -418,6 +430,15 @@ def load_conditional_eval_payload(
     labels = cast(torch.Tensor, loaded["labels"]).detach().cpu().float()
     if labels.ndim == 1:
         labels = labels[:, None]
+    decoder_labels = labels
+    feature_tensor = load_condition_feature_tensor(
+        data,
+        split_name="eval",
+        expected_n=labels.shape[0],
+        base_labels=labels,
+    )
+    if feature_tensor is not None:
+        labels = torch.cat([labels, feature_tensor], dim=1)
     if indices.shape[0] < n_sample or paths.shape[0] < n_sample or labels.shape[0] < n_sample:
         raise SystemExit(
             f"Conditional eval artifact has fewer than {n_sample} samples: {eval_path}"
@@ -431,7 +452,146 @@ def load_conditional_eval_payload(
         "indices": indices[:n_sample],
         "data": paths[:n_sample],
         "labels": labels[:n_sample],
+        "decoder_labels": decoder_labels[:n_sample],
     }
+
+
+def select_decoder_conditions(
+    conditional_payload: Mapping[str, torch.Tensor],
+    *,
+    tokenizer_condition_dim: int,
+    device: torch.device,
+) -> torch.Tensor | None:
+    """Return conditions compatible with the frozen tokenizer decoder."""
+    if tokenizer_condition_dim == 0:
+        return None
+    decoder_labels = conditional_payload.get("decoder_labels")
+    if decoder_labels is None:
+        decoder_labels = conditional_payload["labels"]
+    if decoder_labels.shape[-1] != tokenizer_condition_dim:
+        raise SystemExit(
+            f"Tokenizer decoder expects condition_dim {tokenizer_condition_dim}; "
+            f"got decoder labels with dimension {decoder_labels.shape[-1]}."
+        )
+    return decoder_labels.to(device)
+
+
+def load_condition_feature_tensor(
+    data_config: Mapping[str, Any],
+    *,
+    split_name: Literal["eval"],
+    expected_n: int,
+    base_labels: torch.Tensor,
+) -> torch.Tensor | None:
+    """Load optional precomputed condition features for conditional evaluation."""
+    raw_feature_dir = data_config.get("condition_feature_dir")
+    if raw_feature_dir is None:
+        return None
+    feature_dir = Path(str(raw_feature_dir))
+    feature_file = str(
+        data_config.get("condition_feature_eval_file", "eval_signature_features.npz")
+    )
+    feature_key = str(data_config.get("condition_feature_key", "features"))
+    feature_path = feature_dir / feature_file
+    if not feature_path.exists():
+        raise SystemExit(f"Missing {split_name} condition feature artifact: {feature_path}")
+    try:
+        with np.load(feature_path, allow_pickle=False) as npz_file:
+            if feature_key not in npz_file:
+                available = sorted(npz_file.files)
+                raise SystemExit(
+                    f"{split_name} condition feature artifact {feature_path} does not contain "
+                    f"key {feature_key!r}. Available keys: {available}"
+                )
+            features = np.asarray(npz_file[feature_key], dtype=np.float32)
+            if "sample_indices" in npz_file:
+                sample_indices = np.asarray(npz_file["sample_indices"])
+                validate_condition_feature_sample_indices(
+                    sample_indices,
+                    expected_n=expected_n,
+                    split_name=split_name,
+                    feature_path=feature_path,
+                )
+            if "labels" in npz_file:
+                feature_labels = np.asarray(npz_file["labels"], dtype=np.float32)
+                validate_condition_feature_labels(
+                    feature_labels,
+                    base_labels=base_labels,
+                    split_name=split_name,
+                    feature_path=feature_path,
+                )
+    except OSError as exc:
+        raise SystemExit(f"Could not load {split_name} condition features: {feature_path}") from exc
+    validate_condition_feature_array(
+        features,
+        expected_n=expected_n,
+        split_name=split_name,
+        feature_path=feature_path,
+    )
+    return torch.from_numpy(features.copy()).float()
+
+
+def validate_condition_feature_array(
+    features: np.ndarray,
+    *,
+    expected_n: int,
+    split_name: str,
+    feature_path: Path,
+) -> None:
+    """Validate the feature matrix loaded from an NPZ artifact."""
+    if features.ndim != 2:
+        raise SystemExit(
+            f"{split_name} condition features in {feature_path} must be a 2-D array; "
+            f"got shape {features.shape}."
+        )
+    if features.shape[0] != expected_n:
+        raise SystemExit(
+            f"{split_name} condition features in {feature_path} have {features.shape[0]} "
+            f"rows, but token labels have {expected_n} rows."
+        )
+    if features.shape[1] <= 0:
+        raise SystemExit(f"{split_name} condition features in {feature_path} are empty.")
+    if not np.isfinite(features).all():
+        raise SystemExit(f"{split_name} condition features in {feature_path} contain NaN or Inf.")
+
+
+def validate_condition_feature_sample_indices(
+    sample_indices: np.ndarray,
+    *,
+    expected_n: int,
+    split_name: str,
+    feature_path: Path,
+) -> None:
+    """Validate optional sample-index alignment metadata."""
+    if sample_indices.ndim != 1 or sample_indices.shape[0] != expected_n:
+        raise SystemExit(
+            f"{split_name} sample_indices in {feature_path} must have shape ({expected_n},); "
+            f"got {sample_indices.shape}."
+        )
+    if np.unique(sample_indices).shape[0] != expected_n:
+        raise SystemExit(f"{split_name} sample_indices in {feature_path} contain duplicates.")
+
+
+def validate_condition_feature_labels(
+    feature_labels: np.ndarray,
+    *,
+    base_labels: torch.Tensor,
+    split_name: str,
+    feature_path: Path,
+) -> None:
+    """Validate label metadata against the token artifact labels."""
+    if feature_labels.ndim == 1:
+        feature_labels = feature_labels[:, None]
+    base_labels_np = base_labels.detach().cpu().numpy().astype(np.float32, copy=False)
+    if feature_labels.shape != base_labels_np.shape:
+        raise SystemExit(
+            f"{split_name} labels in {feature_path} have shape {feature_labels.shape}, "
+            f"but token labels have shape {base_labels_np.shape}."
+        )
+    if not np.allclose(feature_labels, base_labels_np, rtol=1e-5, atol=1e-6):
+        raise SystemExit(
+            f"{split_name} labels in {feature_path} do not match the token artifact labels."
+        )
 
 
 def freeze_tokenizer(tokenizer: CausalVQTokenizer) -> None:

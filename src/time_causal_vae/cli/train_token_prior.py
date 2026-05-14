@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
+import numpy as np
 import torch
 import yaml
 from torch import Tensor, nn
@@ -70,7 +71,7 @@ def main() -> None:
 
     prior_config = build_prior_config(run_config)
     train_tokens, train_conditions, eval_tokens, eval_conditions = load_token_tensors(
-        cast(str, run_config["token_data_dir"]),
+        cast(Mapping[str, Any], run_config["data"]),
         prior_config=prior_config,
     )
     validate_token_data(train_tokens, prior_config, split_name="train")
@@ -202,11 +203,12 @@ def validate_output_dir(output_dir: str) -> Path:
 
 
 def load_token_tensors(
-    token_data_dir: str | Path,
+    data_config: Mapping[str, Any],
     *,
     prior_config: CausalTokenPriorConfig,
 ) -> tuple[Tensor, Tensor | None, Tensor, Tensor | None]:
     """Load extracted train/eval token-index tensors and optional labels."""
+    token_data_dir = str(data_config["token_data_dir"])
     directory = Path(token_data_dir)
     train_path = directory / "train_tokens.pt"
     eval_path = directory / "eval_tokens.pt"
@@ -220,9 +222,21 @@ def load_token_tensors(
     eval_mapping = cast(Mapping[str, Tensor], eval_payload)
     return (
         train_mapping["indices"].long(),
-        load_conditions_from_payload(train_mapping, prior_config, artifact_path=train_path),
+        load_conditions_from_payload(
+            train_mapping,
+            prior_config,
+            data_config=data_config,
+            split_name="train",
+            artifact_path=train_path,
+        ),
         eval_mapping["indices"].long(),
-        load_conditions_from_payload(eval_mapping, prior_config, artifact_path=eval_path),
+        load_conditions_from_payload(
+            eval_mapping,
+            prior_config,
+            data_config=data_config,
+            split_name="eval",
+            artifact_path=eval_path,
+        ),
     )
 
 
@@ -230,17 +244,158 @@ def load_conditions_from_payload(
     payload: Mapping[str, Tensor],
     prior_config: CausalTokenPriorConfig,
     *,
+    data_config: Mapping[str, Any],
+    split_name: Literal["train", "eval"],
     artifact_path: Path,
 ) -> Tensor | None:
     """Return labels as conditions when the token prior is conditional."""
     if prior_config.condition_injection == "none":
+        if data_config.get("condition_feature_dir") is not None:
+            raise SystemExit(
+                "data.condition_feature_dir was provided, but model.condition_injection is "
+                "'none'. Optional condition features require a conditional token prior."
+            )
         return None
     if "labels" not in payload:
         raise SystemExit(f"Conditional token prior requires a 'labels' tensor in {artifact_path}.")
     labels = payload["labels"].float()
     if labels.ndim == 1:
         labels = labels[:, None]
-    return labels
+    feature_tensor = load_condition_feature_tensor(
+        data_config,
+        split_name=split_name,
+        expected_n=labels.shape[0],
+        base_labels=labels,
+    )
+    if feature_tensor is None:
+        return labels
+    return torch.cat([labels, feature_tensor], dim=1)
+
+
+def load_condition_feature_tensor(
+    data_config: Mapping[str, Any],
+    *,
+    split_name: Literal["train", "eval"],
+    expected_n: int,
+    base_labels: Tensor,
+) -> Tensor | None:
+    """Load optional precomputed condition features for one token split."""
+    raw_feature_dir = data_config.get("condition_feature_dir")
+    if raw_feature_dir is None:
+        return None
+    feature_dir = Path(str(raw_feature_dir))
+    file_key = (
+        "condition_feature_train_file" if split_name == "train" else "condition_feature_eval_file"
+    )
+    feature_file = str(
+        data_config.get(
+            file_key,
+            "train_signature_features.npz"
+            if split_name == "train"
+            else "eval_signature_features.npz",
+        )
+    )
+    feature_key = str(data_config.get("condition_feature_key", "features"))
+    feature_path = feature_dir / feature_file
+    if not feature_path.exists():
+        raise SystemExit(f"Missing {split_name} condition feature artifact: {feature_path}")
+    try:
+        with np.load(feature_path, allow_pickle=False) as npz_file:
+            if feature_key not in npz_file:
+                available = sorted(npz_file.files)
+                raise SystemExit(
+                    f"{split_name} condition feature artifact {feature_path} does not contain "
+                    f"key {feature_key!r}. Available keys: {available}"
+                )
+            features = np.asarray(npz_file[feature_key], dtype=np.float32)
+            if "sample_indices" in npz_file:
+                sample_indices = np.asarray(npz_file["sample_indices"])
+                validate_condition_feature_sample_indices(
+                    sample_indices,
+                    expected_n=expected_n,
+                    split_name=split_name,
+                    feature_path=feature_path,
+                )
+            if "labels" in npz_file:
+                feature_labels = np.asarray(npz_file["labels"], dtype=np.float32)
+                validate_condition_feature_labels(
+                    feature_labels,
+                    base_labels=base_labels,
+                    split_name=split_name,
+                    feature_path=feature_path,
+                )
+    except OSError as exc:
+        raise SystemExit(f"Could not load {split_name} condition features: {feature_path}") from exc
+    validate_condition_feature_array(
+        features,
+        expected_n=expected_n,
+        split_name=split_name,
+        feature_path=feature_path,
+    )
+    return torch.from_numpy(features.copy()).float()
+
+
+def validate_condition_feature_array(
+    features: np.ndarray,
+    *,
+    expected_n: int,
+    split_name: str,
+    feature_path: Path,
+) -> None:
+    """Validate the feature matrix loaded from an NPZ artifact."""
+    if features.ndim != 2:
+        raise SystemExit(
+            f"{split_name} condition features in {feature_path} must be a 2-D array; "
+            f"got shape {features.shape}."
+        )
+    if features.shape[0] != expected_n:
+        raise SystemExit(
+            f"{split_name} condition features in {feature_path} have {features.shape[0]} "
+            f"rows, but token labels have {expected_n} rows."
+        )
+    if features.shape[1] <= 0:
+        raise SystemExit(f"{split_name} condition features in {feature_path} are empty.")
+    if not np.isfinite(features).all():
+        raise SystemExit(f"{split_name} condition features in {feature_path} contain NaN or Inf.")
+
+
+def validate_condition_feature_sample_indices(
+    sample_indices: np.ndarray,
+    *,
+    expected_n: int,
+    split_name: str,
+    feature_path: Path,
+) -> None:
+    """Validate optional sample-index alignment metadata."""
+    if sample_indices.ndim != 1 or sample_indices.shape[0] != expected_n:
+        raise SystemExit(
+            f"{split_name} sample_indices in {feature_path} must have shape ({expected_n},); "
+            f"got {sample_indices.shape}."
+        )
+    if np.unique(sample_indices).shape[0] != expected_n:
+        raise SystemExit(f"{split_name} sample_indices in {feature_path} contain duplicates.")
+
+
+def validate_condition_feature_labels(
+    feature_labels: np.ndarray,
+    *,
+    base_labels: Tensor,
+    split_name: str,
+    feature_path: Path,
+) -> None:
+    """Validate label metadata against the token artifact labels."""
+    if feature_labels.ndim == 1:
+        feature_labels = feature_labels[:, None]
+    base_labels_np = base_labels.detach().cpu().numpy().astype(np.float32, copy=False)
+    if feature_labels.shape != base_labels_np.shape:
+        raise SystemExit(
+            f"{split_name} labels in {feature_path} have shape {feature_labels.shape}, "
+            f"but token labels have shape {base_labels_np.shape}."
+        )
+    if not np.allclose(feature_labels, base_labels_np, rtol=1e-5, atol=1e-6):
+        raise SystemExit(
+            f"{split_name} labels in {feature_path} do not match the token artifact labels."
+        )
 
 
 def build_prior_config(run_config: Mapping[str, Any]) -> CausalTokenPriorConfig:

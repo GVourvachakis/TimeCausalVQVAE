@@ -1,5 +1,5 @@
 experiment:
-  name: sp500_vix_causal_token_prior_additive
+  name: sp500_vix_causal_token_prior_additive_logsig_l2
   dataset: sp500_vix
   seed: 0
 
@@ -7,7 +7,7 @@ data:
   tokenizer_dir: outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_codebook64dim16_seed0
   token_data_dir: outputs/sp500_vix_discrete/token_prior/tokens_codebook64_codebookdim16
   base_data_dir: data/processed
-  condition_feature_dir: null
+  condition_feature_dir: outputs/sp500_vix_discrete/signature_features/logsig_l2_ctx20
   condition_feature_train_file: train_signature_features.npz
   condition_feature_eval_file: eval_signature_features.npz
   condition_feature_key: features
@@ -23,7 +23,7 @@ model:
   dropout: 0.1
   bos_token_id: 64
   prediction_convention: bos_shifted_next_token
-  condition_dim: 1
+  condition_dim: 56
   condition_injection: additive
 
 training:
