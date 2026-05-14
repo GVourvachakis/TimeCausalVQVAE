@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -20,6 +22,47 @@ DEFAULT_WANDB_ENTITY = "tc_vae"
 DEFAULT_TOKENIZER_DIR = "outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_seed0"
 DEFAULT_CONTINUOUS_CONFIG = "configs/experiments/sp500_vix_beta_cvae.yaml"
 DEFAULT_CONTINUOUS_MODEL_DIR = "outputs/sp500_vix_continuous/final_model_unavailable"
+MODEL_SELECTION_PROFILE_DOC = "docs/architecture/model_selection_profiles.md"
+WANDB_RUN_URL_PATTERN = re.compile(r"https://wandb\.ai/[^\s]+/runs/[A-Za-z0-9_-]+")
+PROFILE_RANK_METRICS = {
+    "distributional": (
+        "paper_mmd",
+        "paper_swd",
+        "paper_returns_wasserstein",
+    ),
+    "tail_risk": (
+        "paper_terminal_return_wasserstein",
+        "paper_volatility_wasserstein",
+        "paper_maximum_drawdown_wasserstein",
+    ),
+    "sequential_dependence": (
+        "paper_return_autocorrelation_l1",
+        "paper_squared_return_autocorrelation_l1",
+    ),
+    "balanced_market": (
+        "paper_swd",
+        "paper_returns_wasserstein",
+        "paper_terminal_return_wasserstein",
+        "paper_volatility_wasserstein",
+        "paper_maximum_drawdown_wasserstein",
+        "paper_return_autocorrelation_l1",
+        "paper_squared_return_autocorrelation_l1",
+    ),
+}
+PAPER_STYLE_METRIC_KEYS = {
+    "mmd": "paper_mmd",
+    "swd": "paper_swd",
+    "returns_wasserstein": "paper_returns_wasserstein",
+    "terminal_return_wasserstein": "paper_terminal_return_wasserstein",
+    "volatility_wasserstein": "paper_volatility_wasserstein",
+    "maximum_drawdown_wasserstein": "paper_maximum_drawdown_wasserstein",
+    "return_autocorrelation_l1": "paper_return_autocorrelation_l1",
+    "squared_return_autocorrelation_l1": "paper_squared_return_autocorrelation_l1",
+    "flattened_return_autocorrelation_l1": "paper_flattened_return_autocorrelation_l1",
+    "flattened_squared_return_autocorrelation_l1": (
+        "paper_flattened_squared_return_autocorrelation_l1"
+    ),
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -150,6 +193,7 @@ def run_one_config(
         "include_vix": bool(feature_summary["include_vix"]),
         "wandb_project": args.wandb_project,
         "wandb_entity": args.wandb_entity,
+        "model_selection_profile_source": MODEL_SELECTION_PROFILE_DOC,
     }
 
     train_command = build_train_command(
@@ -167,6 +211,8 @@ def run_one_config(
                 "train_returncode": result.returncode,
                 "train_stdout_tail": tail_text(result.stdout),
                 "train_stderr_tail": tail_text(result.stderr),
+                "wandb_run_url": extract_wandb_run_url(result.stdout + "\n" + result.stderr),
+                "profile_scores_available": False,
             }
         )
         return row
@@ -190,6 +236,9 @@ def run_one_config(
             "status": "completed",
             "train_returncode": train_result.returncode,
             "eval_returncode": eval_result.returncode,
+            "wandb_run_url": extract_wandb_run_url(
+                train_result.stdout + "\n" + train_result.stderr
+            ),
             "best_model_dir": str(best_model_dir),
             "evaluation_dir": str(eval_output_dir),
             "mmd": float(metrics["mmd"]),
@@ -212,6 +261,10 @@ def run_one_config(
         )
         row["paper_style_returncode"] = paper_result.returncode
         row["paper_style_dir"] = str(paper_output_dir)
+        paper_summary_path = paper_output_dir / "paper_style_summary.json"
+        if paper_summary_path.exists():
+            row.update(extract_paper_style_metrics(load_json(paper_summary_path)))
+            row["profile_scores_available"] = True
 
     return row
 
@@ -334,6 +387,7 @@ def wandb_compatible_env(args: argparse.Namespace) -> dict[str, str]:
     env = dict(os.environ)
     if args.wandb and not args.no_wandb:
         env.pop("WANDB_MODE", None)
+        env.setdefault("MPLBACKEND", "Agg")
         env.setdefault("WANDB_DISABLE_SERVICE", "true")
         env.setdefault("WANDB_START_METHOD", "thread")
         env.setdefault("WANDB_PROJECT", str(args.wandb_project))
@@ -405,16 +459,100 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def write_aggregate_outputs(output_dir: Path, rows: list[dict[str, Any]]) -> None:
     """Write aggregate ablation results as JSON and CSV."""
+    annotated_rows = annotate_profile_rank_scores(rows)
     output_dir.mkdir(parents=True, exist_ok=True)
     with (output_dir / "ablation_results.json").open("w", encoding="utf-8") as handle:
-        json.dump({"runs": rows}, handle, indent=2, sort_keys=True)
+        json.dump(
+            {
+                "model_selection_profiles": {
+                    "source": MODEL_SELECTION_PROFILE_DOC,
+                    "rank_score_convention": (
+                        "Lower average rank is better. Scores are only populated "
+                        "when --run-paper-style writes the required scalar metrics."
+                    ),
+                    "tail_penalty": (
+                        "Not applied in the runner; inspect tail exceedance fields "
+                        "from the paper-style summary separately."
+                    ),
+                },
+                "runs": annotated_rows,
+            },
+            handle,
+            indent=2,
+            sort_keys=True,
+        )
         handle.write("\n")
     csv_path = output_dir / "ablation_results.csv"
-    fieldnames = sorted({key for row in rows for key in row})
+    fieldnames = sorted({key for row in annotated_rows for key in row})
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(annotated_rows)
+
+
+def extract_paper_style_metrics(summary: Mapping[str, Any]) -> dict[str, Any]:
+    """Extract discrete paper-style scalar metrics for aggregate reporting."""
+    comparisons = summary.get("comparisons")
+    if not isinstance(comparisons, dict):
+        return {"paper_style_metrics_available": False}
+    discrete = comparisons.get("discrete")
+    if not isinstance(discrete, dict):
+        return {"paper_style_metrics_available": False}
+
+    metrics: dict[str, Any] = {"paper_style_metrics_available": True}
+    for input_key, output_key in PAPER_STYLE_METRIC_KEYS.items():
+        value = discrete.get(input_key)
+        if isinstance(value, int | float):
+            metrics[output_key] = float(value)
+
+    tail_rates = discrete.get("tail_exceedance_rates")
+    if isinstance(tail_rates, dict):
+        for key, value in tail_rates.items():
+            if isinstance(value, int | float):
+                metrics[f"paper_tail_{key}"] = float(value)
+    return metrics
+
+
+def annotate_profile_rank_scores(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Add profile rank-score summaries where enough paper-style metrics exist."""
+    annotated = [dict(row) for row in rows]
+    for profile, metric_keys in PROFILE_RANK_METRICS.items():
+        complete_rows = [
+            row for row in annotated if all(is_finite_number(row.get(key)) for key in metric_keys)
+        ]
+        if not complete_rows:
+            continue
+
+        rank_maps: dict[str, dict[str, int]] = {}
+        for metric_key in metric_keys:
+            ordered = sorted(
+                complete_rows,
+                key=lambda row, key=metric_key: (
+                    float(row[key]),
+                    str(row["experiment_name"]),
+                ),
+            )
+            rank_maps[metric_key] = {
+                str(row["experiment_name"]): rank for rank, row in enumerate(ordered, start=1)
+            }
+
+        for row in complete_rows:
+            experiment_name = str(row["experiment_name"])
+            ranks = [rank_maps[key][experiment_name] for key in metric_keys]
+            row[f"{profile}_profile_rank_score"] = sum(ranks) / len(ranks)
+            row[f"{profile}_profile_rank_components"] = ",".join(metric_keys)
+    return annotated
+
+
+def is_finite_number(value: Any) -> bool:
+    """Return whether a value is a finite scalar number."""
+    return isinstance(value, int | float) and math.isfinite(float(value))
+
+
+def extract_wandb_run_url(text: str) -> str | None:
+    """Extract the last W&B cloud run URL emitted by a subprocess."""
+    matches = WANDB_RUN_URL_PATTERN.findall(text)
+    return matches[-1] if matches else None
 
 
 def tail_text(text: str, *, n_lines: int = 20) -> str:
