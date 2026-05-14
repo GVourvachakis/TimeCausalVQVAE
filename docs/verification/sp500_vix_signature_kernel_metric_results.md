@@ -1,6 +1,6 @@
 # S&P500/VIX Signature-Kernel Metric Results
 
-### 1. Environment
+## 1. Environment
 
 - Python version: `3.12.3`
 - PyTorch version: `2.11.0+cu130`
@@ -22,7 +22,7 @@
   `signature_kernel_metrics.py` implementation is `sigkernel`-only and has no
   iisignature CPU fallback path.
 
-### 2. Synthetic smoke test
+## 2. Synthetic smoke test
 
 Command run:
 
@@ -43,7 +43,7 @@ poetry run python scripts/evaluate_signature_kernel_metrics.py \
 - Symmetry checks: `Kxx=true`, `Kyy=true`, `Kxy=n/a`
 - Positive-diagonal checks: `Kxx=true`, `Kyy=true`, `Kxy=n/a`
 
-### 3. Metric settings
+## 3. Metric settings
 
 The current script does not expose `--real-dir`, `--fake-dir`, or `--lead-lag`.
 It supports saved paper-style batches through `--paper-style-batch` and uses
@@ -58,9 +58,9 @@ paper-style batch loader.
 | include_time | `true` | `true` |
 | lead_lag | `false` | `true`, but skipped after the interrupted/crashed run attempt |
 
-### 4. Results per model
+## 4. Results per model
 
-#### VIX-only
+### VIX-only
 
 - Output directory name:
   `outputs/signature_kernel_results/vix_only_no_leadlag`
@@ -75,7 +75,7 @@ paper-style batch loader.
   attempt was interrupted/crashed and the user requested no retry.
 - Second-pass checks: skipped.
 
-#### Raw `logsig_l3_ctx20`
+### Raw `logsig_l3_ctx20`
 
 - Output directory name:
   `outputs/signature_kernel_results/logsig_l3_ctx20_no_leadlag`
@@ -90,7 +90,7 @@ paper-style batch loader.
   attempt was interrupted/crashed and the user requested no retry.
 - Second-pass checks: skipped.
 
-#### Standardised `logsig_l3_ctx20`
+### Standardised `logsig_l3_ctx20`
 
 - Output directory name:
   `outputs/signature_kernel_results/logsig_l3_ctx20_std_no_leadlag`
@@ -105,7 +105,7 @@ paper-style batch loader.
   attempt was interrupted/crashed and the user requested no retry.
 - Second-pass checks: skipped.
 
-### 5. Comparison to existing metrics
+## 5. Comparison to existing metrics
 
 The first-pass signature-kernel ranking over the evaluated discrete batches is:
 
@@ -129,7 +129,7 @@ market-style profile ranks. The continuous BetaCVAE was not included in this
 signature-kernel pass because the requested model list covered the saved
 discrete paper-style batches.
 
-### 6. Decision
+## 6. Decision
 
 B. **Exploratory** — compute signature-kernel MMD when the time budget allows,
 but do not block model selection on it yet.
