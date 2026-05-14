@@ -141,6 +141,16 @@ W&B can be enabled with:
 --wandb --wandb-project ... --wandb-entity tc_vae
 ```
 
+For non-smoke W&B runs in socket-restricted environments, use the live
+headless wrapper:
+
+```bash
+env -u WANDB_MODE MPLBACKEND=Agg WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread ...
+```
+
+If W&B still fails during initialisation, rerun with `--no-wandb` and keep the
+local JSON/CSV outputs.
+
 ## Discrete Latent Geometry Diagnostics
 
 Use the latent-geometry script to inspect tokenizer codebooks, code usage, VIX-bucket usage, and

@@ -24,6 +24,17 @@ DEFAULT_CONTINUOUS_CONFIG = "configs/experiments/sp500_vix_beta_cvae.yaml"
 DEFAULT_CONTINUOUS_MODEL_DIR = "outputs/sp500_vix_continuous/final_model_unavailable"
 MODEL_SELECTION_PROFILE_DOC = "docs/architecture/model_selection_profiles.md"
 WANDB_RUN_URL_PATTERN = re.compile(r"https://wandb\.ai/[^\s]+/runs/[A-Za-z0-9_-]+")
+WANDB_LIVE_ENV_DEFAULTS = {
+    "MPLBACKEND": "Agg",
+    "WANDB_DISABLE_SERVICE": "true",
+    "WANDB_START_METHOD": "thread",
+}
+WANDB_FAILURE_HINT = (
+    "W&B-enabled run failed. This runner keeps live W&B mode explicit and does "
+    "not silently switch to WANDB_MODE=offline. If the failure is caused by "
+    "socket, Tcl/Tk, or upstream CommError restrictions, rerun with --no-wandb "
+    "and preserve the local JSON/CSV outputs."
+)
 PROFILE_RANK_METRICS = {
     "distributional": (
         "paper_mmd",
@@ -387,9 +398,8 @@ def wandb_compatible_env(args: argparse.Namespace) -> dict[str, str]:
     env = dict(os.environ)
     if args.wandb and not args.no_wandb:
         env.pop("WANDB_MODE", None)
-        env.setdefault("MPLBACKEND", "Agg")
-        env.setdefault("WANDB_DISABLE_SERVICE", "true")
-        env.setdefault("WANDB_START_METHOD", "thread")
+        for key, value in WANDB_LIVE_ENV_DEFAULTS.items():
+            env.setdefault(key, value)
         env.setdefault("WANDB_PROJECT", str(args.wandb_project))
         env.setdefault("WANDB_ENTITY", str(args.wandb_entity))
     return env
@@ -413,9 +423,11 @@ def run_command(command: list[str], *, env: Mapping[str, str]) -> subprocess.Com
     if result.stderr:
         sys.stderr.write(result.stderr)
     if result.returncode != 0:
+        wandb_hint = f"\n{WANDB_FAILURE_HINT}" if "--wandb" in command else ""
         raise SystemExit(
             f"Command failed with exit code {result.returncode} after {elapsed:.3f}s: "
             + " ".join(command)
+            + wandb_hint
         )
     return result
 
