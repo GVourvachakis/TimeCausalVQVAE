@@ -121,8 +121,8 @@ def load_input_paths(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray, 
             raise ValueError("--paper-style-batch must load a dictionary.")
         real_paths = tensor_to_numpy(get_required_tensor(payload, "real_paths"), name="real_paths")
         generated_paths = tensor_to_numpy(
-            get_required_tensor(payload, "decoded_paths"),
-            name="decoded_paths",
+            get_generated_paper_style_tensor(payload),
+            name="generated_paper_style_paths",
         )
         real_paths, generated_paths = limit_samples(real_paths, generated_paths, args.max_samples)
         return (
@@ -170,6 +170,18 @@ def get_required_tensor(payload: dict[Any, Any], key: str) -> Tensor:
     if not isinstance(value, Tensor):
         raise ValueError(f"paper-style batch is missing tensor key {key!r}.")
     return value
+
+
+def get_generated_paper_style_tensor(payload: dict[Any, Any]) -> Tensor:
+    """Return generated paths from discrete or continuous paper-style payloads."""
+    for key in ("decoded_paths", "fake_paths", "generated_paths"):
+        value = payload.get(key)
+        if isinstance(value, Tensor):
+            return value
+    raise ValueError(
+        "paper-style batch is missing a generated-path tensor. "
+        "Expected one of: decoded_paths, fake_paths, generated_paths.",
+    )
 
 
 def load_array_path(path: Path) -> np.ndarray:
