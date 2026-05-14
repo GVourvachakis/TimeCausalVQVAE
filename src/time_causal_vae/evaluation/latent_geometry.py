@@ -1,4 +1,11 @@
-"""Discrete-latent geometry diagnostics for VQ-family tokenizers."""
+"""Discrete-latent geometry diagnostics for VQ-family tokenizers.
+
+References
+----------
+    [vqvae_2017], [vector_quantize_pytorch], [mgvq_2025] in docs/references.md.
+Borrowed idea:
+    Inspect codebook geometry, usage, and residual-code compatibility before adding new tokenizers.
+"""
 
 from __future__ import annotations
 

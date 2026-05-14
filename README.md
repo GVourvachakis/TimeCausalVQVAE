@@ -21,6 +21,12 @@ poetry install
 Optional W&B tracking is available through the tracking dependency group used by Poetry. Generated
 outputs, local data, W&B runs, checkpoints, NumPy arrays, pickles, and logs are ignored by Git.
 
+## Scientific Background
+
+Compact source docstrings cite reference keys from `docs/references.md`, which records the
+paper/repository link for each reference and what this project uses or explicitly does not use
+from it.
+
 ## Minimal Configs
 
 Continuous TC-VAE baselines:

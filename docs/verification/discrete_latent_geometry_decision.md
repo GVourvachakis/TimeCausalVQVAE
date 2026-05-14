@@ -3,7 +3,9 @@
 Status: decision recorded from regenerated local S&P500/VIX latent-geometry diagnostics.
 
 The standard VQ and RVQ q2 tokenizers were regenerated locally under ignored `outputs/` paths in
-the public repository. The decision below uses the numeric Markdown, JSON, and CSV summaries from
+the public repository. The standard VQ report was refreshed from
+`outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_seed0` after replacing an
+earlier missing-path note. The decision below uses the numeric Markdown, JSON, and CSV summaries from
 `outputs/latent_geometry/sp500_vix_standard_vq/` and
 `outputs/latent_geometry/sp500_vix_rvq_q2/`, not private milestone outputs.
 

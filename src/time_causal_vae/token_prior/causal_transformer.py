@@ -1,4 +1,11 @@
-"""Causal autoregressive transformer prior over tokenizer indices."""
+"""Causal autoregressive transformer priors over tokenizer indices.
+
+References
+----------
+    [vqvae_2017], [timevqvae_2023], [chronos_2024] in docs/references.md.
+Borrowed idea:
+    Model discrete time-series tokens with a causal next-token objective and scalar conditioning.
+"""
 
 from __future__ import annotations
 

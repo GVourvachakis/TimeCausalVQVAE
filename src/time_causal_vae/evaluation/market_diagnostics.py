@@ -1,4 +1,11 @@
-"""Market-style diagnostics for generated one-dimensional financial paths."""
+"""Market-style diagnostics for generated one-dimensional financial paths.
+
+References
+----------
+    [tcvae_2024], [deepvol_2022], [aotnumerics] in docs/references.md.
+Borrowed idea:
+    Compare generated paths through return, volatility, autocorrelation, and downstream-risk views.
+"""
 
 from __future__ import annotations
 

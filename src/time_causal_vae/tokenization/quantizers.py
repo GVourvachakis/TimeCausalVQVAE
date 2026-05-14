@@ -1,4 +1,11 @@
-"""Vector-quantizer adapters for causal tokenizers."""
+"""Stable adapters around VQ-family quantizer backends.
+
+References
+----------
+    [vqvae_2017], [vector_quantize_pytorch], [qinco_2024], [mgvq_2025] in docs/references.md.
+Borrowed idea:
+    Expose standard, residual, and grouped residual codebooks behind one tokenizer-facing API.
+"""
 
 from __future__ import annotations
 
