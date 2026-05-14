@@ -14,8 +14,12 @@ ordinary notebook execution.
 code. The upstream audit records references to Sig-Wasserstein-GANs by Ni et al. (2021)
 and Randomised-Signature-TimeSeries-Generation by Biagini, Gonon, and Walter.
 
-This path is optional and may require `signatory`. Missing optional dependencies should
-surface only when a caller explicitly invokes the signature metric.
+This path is an upstream optional expected-signature diagnostic. It may require
+`signatory`, and it is not part of the promoted public S&P500/VIX workflow. Missing
+optional dependencies should surface only when a caller explicitly invokes the
+signature metric. New signature-conditioning and signature-kernel work should be
+implemented outside `evaluation.external` so this upstream compatibility area remains
+isolated from project-native metrics.
 
 `signatory` is not part of the standard environment because it is not compatible with
 the current Python/PyTorch constraints used by this project. `log-signatures-pytorch` is

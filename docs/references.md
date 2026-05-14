@@ -30,9 +30,9 @@ signature-kernel-backed performance-evaluation context.
 both CPU and GPU  
 **Link:** [arXiv:2001.00706](https://arxiv.org/abs/2001.00706)  
 **Code:** [github.com/patrick-kidger/signatory](https://github.com/patrick-kidger/signatory)  
-**Used for:** future signature and log-signature feature-extraction background.  
-**Not used for:** current dependencies; compatibility with the current Python/PyTorch environment
-must be tested before use.
+**Used for:** reference-only background on differentiable signature and log-signature transforms.  
+**Not used for:** current dependencies; compatibility probes deferred Signatory for the current
+Python 3.12 and PyTorch 2.x project path.
 
 ### [iisignature_2020]
 
@@ -40,25 +40,27 @@ must be tested before use.
 Signatures and Log Signatures  
 **Link:** [ACM DOI 10.1145/3371237](https://doi.org/10.1145/3371237)  
 **Code:** [github.com/bottler/iisignature](https://github.com/bottler/iisignature)  
-**Used for:** CPU-oriented signature and log-signature package inspection.  
-**Not used for:** current dependencies or GPU assumptions.
+**Used for:** current candidate for optional offline CPU truncated signature and log-signature
+feature extraction.  
+**Not used for:** default dependencies or GPU assumptions.
 
 ### [signature_kernel_goursat_pde_2021]
 
 **Title:** The Signature Kernel is the solution of a Goursat PDE  
 **Link:** [arXiv:2006.14794](https://arxiv.org/abs/2006.14794)  
 **Code:** [github.com/crispitagorico/sigkernel](https://github.com/crispitagorico/sigkernel)  
-**Used for:** future evaluation-only signature-kernel distances, MMD, and path-space scoring-rule
-background.  
-**Not used for:** current training objectives or dependencies.
+**Used for:** current candidate for optional evaluation-only signature-kernel distances, MMD, and
+path-space scoring-rule background.  
+**Not used for:** current training objectives or default dependencies.
 
 ### [ksig_2025]
 
 **Title:** A User's Guide to KSig: GPU-Accelerated Computation of the Signature Kernel  
 **Link:** [arXiv:2501.07145](https://arxiv.org/abs/2501.07145)  
 **Code:** [github.com/tgcsaba/KSig](https://github.com/tgcsaba/KSig)  
-**Used for:** candidate signature-kernel package inspection and possible numerical cross-checks.  
-**Not used for:** current dependencies.
+**Used for:** deferred signature-kernel package background and possible future GPU comparison.  
+**Not used for:** current dependencies; compatibility probes deferred KSig until a GPU-compatible
+and Python/NumPy-compatible environment is available.
 
 ### [signature_kernel_scores_neuralsde_2023]
 

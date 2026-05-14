@@ -119,13 +119,28 @@ Compatibility is not claimed until tested in temporary environments. No package 
 should be added to `pyproject.toml` until the compatibility checklist passes and a separate
 implementation plan accepts the dependency.
 
+The current package decision is:
+
+- `signatory` is deferred. It remains a reference for differentiable signatures, but the
+  compatibility probe found it does not fit the current Python 3.12 and PyTorch 2.x project path
+  without a legacy or custom environment.
+- `iisignature` is the leading candidate for offline CPU truncated signature and log-signature
+  feature extraction. It is not a dependency yet, and the documented source-build workaround must
+  be accepted before implementation.
+- `sigkernel` is the leading candidate for evaluation-only signature-kernel metrics. It is not a
+  dependency yet, and the documented Cython and `--no-build-isolation` workaround must be
+  reviewed before implementation.
+- `KSig` is deferred until a GPU-compatible environment and a compatible Python/NumPy setup are
+  available.
+- `pathsig` remains untested and deferred.
+
 | Package | Purpose | CPU/GPU support expectation | PyTorch compatibility expectation | Candidate status | Temporary install command |
 | --- | --- | --- | --- | --- | --- |
-| `signatory` | Differentiable signature and log-signature features. | Documentation describes CPU and CUDA support. Current wheels appear tied to older Python and PyTorch combinations. | Inspect in a separate Python/PyTorch environment first; the current project uses Python 3.12 and PyTorch 2.x, which may be incompatible with the published wheel scheme. | Inspection-only unless a maintained compatible build is found. | `python -m pip install "signatory==1.2.7.1.11.0" --no-cache-dir --force-reinstall` |
-| `iisignature` | Efficient CPU signature and log-signature computation through a C++ extension. | CPU-oriented expectation. GPU support should not be assumed. | May support machine-learning workflows but should be treated as NumPy/C++ feature extraction unless native tensor behaviour is verified. | Possible offline feature-extraction candidate, not an immediate model dependency. | `python -m pip install iisignature` |
-| `sigkernel` | Signature-PDE-kernel computation, MMD, and scoring-rule style path comparisons. | Repository describes CPU and GPU support through PyTorch with automatic device selection. | Promising evaluation candidate, but current PyTorch 2.x compatibility must be tested. | Primary inspection candidate for signature-kernel metrics. | `python -m pip install "git+https://github.com/crispitagorico/sigkernel.git"` |
-| `KSig` | Scikit-learn-compatible signature-kernel package, including GPU-accelerated algorithms. | Documentation emphasises GPU acceleration through CuPy and CUDA setup. CPU fallback must be tested rather than assumed. | Not a native PyTorch package; likely NumPy/CuPy/scikit-learn oriented. Use as a metric cross-check, not as a training dependency. | Inspection-only first, useful for numerical consistency checks against `sigkernel`. | `python -m pip install "git+https://github.com/tgcsaba/ksig.git"` |
-| `pathsig` | Optional experimental signature package to inspect. | Current PyPI metadata should be inspected before assuming CPU or GPU behaviour. | PyTorch compatibility must be verified by import and tensor smoke tests. | Optional/current experimental package; inspection-only. | `python -m pip install pathsig` |
+| `signatory` | Differentiable signature and log-signature features. | Documentation describes CPU and CUDA support. Current wheels appear tied to older Python and PyTorch combinations. | Compatibility probe failed for the current Python 3.12 and PyTorch 2.x path. | Deferred/reference-only. | `python -m pip install "signatory==1.2.7.1.11.0" --no-cache-dir --force-reinstall` |
+| `iisignature` | Efficient CPU signature and log-signature computation through a C++ extension. | CPU-oriented expectation. GPU support should not be assumed. | Treat as NumPy/C++ feature extraction unless native tensor behaviour is separately verified. | Leading candidate for offline CPU feature extraction. | `python -m pip install numpy && python -m pip install iisignature --no-build-isolation` |
+| `sigkernel` | Signature-PDE-kernel computation, MMD, and scoring-rule style path comparisons. | CPU smoke passed; GPU remains unverified because local CUDA discovery failed. | PyTorch-based evaluation package; isolated probe used PyTorch 2.12 and produced a finite CPU Gram matrix. | Leading candidate for evaluation-only signature-kernel metrics. | `python -m pip install Cython && python -m pip install "git+https://github.com/crispitagorico/sigkernel.git" --no-build-isolation` |
+| `KSig` | Scikit-learn-compatible signature-kernel package, including GPU-accelerated algorithms. | Probe indicates practical GPU/CuPy dependence; CPU fallback was not demonstrated. | Normal install failed on Python 3.12 due to the pinned NumPy path. | Deferred until a GPU-compatible and Python/NumPy-compatible environment is available. | `python -m pip install "git+https://github.com/tgcsaba/ksig.git"` |
+| `pathsig` | Optional experimental signature package to inspect. | Not tested. | Not tested. | Deferred. | `python -m pip install pathsig` |
 
 ## 7. Causal/path-space distances
 
@@ -149,36 +164,33 @@ distance before the lighter path diagnostics have been stabilised.
 
 ## 8. Experiment roadmap
 
-### A. Package compatibility checks
+### A. Signature feature extraction smoke
 
-Create temporary environments and run import, CPU, GPU, and small numerical checks for each
-candidate package. Record failures as compatibility results, not as project failures.
+Use `iisignature`, if installed, to run offline CPU feature extraction on a small S&P500/VIX batch.
+Build return, cumulative-return, time-channel, and optional lead-lag paths. Compute truncated
+log-signatures at levels 2 and 3, then inspect dimensionality, finite values, runtime, and
+sensitivity across VIX buckets.
 
-### B. Signature feature extraction smoke
+### B. Signature-kernel evaluation metric
 
-On a small S&P500/VIX batch, build return, cumulative-return, time, and lead-lag paths. Compute
-truncated log-signatures at low levels and inspect feature dimensionality, finite values, runtime,
-and sensitivity across VIX buckets.
+Use `sigkernel`, if installed, to add an evaluation-only signature-kernel distance for real versus
+generated path batches. Start with small CPU batches and record preprocessing choices, static
+kernel settings, solver settings, device, dtype, and runtime.
 
 ### C. VIX-only versus VIX-plus-signature conditioning ablation
 
-Once feature extraction is stable, compare the existing VIX-only additive prior against a
-VIX-plus-signature condition vector. Keep tokenizer, prior family, sampling settings, and
-evaluation protocol otherwise fixed.
+Once feature extraction and evaluation are stable, compare the existing VIX-only additive prior
+against a VIX-plus-log-signature condition vector. Keep tokenizer, prior family, sampling settings,
+and evaluation protocol otherwise fixed. The first conditioning ablation should use the existing
+additive condition embedding only.
 
-### D. Signature-kernel evaluation metric
-
-Add an evaluation-only signature-kernel distance for real versus generated path batches. Start
-with small batch sizes and record preprocessing choices, static kernel settings, solver settings,
-device, dtype, and runtime.
-
-### E. Model selection by market score plus signature-kernel metric
+### D. Model selection by market score plus signature-kernel metric
 
 Use the existing market diagnostics as the primary guardrail and signature-kernel distance as an
 additional path-space score. A checkpoint or sampling setting should not be promoted by
 signature-kernel distance alone if stylised facts, tails, or volatility clustering degrade.
 
-### F. Future objective-level loss or architecture changes
+### E. Future objective-level loss or architecture changes
 
 Only after the metric proves useful should the project revisit differentiable signature-kernel
 objectives, richer conditioning architectures, or new tokenizers. This is the point where

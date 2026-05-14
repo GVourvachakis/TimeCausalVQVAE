@@ -2,10 +2,14 @@
 
 This module contains borrowed/adapted signature metric utilities referenced by the
 upstream Time-Causal VAE release. It is optional and not required for selected
-checkpoint reproduction. Calling ``compute_exp_sig`` requires the optional
-``signatory`` package. Relevant upstream methods include Sig-Wasserstein-GANs by
-Ni et al. (2021) and Randomised-Signature-TimeSeries-Generation by Biagini,
-Gonon, and Walter.
+checkpoint reproduction or the promoted public S&P500/VIX workflow. Calling
+``compute_exp_sig`` may require the optional ``signatory`` package. Relevant
+upstream methods include Sig-Wasserstein-GANs by Ni et al. (2021) and
+Randomised-Signature-TimeSeries-Generation by Biagini, Gonon, and Walter.
+
+New signature-conditioning and signature-kernel work should be implemented
+outside ``evaluation.external`` so this upstream compatibility area remains
+isolated from project-native metrics.
 """
 
 import math

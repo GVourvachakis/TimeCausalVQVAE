@@ -309,3 +309,15 @@ For the next documentation or implementation phase:
 5. Defer `pathsig` until there is a specific reason to inspect it.
 
 No signature package should be added to `pyproject.toml` from this probe alone.
+
+## Final package decision
+
+The project will prepare implementation around two optional packages only:
+
+- `iisignature` for offline CPU truncated signature and log-signature feature extraction.
+- `sigkernel` for evaluation-only signature-kernel metrics.
+
+The project will not add `signatory` or `KSig` in the current phase. `signatory` remains
+reference-only because the probe did not fit the current Python/PyTorch path. `KSig` remains
+deferred until a GPU-compatible environment and compatible Python/NumPy setup are available.
+`pathsig` remains untested and deferred.

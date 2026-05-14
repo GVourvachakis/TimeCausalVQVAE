@@ -21,6 +21,27 @@ poetry install
 Optional W&B tracking is available through the tracking dependency group used by Poetry. Generated
 outputs, local data, W&B runs, checkpoints, NumPy arrays, pickles, and logs are ignored by Git.
 
+### Optional signature diagnostics
+
+Signature feature extraction and signature-kernel metrics are planned as optional diagnostics and
+are not installed by default. The current candidates are `iisignature` for offline CPU
+log-signature feature extraction and `sigkernel` for evaluation-only signature-kernel metrics.
+
+Manual probes found that `iisignature` may require NumPy to be installed first, followed by:
+
+```bash
+pip install iisignature --no-build-isolation
+```
+
+`sigkernel` may require Cython first and then installation without build isolation:
+
+```bash
+pip install Cython
+pip install "git+https://github.com/crispitagorico/sigkernel.git" --no-build-isolation
+```
+
+These packages remain optional and are not listed in `pyproject.toml`.
+
 ## Scientific Background
 
 Compact source docstrings cite reference keys from `docs/references.md`, which records the
