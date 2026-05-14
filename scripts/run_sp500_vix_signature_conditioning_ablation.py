@@ -333,8 +333,9 @@ def wandb_compatible_env(args: argparse.Namespace) -> dict[str, str]:
     """Return environment variables for W&B in this socket-restricted sandbox."""
     env = dict(os.environ)
     if args.wandb and not args.no_wandb:
+        env.pop("WANDB_MODE", None)
         env.setdefault("WANDB_DISABLE_SERVICE", "true")
-        env.setdefault("WANDB_MODE", "offline")
+        env.setdefault("WANDB_START_METHOD", "thread")
         env.setdefault("WANDB_PROJECT", str(args.wandb_project))
         env.setdefault("WANDB_ENTITY", str(args.wandb_entity))
     return env

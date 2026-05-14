@@ -19,26 +19,18 @@ The requested pre-flight checks gave the following result:
 | --- | --- |
 | `WANDB_START_METHOD=thread` | Failed with `listen tcp 127.0.0.1:0: socket: operation not permitted`. |
 | `WANDB_MODE=offline` | Failed with the same local socket error. |
-| `WANDB_DISABLE_SERVICE=true WANDB_MODE=offline` | Succeeded for a W&B initialisation probe. |
+| `WANDB_DISABLE_SERVICE=true WANDB_MODE=offline` | Succeeded for offline logging only. |
+| `WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread`, with `WANDB_MODE` unset | Succeeded for live cloud streaming when the process had network access. |
 
-Future non-smoke runs in this environment should therefore use:
+Future live non-smoke runs in this environment should therefore use:
 
 ```bash
 export WANDB_DISABLE_SERVICE=true
-export WANDB_MODE=offline
+export WANDB_START_METHOD=thread
+unset WANDB_MODE
 ```
 
-The successful probe created an offline run directory under `wandb/`. After a
-non-smoke ablation loop, sync the resulting offline runs explicitly, for
-example:
-
-```bash
-poetry run wandb sync wandb/latest-run/
-```
-
-If `wandb/latest-run/` is not available, sync the concrete
-`wandb/offline-run-*` directory reported by W&B. The intended W&B project and
-entity remain:
+The intended W&B project and entity remain:
 
 - project: `time-causal-token-prior`;
 - entity: `tc_vae`.
@@ -113,8 +105,9 @@ When `--wandb` is enabled, the runner passes:
 - a run name matching the experiment name.
 
 In this socket-restricted environment, the runner also defaults W&B-enabled
-subprocesses to `WANDB_DISABLE_SERVICE=true` and `WANDB_MODE=offline` unless the
-caller has already set those variables.
+subprocesses to `WANDB_DISABLE_SERVICE=true` and `WANDB_START_METHOD=thread`,
+and removes `WANDB_MODE` from the subprocess environment so live cloud tracking
+is not silently downgraded to offline mode.
 
 ## Dry Run
 
@@ -156,5 +149,5 @@ These aggregate files are generated verification artefacts and are not committed
 ## Decision
 
 The setup is ready for the next non-smoke ablation stage. The next run should
-compare depth `2` and `3` at context lengths `10` and `20`, with W&B in offline
-mode plus service disablement, then sync the offline runs after completion.
+compare depth `2` and `3` at context lengths `10` and `20`, with W&B live
+streaming through service disablement plus threaded start mode.
