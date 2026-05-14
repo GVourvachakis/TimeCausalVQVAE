@@ -1,4 +1,12 @@
-"""Standalone causal VQ tokenizer for financial time series."""
+"""Causal convolutional VQ tokenizer for financial time-series windows.
+
+References
+----------
+    [tcvae_2024], [vqvae_2017], [timevqvae_2023], [deepvol_2022] in docs/references.md.
+Borrowed idea:
+    Use no-future convolutional encoding/decoding with VQ-VAE-style discrete codes for
+    causal time-series generation.
+"""
 
 from __future__ import annotations
 
