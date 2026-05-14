@@ -114,6 +114,46 @@ W&B can be enabled with:
 --wandb --wandb-project ... --wandb-entity tc_vae
 ```
 
+## Discrete Latent Geometry Diagnostics
+
+Use the latent-geometry script to inspect tokenizer codebooks, code usage, VIX-bucket usage, and
+token trajectories. Outputs are written under ignored `outputs/` paths.
+
+Public synthetic smoke run:
+
+```bash
+poetry run python scripts/analyze_discrete_latent_geometry.py \
+  --synthetic \
+  --output-dir outputs/latent_geometry_smoke \
+  --plot-voronoi
+```
+
+Real S&P500/VIX standard VQ template, after training a tokenizer and extracting token indices:
+
+```bash
+poetry run python scripts/analyze_discrete_latent_geometry.py \
+  --config configs/experiments/sp500_vix_causal_vq_tokenizer.yaml \
+  --tokenizer-dir <tokenizer-dir> \
+  --token-data-dir <token-data-dir> \
+  --output-dir outputs/latent_geometry/sp500_vix_standard_vq \
+  --base-data-dir data/processed \
+  --plot-voronoi \
+  --wandb \
+  --wandb-project time-causal-latent-diagnostics \
+  --wandb-entity tc_vae \
+  --run-name sp500_vix_standard_vq_geometry
+```
+
+The default W&B destination is project `time-causal-latent-diagnostics` and entity `tc_vae`.
+Recommended generated plots for notebooks and reports are:
+
+- `codebook_projection.png`
+- `codebook_usage_projection.png`
+- `vix_bucket_code_usage.png`
+- `token_trajectory_examples.png`
+- `codebook_voronoi.png` or `codebook_nearest_region.png`
+- `q0_q1_pair_heatmap.png` for RVQ q2 ablations
+
 ## Verification Scripts
 
 Core public checks:
