@@ -9,6 +9,7 @@ Borrowed idea:
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -16,6 +17,141 @@ import torch
 from torch import Tensor
 
 DEFAULT_AUTOCORRELATION_LAGS = (1, 2, 5, 10, 20)
+DEFAULT_HISTOGRAM_FALLBACK_BINS = 80
+
+
+def shared_histogram_bins(
+    values_by_source: Mapping[str, Tensor],
+    *,
+    bins: str | int = "fd",
+    min_bins: int = 30,
+    max_bins: int = 150,
+    range_policy: str = "union",
+) -> Tensor:
+    """Return shared histogram bin edges computed from all finite source values.
+
+    The default uses the Freedman-Diaconis rule on the combined real/generated
+    values and clamps the result to keep paper-style plots readable.
+    """
+    if min_bins <= 0:
+        raise ValueError("min_bins must be positive.")
+    if max_bins < min_bins:
+        raise ValueError("max_bins must be greater than or equal to min_bins.")
+    if range_policy != "union":
+        raise ValueError("Only range_policy='union' is currently supported.")
+
+    finite_sources = []
+    for values in values_by_source.values():
+        flattened = values.detach().cpu().float().reshape(-1)
+        finite = flattened[torch.isfinite(flattened)]
+        if finite.numel() > 0:
+            finite_sources.append(finite)
+    if not finite_sources:
+        bin_count = _clamp_histogram_bin_count(
+            DEFAULT_HISTOGRAM_FALLBACK_BINS,
+            min_bins=min_bins,
+            max_bins=max_bins,
+        )
+        return torch.linspace(0.0, 1.0, bin_count + 1)
+
+    combined = torch.cat(finite_sources)
+    range_min = float(combined.min().item())
+    range_max = float(combined.max().item())
+    if not math.isfinite(range_min) or not math.isfinite(range_max):
+        bin_count = _clamp_histogram_bin_count(
+            DEFAULT_HISTOGRAM_FALLBACK_BINS,
+            min_bins=min_bins,
+            max_bins=max_bins,
+        )
+        return torch.linspace(0.0, 1.0, bin_count + 1)
+
+    range_width = range_max - range_min
+    value_scale = max(abs(range_min), abs(range_max), 1.0)
+    if range_width <= value_scale * 1e-12:
+        bin_count = _clamp_histogram_bin_count(
+            DEFAULT_HISTOGRAM_FALLBACK_BINS,
+            min_bins=min_bins,
+            max_bins=max_bins,
+        )
+        epsilon = value_scale * 1e-6
+        return torch.linspace(range_min - epsilon, range_max + epsilon, bin_count + 1)
+
+    if isinstance(bins, int):
+        bin_count = _clamp_histogram_bin_count(bins, min_bins=min_bins, max_bins=max_bins)
+    elif bins == "fd":
+        bin_count = _freedman_diaconis_bin_count(
+            combined,
+            range_width=range_width,
+            min_bins=min_bins,
+            max_bins=max_bins,
+        )
+    else:
+        raise ValueError("bins must be an integer or 'fd'.")
+    return torch.linspace(range_min, range_max, bin_count + 1)
+
+
+def histogram_bin_metadata(
+    edges: Tensor,
+    *,
+    bin_policy: str,
+    range_policy: str,
+    display_clip_policy: str = "none",
+) -> dict[str, Any]:
+    """Return JSON-friendly metadata for shared histogram bin edges."""
+    clean_edges = edges.detach().cpu().float().reshape(-1)
+    if clean_edges.numel() < 2:
+        return {
+            "bin_count": 0,
+            "bin_policy": bin_policy,
+            "range_policy": range_policy,
+            "display_clip_policy": display_clip_policy,
+        }
+    return {
+        "bin_count": int(clean_edges.numel() - 1),
+        "bin_policy": bin_policy,
+        "range_policy": range_policy,
+        "display_clip_policy": display_clip_policy,
+        "range_min": float(clean_edges[0].item()),
+        "range_max": float(clean_edges[-1].item()),
+    }
+
+
+def _freedman_diaconis_bin_count(
+    values: Tensor,
+    *,
+    range_width: float,
+    min_bins: int,
+    max_bins: int,
+) -> int:
+    """Return a capped Freedman-Diaconis bin count with a degenerate-IQR fallback."""
+    quantiles = torch.quantile(
+        values,
+        torch.tensor([0.25, 0.75], dtype=values.dtype),
+    )
+    iqr = float((quantiles[1] - quantiles[0]).item())
+    if iqr <= 0.0 or not math.isfinite(iqr):
+        return _clamp_histogram_bin_count(
+            DEFAULT_HISTOGRAM_FALLBACK_BINS,
+            min_bins=min_bins,
+            max_bins=max_bins,
+        )
+    bin_width = 2.0 * iqr / (float(values.numel()) ** (1.0 / 3.0))
+    if bin_width <= 0.0 or not math.isfinite(bin_width):
+        return _clamp_histogram_bin_count(
+            DEFAULT_HISTOGRAM_FALLBACK_BINS,
+            min_bins=min_bins,
+            max_bins=max_bins,
+        )
+    return _clamp_histogram_bin_count(
+        math.ceil(range_width / bin_width),
+        min_bins=min_bins,
+        max_bins=max_bins,
+    )
+
+
+def _clamp_histogram_bin_count(value: int, *, min_bins: int, max_bins: int) -> int:
+    """Clamp histogram bin counts for readable overlapping plots."""
+    return min(max(int(value), min_bins), max_bins)
 
 
 def compute_log_returns(paths: Tensor) -> Tensor:

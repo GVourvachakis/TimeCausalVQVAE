@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -23,12 +23,14 @@ from time_causal_vae.evaluation.market_diagnostics import (
     DEFAULT_AUTOCORRELATION_LAGS,
     compare_market_summaries,
     compute_log_returns,
+    histogram_bin_metadata,
     market_style_summary,
     max_abs_return_per_path,
     max_rolling_volatility_per_path,
     maximum_drawdown,
     outlier_path_metadata,
     return_tail_thresholds,
+    shared_histogram_bins,
     terminal_returns,
     volatility_per_path,
 )
@@ -46,6 +48,12 @@ from time_causal_vae.evaluation.token_prior import (
 )
 from time_causal_vae.evaluation.tokenizer import load_trained_tokenizer
 from time_causal_vae.utils.random import set_seed
+
+HISTOGRAM_BIN_POLICY = "fd"
+HISTOGRAM_MIN_BINS = 30
+HISTOGRAM_MAX_BINS = 150
+HISTOGRAM_RANGE_POLICY = "union"
+HISTOGRAM_DISPLAY_CLIP_POLICY = "none"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -130,6 +138,7 @@ def main() -> None:
         continuous=continuous,
         args=vars(args),
     )
+    summary["plot_histogram_bins"] = build_plot_histogram_summary(source_paths)
     write_json(output_dir / "paper_style_summary.json", summary)
     write_markdown_summary(output_dir / "paper_style_summary.md", summary)
     write_markdown_summary(output_dir / "paper_style_tables.md", summary)
@@ -487,19 +496,79 @@ def bucket_label(index: int, count: int) -> str:
 
 def plot_returns_distribution(path: Path, source_paths: Mapping[str, Tensor]) -> None:
     """Plot flattened one-step return distributions."""
-    values = {name: compute_log_returns(paths).flatten() for name, paths in source_paths.items()}
+    values = histogram_values_by_source(source_paths, compute_log_returns)
     plot_tensor_histograms(path, values, "One-step return", "Density")
 
 
 def plot_distribution(
     path: Path,
     source_paths: Mapping[str, Tensor],
-    fn: Any,
+    fn: Callable[[Tensor], Tensor],
     xlabel: str,
 ) -> None:
     """Plot source distributions from a path-to-vector function."""
-    values = {name: fn(paths).reshape(-1) for name, paths in source_paths.items()}
+    values = histogram_values_by_source(source_paths, fn)
     plot_tensor_histograms(path, values, xlabel, "Density")
+
+
+def build_plot_histogram_summary(source_paths: Mapping[str, Tensor]) -> dict[str, Any]:
+    """Return plot-bin metadata for the paper-style histogram outputs."""
+    plot_values = {
+        "returns_distribution.png": histogram_values_by_source(
+            source_paths,
+            compute_log_returns,
+        ),
+        "terminal_return_distribution.png": histogram_values_by_source(
+            source_paths,
+            terminal_returns,
+        ),
+        "volatility_distribution.png": histogram_values_by_source(
+            source_paths,
+            volatility_per_path,
+        ),
+        "maximum_drawdown_distribution.png": histogram_values_by_source(
+            source_paths,
+            maximum_drawdown,
+        ),
+        "extreme_return_histogram.png": histogram_values_by_source(
+            source_paths,
+            compute_log_returns,
+        ),
+        "volatility_tail_comparison.png": histogram_values_by_source(
+            source_paths,
+            max_rolling_volatility_per_path,
+        ),
+    }
+    return {name: histogram_metadata_for_values(values) for name, values in plot_values.items()}
+
+
+def histogram_values_by_source(
+    source_paths: Mapping[str, Tensor],
+    fn: Callable[[Tensor], Tensor],
+) -> dict[str, Tensor]:
+    """Apply a path diagnostic and flatten finite values for shared plotting bins."""
+    values: dict[str, Tensor] = {}
+    for name, paths in source_paths.items():
+        flattened = fn(paths).detach().cpu().float().reshape(-1)
+        values[name] = flattened[torch.isfinite(flattened)]
+    return values
+
+
+def histogram_metadata_for_values(values: Mapping[str, Tensor]) -> dict[str, Any]:
+    """Return shared-bin metadata for a named histogram input."""
+    edges = shared_histogram_bins(
+        values,
+        bins=HISTOGRAM_BIN_POLICY,
+        min_bins=HISTOGRAM_MIN_BINS,
+        max_bins=HISTOGRAM_MAX_BINS,
+        range_policy=HISTOGRAM_RANGE_POLICY,
+    )
+    return histogram_bin_metadata(
+        edges,
+        bin_policy=HISTOGRAM_BIN_POLICY,
+        range_policy=HISTOGRAM_RANGE_POLICY,
+        display_clip_policy=HISTOGRAM_DISPLAY_CLIP_POLICY,
+    )
 
 
 def plot_tensor_histograms(
@@ -511,23 +580,21 @@ def plot_tensor_histograms(
     """Plot overlapping histograms for named tensors."""
     apply_clean_style()
     fig, ax = plt.subplots(figsize=(7, 4))
+    shared_bins = shared_histogram_bins(
+        values,
+        bins=HISTOGRAM_BIN_POLICY,
+        min_bins=HISTOGRAM_MIN_BINS,
+        max_bins=HISTOGRAM_MAX_BINS,
+        range_policy=HISTOGRAM_RANGE_POLICY,
+    ).numpy()
     for name, tensor in values.items():
         clean = tensor.detach().cpu().float().reshape(-1)
         clean = clean[torch.isfinite(clean)]
         if clean.numel() == 0:
             continue
-        value_min = float(clean.min().item())
-        value_max = float(clean.max().item())
-        value_scale = max(abs(value_min), abs(value_max), 1.0)
-        if abs(value_max - value_min) <= value_scale * 1e-6:
-            epsilon = value_scale * 1e-6
-            histogram_bins: list[float] = [value_min - epsilon, value_max + epsilon]
-        else:
-            bin_count = min(50, max(1, int(clean.numel())))
-            histogram_bins = torch.linspace(value_min, value_max, bin_count + 1).tolist()
         ax.hist(
             clean.numpy(),
-            bins=histogram_bins,
+            bins=shared_bins,
             alpha=0.45,
             density=True,
             label=name,
@@ -606,13 +673,24 @@ def plot_extreme_return_histogram(
 ) -> None:
     """Plot one-step returns with real q01/q99 and q001/q999 thresholds."""
     thresholds = return_tail_thresholds(real_paths)
-    values = {name: compute_log_returns(paths).flatten() for name, paths in source_paths.items()}
+    values = histogram_values_by_source(source_paths, compute_log_returns)
+    shared_bins = shared_histogram_bins(
+        values,
+        bins=HISTOGRAM_BIN_POLICY,
+        min_bins=HISTOGRAM_MIN_BINS,
+        max_bins=HISTOGRAM_MAX_BINS,
+        range_policy=HISTOGRAM_RANGE_POLICY,
+    ).numpy()
     apply_clean_style()
     fig, ax = plt.subplots(figsize=(7, 4))
     for name, tensor in values.items():
+        clean = tensor.detach().cpu().float().reshape(-1)
+        clean = clean[torch.isfinite(clean)]
+        if clean.numel() == 0:
+            continue
         ax.hist(
-            tensor.detach().cpu().float().numpy(),
-            bins=80,
+            clean.numpy(),
+            bins=shared_bins,
             alpha=0.4,
             density=True,
             label=name,
@@ -782,6 +860,26 @@ def write_markdown_summary(path: Path, summary: Mapping[str, Any]) -> None:
             f"{float(rates['above_real_q99_fraction']):.8f} | "
             f"{float(rates['above_real_q999_fraction']):.8f} |"
         )
+    plot_bins = cast(Mapping[str, Mapping[str, Any]], summary.get("plot_histogram_bins", {}))
+    if plot_bins:
+        lines.extend(
+            [
+                "",
+                "## Histogram Bin Policy",
+                "",
+                "| Plot | Bin count | Bin policy | Range policy | Display clipping |",
+                "| --- | ---: | --- | --- | --- |",
+            ]
+        )
+        for plot_name, metadata in plot_bins.items():
+            lines.append(
+                "| "
+                f"{plot_name} | "
+                f"{int(metadata['bin_count'])} | "
+                f"{metadata['bin_policy']} | "
+                f"{metadata['range_policy']} | "
+                f"{metadata['display_clip_policy']} |"
+            )
     lines.extend(
         [
             "",
