@@ -16,6 +16,7 @@ from time_causal_vae.cli.evaluate_token_prior import (
     freeze_tokenizer,
     load_conditional_eval_payload,
     load_token_prior_yaml,
+    select_decoder_conditions,
 )
 from time_causal_vae.evaluation.checkpoints import TargetModelEvaluator
 from time_causal_vae.evaluation.market_diagnostics import (
@@ -214,7 +215,7 @@ def main() -> None:
     print(f"output_dir: {output_dir}")
     print(f"real_paths: {list(real_paths.shape)}")
     print(f"discrete_paths: {list(discrete_paths.shape)}")
-    if continuous is None:
+    if continuous is None or bool(continuous.get("skipped", False)):
         print("continuous: skipped")
     else:
         print(f"continuous_paths: {list(cast(Tensor, continuous['fake_paths']).shape)}")
@@ -236,7 +237,7 @@ def generate_discrete_samples(
     """Sample the promoted discrete prior and decode through the frozen tokenizer."""
     raw_config = load_token_prior_yaml(config_path)
     prior, prior_config, _prior_checkpoint = load_trained_token_prior(prior_dir, device=device)
-    tokenizer, _tokenizer_config, _tokenizer_checkpoint = load_trained_tokenizer(
+    tokenizer, tokenizer_config, _tokenizer_checkpoint = load_trained_tokenizer(
         tokenizer_dir,
         device=device,
     )
@@ -248,7 +249,12 @@ def generate_discrete_samples(
     )
     if payload is None:
         raise SystemExit("S&P500/VIX paper-style evaluation requires conditional token data.")
-    conditions = payload["labels"].to(device)
+    prior_conditions = payload["labels"].to(device)
+    decoder_conditions = select_decoder_conditions(
+        payload,
+        tokenizer_condition_dim=tokenizer_config.condition_dim,
+        device=device,
+    )
     real_paths = payload["data"].to(device)
     real_tokens = payload["indices"].detach().cpu().long()
     set_seed(seed)
@@ -257,13 +263,14 @@ def generate_discrete_samples(
         device=device,
         temperature=temperature,
         top_k=top_k,
-        conditions=conditions,
+        conditions=prior_conditions,
     )
     quantized, decoded_paths = decode_token_indices(
         tokenizer,
         sampled_tokens,
-        conditions=conditions,
+        conditions=decoder_conditions,
     )
+    bucket_conditions = decoder_conditions if decoder_conditions is not None else prior_conditions
     sampled_tokens_cpu = sampled_tokens.detach().cpu()
     token_comparison: dict[str, Any]
     if real_tokens.ndim == 2 and sampled_tokens_cpu.ndim == 2:
@@ -292,7 +299,8 @@ def generate_discrete_samples(
         "prior_config": prior_config,
         "real_paths": real_paths.detach().cpu(),
         "decoded_paths": decoded_paths.detach().cpu(),
-        "conditions": conditions.detach().cpu(),
+        "conditions": bucket_conditions.detach().cpu(),
+        "prior_conditions": prior_conditions.detach().cpu(),
         "sampled_tokens": sampled_tokens_cpu,
         "real_tokens": real_tokens,
         "quantized": quantized.detach().cpu(),
@@ -301,7 +309,7 @@ def generate_discrete_samples(
             sampled_tokens=sampled_tokens.detach().cpu(),
             decoded_paths=decoded_paths.detach().cpu(),
             real_paths=real_paths.detach().cpu(),
-            conditions=conditions.detach().cpu(),
+            conditions=bucket_conditions.detach().cpu(),
             codebook_size=prior_config.codebook_size,
         ),
     }
