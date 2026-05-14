@@ -11,9 +11,12 @@ from typing import Any
 import numpy as np
 
 from time_causal_vae.evaluation.signature_features import (
+    DEFAULT_STANDARDIZATION_EPSILON,
     OptionalDependencyError,
     SignatureFeatureConfig,
+    apply_feature_standardization,
     compute_signature_feature_batch,
+    feature_standardization_statistics,
     metadata_to_dict,
 )
 
@@ -38,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--use-lead-lag", action="store_true")
     parser.add_argument("--include-time", action="store_true")
     parser.add_argument("--include-vix", action="store_true")
+    parser.add_argument(
+        "--standardize",
+        action="store_true",
+        help="Fit train-set feature mean/std and apply the transform to train and eval features.",
+    )
     parser.add_argument("--seed", type=int, default=99)
     parser.add_argument("--synthetic", action="store_true")
     return parser
@@ -77,6 +85,15 @@ def main() -> None:
     labels = data_payload["labels"]
     sample_indices = data_payload["sample_indices"]
     metadata = metadata_to_dict(feature_metadata)
+    standardization = build_standardization_payload(features, enabled=bool(args.standardize))
+    if args.standardize:
+        features = apply_feature_standardization(
+            features,
+            mean=standardization["mean"],
+            std=standardization["std"],
+        )
+    metadata["preprocessing"]["standardized"] = bool(args.standardize)
+    metadata["standardization"] = standardization_summary(standardization, features=features)
     common_npz_payload = {
         "features": features,
         "labels": labels,
@@ -85,12 +102,20 @@ def main() -> None:
     }
     np.savez_compressed(output_dir / "train_signature_features.npz", **common_npz_payload)
     np.savez_compressed(output_dir / "eval_signature_features.npz", **common_npz_payload)
+    if args.standardize:
+        np.savez_compressed(
+            output_dir / "signature_feature_standardization.npz",
+            mean=standardization["mean"],
+            std=standardization["std"],
+            epsilon=np.asarray([standardization["epsilon"]], dtype=np.float64),
+        )
 
     summary = success_summary(
         args,
         data_payload=data_payload,
         metadata=metadata,
         features=features,
+        standardization=standardization,
         elapsed_seconds=elapsed,
     )
     write_summary_files(output_dir, summary)
@@ -99,6 +124,7 @@ def main() -> None:
     print(f"output_dir: {output_dir}")
     print(f"features_shape: {list(features.shape)}")
     print(f"finite: {summary['finite']}")
+    print(f"standardized: {summary['standardization']['enabled']}")
     print("files: train_signature_features.npz, eval_signature_features.npz")
 
 
@@ -220,15 +246,83 @@ def historical_context(series: np.ndarray, target_start: int, context_length: in
     return context.astype(np.float64, copy=False)
 
 
+def build_standardization_payload(
+    train_features: np.ndarray,
+    *,
+    enabled: bool,
+) -> dict[str, Any]:
+    """Build fitted standardisation statistics from train features."""
+    if not enabled:
+        return {
+            "enabled": False,
+            "epsilon": DEFAULT_STANDARDIZATION_EPSILON,
+            "mean": np.empty((0,), dtype=np.float64),
+            "std": np.empty((0,), dtype=np.float64),
+        }
+    mean, std = feature_standardization_statistics(
+        train_features,
+        epsilon=DEFAULT_STANDARDIZATION_EPSILON,
+    )
+    return {
+        "enabled": True,
+        "epsilon": DEFAULT_STANDARDIZATION_EPSILON,
+        "mean": mean,
+        "std": std,
+    }
+
+
+def standardization_summary(
+    standardization: dict[str, Any],
+    *,
+    features: np.ndarray,
+) -> dict[str, Any]:
+    """Return JSON-safe standardisation metadata."""
+    enabled = bool(standardization["enabled"])
+    summary: dict[str, Any] = {
+        "enabled": enabled,
+        "epsilon": float(standardization["epsilon"]),
+        "fit_split": "train",
+        "applied_to": ["train", "eval"] if enabled else [],
+    }
+    if not enabled:
+        return summary
+    mean = np.asarray(standardization["mean"], dtype=np.float64)
+    std = np.asarray(standardization["std"], dtype=np.float64)
+    summary.update(
+        {
+            "stats_file": "signature_feature_standardization.npz",
+            "mean_shape": list(mean.shape),
+            "std_shape": list(std.shape),
+            "mean_abs_max": float(np.max(np.abs(mean))),
+            "std_min": float(np.min(std)),
+            "std_max": float(np.max(std)),
+            "post_transform_mean_abs_max": float(np.max(np.abs(np.mean(features, axis=0)))),
+            "post_transform_std_min": float(np.min(np.std(features, axis=0))),
+            "post_transform_std_max": float(np.max(np.std(features, axis=0))),
+        }
+    )
+    return summary
+
+
 def success_summary(
     args: argparse.Namespace,
     *,
     data_payload: dict[str, Any],
     metadata: dict[str, Any],
     features: np.ndarray,
+    standardization: dict[str, Any],
     elapsed_seconds: float,
 ) -> dict[str, Any]:
     """Build a successful extraction summary."""
+    standardization_metadata = standardization_summary(standardization, features=features)
+    outputs = [
+        "train_signature_features.npz",
+        "eval_signature_features.npz",
+        "signature_feature_summary.json",
+        "signature_feature_summary.md",
+    ]
+    if standardization_metadata["enabled"]:
+        outputs.append("signature_feature_standardization.npz")
     return {
         "status": "success",
         "dataset": args.dataset,
@@ -245,14 +339,10 @@ def success_summary(
         "sample_count": int(features.shape[0]),
         "finite": bool(np.isfinite(features).all()),
         "metadata": metadata,
+        "standardization": standardization_metadata,
         "padding": data_payload["padding"],
         "elapsed_seconds": elapsed_seconds,
-        "outputs": [
-            "train_signature_features.npz",
-            "eval_signature_features.npz",
-            "signature_feature_summary.json",
-            "signature_feature_summary.md",
-        ],
+        "outputs": outputs,
     }
 
 
@@ -272,6 +362,10 @@ def missing_dependency_summary(
         "lead_lag": bool(args.use_lead_lag),
         "include_time": bool(args.include_time),
         "include_vix": bool(args.include_vix),
+        "standardization": {
+            "enabled": bool(getattr(args, "standardize", False)),
+            "fit_split": "train",
+        },
         "seed": args.seed,
         "iisignature_installed": False,
         "message": message,
@@ -308,6 +402,7 @@ def summary_to_markdown(summary: dict[str, Any]) -> str:
         f"- Lead-lag: `{summary['lead_lag']}`",
         f"- Include time: `{summary['include_time']}`",
         f"- Include VIX: `{summary['include_vix']}`",
+        f"- Standardized: `{summary['standardization']['enabled']}`",
         f"- Seed: `{summary['seed']}`",
     ]
     if summary["status"] == "success":

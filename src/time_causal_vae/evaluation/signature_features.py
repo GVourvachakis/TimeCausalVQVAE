@@ -19,6 +19,7 @@ IISIGNATURE_INSTALL_HINT = (
     "default. In a temporary or opt-in environment, install NumPy first and then try: "
     "pip install iisignature --no-build-isolation"
 )
+DEFAULT_STANDARDIZATION_EPSILON = 1e-8
 
 
 class OptionalDependencyError(ImportError):
@@ -254,6 +255,56 @@ def compute_signature_feature_batch(
         package_version=iisignature_version(),
     )
     return feature_matrix, metadata_obj
+
+
+def feature_standardization_statistics(
+    train_features: np.ndarray,
+    *,
+    epsilon: float = DEFAULT_STANDARDIZATION_EPSILON,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return guarded train-set mean and standard deviation for feature scaling."""
+    features = validate_feature_matrix(train_features, name="train_features")
+    mean = features.mean(axis=0)
+    std = features.std(axis=0)
+    guarded_std = np.where(std < epsilon, 1.0, std)
+    return mean.astype(np.float64, copy=False), guarded_std.astype(np.float64, copy=False)
+
+
+def apply_feature_standardization(
+    features: np.ndarray,
+    *,
+    mean: np.ndarray,
+    std: np.ndarray,
+) -> np.ndarray:
+    """Apply fitted feature standardisation statistics to a feature matrix."""
+    feature_matrix = validate_feature_matrix(features, name="features")
+    mean_vector = as_1d_float_array(mean, name="mean")
+    std_vector = as_1d_float_array(std, name="std")
+    if mean_vector.shape[0] != feature_matrix.shape[1]:
+        raise ValueError("mean length must match feature dimension.")
+    if std_vector.shape[0] != feature_matrix.shape[1]:
+        raise ValueError("std length must match feature dimension.")
+    if (std_vector <= 0.0).any():
+        raise ValueError("std values must be strictly positive.")
+    standardized = np.asarray(
+        (feature_matrix - mean_vector[None, :]) / std_vector[None, :],
+        dtype=np.float64,
+    )
+    if not np.isfinite(standardized).all():
+        raise ValueError("standardized features contain non-finite values.")
+    return standardized.astype(np.float64, copy=False)
+
+
+def validate_feature_matrix(features: np.ndarray, *, name: str) -> np.ndarray:
+    """Return ``features`` as a finite `[sample, feature]` float64 matrix."""
+    array = np.asarray(features, dtype=np.float64)
+    if array.ndim != 2:
+        raise ValueError(f"{name} must have shape [sample, feature].")
+    if array.shape[0] == 0 or array.shape[1] == 0:
+        raise ValueError(f"{name} must have positive sample and feature dimensions.")
+    if not np.isfinite(array).all():
+        raise ValueError(f"{name} contains non-finite values.")
+    return array
 
 
 def validate_context_batch(contexts: np.ndarray, *, name: str) -> np.ndarray:

@@ -1,0 +1,34 @@
+experiment:
+  name: sp500_vix_causal_token_prior_additive_logsig_l3_ctx20_std
+  dataset: sp500_vix
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_codebook64dim16_seed0
+  token_data_dir: outputs/sp500_vix_discrete/token_prior/tokens_codebook64_codebookdim16
+  base_data_dir: data/processed
+  condition_feature_dir: outputs/sp500_vix_discrete/signature_features/logsig_l3_ctx20_std
+  condition_feature_train_file: train_signature_features.npz
+  condition_feature_eval_file: eval_signature_features.npz
+  condition_feature_key: features
+
+model:
+  family: causal_token_prior
+  codebook_size: 64
+  sequence_length: 60
+  token_embedding_dim: 128
+  num_layers: 4
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+  condition_dim: 386
+  condition_injection: additive
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 256
+  eval_batch_size: 256
+  epochs: 100
