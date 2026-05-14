@@ -195,3 +195,16 @@ Current status:
   selection study around the original seed-0 training path;
 - add the planned evaluation-only signature-kernel metric before reconsidering
   promotion.
+
+## Infrastructure and Telemetry Execution Profile
+
+- **W&B Integration Status:** Executed with `--no-wandb` with offline
+  `WANDB_MODE=offline` fallback verified.
+- **Bypass Strategy:** Sandboxed local loopback constraints
+  (`socket: operation not permitted`) and upstream connection timeouts
+  (`CommError`) require completely decoupling runtime metrics from active
+  internet tracking.
+- **Telemetry Verification:** Real-time metrics and training/evaluation charts
+  are verified as locally inspectable via file logs or the local browser
+  interface through the `poetry run wandb board wandb/latest-run` background
+  utility.
