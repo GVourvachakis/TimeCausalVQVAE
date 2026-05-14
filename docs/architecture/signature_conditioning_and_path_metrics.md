@@ -29,6 +29,16 @@ The following ideas are deferred:
 These items should remain future work unless a measured failure mode of the promoted standard VQ
 path requires them.
 
+Current decision after the first non-smoke signature-conditioning grid: keep the standard VQ
+tokenizer plus additive VIX-only causal AR prior as the promoted public baseline, using
+`temperature=0.8` and `top_k=40` for market-calibrated sampling. The implemented log-signature
+conditioning path remains an ablation. It uses historical context paths, lead-lag transforms,
+optional `iisignature` log-signature features, and concatenation with scalar VIX through the same
+additive condition embedding. The grid was promising but mixed: VIX-only retained the best decoded
+MMD, `logsig_l2_ctx20` gave the best SWD, and depth-3 log-signature variants improved terminal and
+volatility Wasserstein distances plus token-space diagnostics. No signature-conditioned prior,
+Gumbel-Softmax relaxation, or signature-kernel objective is promoted yet.
+
 ## 2. Motivation
 
 Market generators should be compared on path-level distributions rather than only pointwise errors.
