@@ -14,6 +14,60 @@ keys in compact docstrings rather than duplicating full bibliographic text.
 conditional PDV and S&P500/VIX benchmarks, financial evaluation protocol.
 **Not used for:** RealNVP prior in the promoted public discrete-token baseline.
 
+### [market_generators_2026]
+
+**Title:** Market Generators: A Paradigm Shift in Financial Modeling  
+**Link:** [Springer DOI 10.1007/978-3-031-97239-3\_4](https://doi.org/10.1007/978-3-031-97239-3_4)  
+**Used for:** market-generator motivation, path-wise evaluation, conditioning discussion, and
+signature-kernel-backed performance-evaluation context.  
+**Not used for:** implementation code or dependency choices.
+
+## Path signatures and signature kernels
+
+### [signatory_2021]
+
+**Title:** Signatory: differentiable computations of the signature and logsignature transforms, on
+both CPU and GPU  
+**Link:** [arXiv:2001.00706](https://arxiv.org/abs/2001.00706)  
+**Code:** [github.com/patrick-kidger/signatory](https://github.com/patrick-kidger/signatory)  
+**Used for:** future signature and log-signature feature-extraction background.  
+**Not used for:** current dependencies; compatibility with the current Python/PyTorch environment
+must be tested before use.
+
+### [iisignature_2020]
+
+**Title:** Algorithm 1004: The iisignature Library: Efficient Calculation of Iterated-Integral
+Signatures and Log Signatures  
+**Link:** [ACM DOI 10.1145/3371237](https://doi.org/10.1145/3371237)  
+**Code:** [github.com/bottler/iisignature](https://github.com/bottler/iisignature)  
+**Used for:** CPU-oriented signature and log-signature package inspection.  
+**Not used for:** current dependencies or GPU assumptions.
+
+### [signature_kernel_goursat_pde_2021]
+
+**Title:** The Signature Kernel is the solution of a Goursat PDE  
+**Link:** [arXiv:2006.14794](https://arxiv.org/abs/2006.14794)  
+**Code:** [github.com/crispitagorico/sigkernel](https://github.com/crispitagorico/sigkernel)  
+**Used for:** future evaluation-only signature-kernel distances, MMD, and path-space scoring-rule
+background.  
+**Not used for:** current training objectives or dependencies.
+
+### [ksig_2025]
+
+**Title:** A User's Guide to KSig: GPU-Accelerated Computation of the Signature Kernel  
+**Link:** [arXiv:2501.07145](https://arxiv.org/abs/2501.07145)  
+**Code:** [github.com/tgcsaba/KSig](https://github.com/tgcsaba/KSig)  
+**Used for:** candidate signature-kernel package inspection and possible numerical cross-checks.  
+**Not used for:** current dependencies.
+
+### [signature_kernel_scores_neuralsde_2023]
+
+**Title:** Non-adversarial training of Neural SDEs with signature kernel scores  
+**Link:** [NeurIPS 2023 proceedings](https://papers.nips.cc/paper_files/paper/2023/hash/2460396f2d0d421885997dd1612ac56b-Abstract-Conference.html)  
+**Used for:** future background on objective-level signature-kernel scoring rules for path-space
+generators.  
+**Not used for:** the current hard-token VQ prior objective.
+
 ## Vector-quantized representations
 
 ### [vqvae_2017]
