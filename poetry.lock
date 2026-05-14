@@ -1343,6 +1343,30 @@ files = [
 all = ["mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
+name = "iisignature"
+version = "0.24"
+description = "Iterated integral signature calculations"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "iisignature-0.24-cp35-cp35m-win32.whl", hash = "sha256:01ef1af1112a173329d0f7b160cc1da6458303a1d85ffaf70367e6f6d75b5f1e"},
+    {file = "iisignature-0.24-cp35-cp35m-win_amd64.whl", hash = "sha256:aa7d3c033b71fb14c66ef361084ec7792a60586aa569e9cb7db8419a03ba4bb5"},
+    {file = "iisignature-0.24-cp36-cp36m-win32.whl", hash = "sha256:0770ae52ec4280b524153afa44f268b21924cabd6cbb5a95d86370121f417abc"},
+    {file = "iisignature-0.24-cp36-cp36m-win_amd64.whl", hash = "sha256:d86c5f7e700870bedae06024ecbe384176cef9052e9496330a2b73a76ec34d1e"},
+    {file = "iisignature-0.24-cp37-cp37m-win32.whl", hash = "sha256:574c06376ca414187ff76812ddbf5e607bd9ae1583e0c62ba9904ded1389ed04"},
+    {file = "iisignature-0.24-cp37-cp37m-win_amd64.whl", hash = "sha256:b26348ec96f25932f2154f81039b7fa3028b6a33e25ebc3c5c43cc9f2694edcb"},
+    {file = "iisignature-0.24-cp38-cp38-win32.whl", hash = "sha256:e99c58e07016693d5a10a519dbc62444fd4b216dac23c5a74d71c51784d72288"},
+    {file = "iisignature-0.24-cp38-cp38-win_amd64.whl", hash = "sha256:ae10a1f77e40f1eae79e2372386d95fd6c88f4ef7d4ee915885b3bb518b4e489"},
+    {file = "iisignature-0.24-cp39-cp39-win32.whl", hash = "sha256:b35ffd09d9d56de86a8293aade71ebff8f69e7146dc8d1da40523e47b4da35a6"},
+    {file = "iisignature-0.24-cp39-cp39-win_amd64.whl", hash = "sha256:98bfbf29930b9e59dd4bffbe9cd9a605907a08df4fbe2356ae33368e51f27c35"},
+    {file = "iisignature-0.24.tar.gz", hash = "sha256:0b9314c6e8b80487faf323191fb35986ad4226e86b0c67cf0a3b2939b695b9c6"},
+]
+
+[package.dependencies]
+numpy = ">1.7"
+
+[[package]]
 name = "ipykernel"
 version = "6.31.0"
 description = "IPython Kernel for Jupyter"
@@ -5083,4 +5107,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "191f6bb7f32e077fc9120d1e816705af8abfe9dad69b744666645461d1be86fb"
+content-hash = "b2bf9aaf471eeaf3657dda1e6de19ea82ffa992176bdc89cf9e49ad9d03820fb"
