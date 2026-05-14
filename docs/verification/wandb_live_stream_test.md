@@ -14,13 +14,16 @@ The validated live configuration is:
 
 ```bash
 unset WANDB_MODE
+export MPLBACKEND=Agg
 export WANDB_DISABLE_SERVICE=true
 export WANDB_START_METHOD=thread
 ```
 
-`WANDB_DISABLE_SERVICE=true` bypasses the local W&B background service daemon.
-`WANDB_START_METHOD=thread` keeps telemetry in process threads. `WANDB_MODE`
-must be unset for live cloud streaming.
+`MPLBACKEND=Agg` forces Matplotlib onto a headless raster backend and avoids
+Tkinter/Tcl cleanup from W&B telemetry threads. `WANDB_DISABLE_SERVICE=true`
+bypasses the local W&B background service daemon. `WANDB_START_METHOD=thread`
+keeps telemetry in process threads. `WANDB_MODE` must be unset for live cloud
+streaming.
 
 ## Diagnostic Command
 
@@ -40,6 +43,12 @@ env -u WANDB_MODE WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread poetry ru
 The same command inside the restricted sandbox reached W&B initialisation but
 entered a network retry loop with `ConnectionError`. Re-running the same command
 with network access succeeded.
+
+Subsequent non-smoke token-prior runs should use the stricter headless form:
+
+```bash
+env -u WANDB_MODE MPLBACKEND=Agg WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread poetry run tcvae-train-token-prior ...
+```
 
 ## Result
 
@@ -61,6 +70,25 @@ W&B reported that it synced five W&B files, two artifact files, and no media
 files. The run printed a live dashboard URL and completed without entering
 offline mode.
 
+## Non-Smoke Headless Validation
+
+The first 100-epoch live token-prior run with `MPLBACKEND=Agg` completed
+successfully:
+
+```text
+https://wandb.ai/tc_vae/time-causal-token-prior/runs/0nlg30io
+```
+
+It used:
+
+```bash
+env -u WANDB_MODE MPLBACKEND=Agg WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread poetry run tcvae-train-token-prior ...
+```
+
+The run completed epoch 100 without `Tcl_AsyncDelete` or Tkinter shutdown
+errors, confirming that future non-smoke live W&B runs should always include
+the headless Matplotlib backend.
+
 ## Runner Update
 
 `scripts/run_sp500_vix_signature_conditioning_ablation.py` now applies the live
@@ -73,3 +101,6 @@ configuration to W&B-enabled subprocesses:
 
 This makes subsequent multi-config ablation runs use live dashboard telemetry
 without requiring `WANDB_MODE=offline`.
+
+For runner invocations, set `MPLBACKEND=Agg` in the parent shell before calling
+the runner so every subprocess inherits the headless backend.

@@ -21,13 +21,21 @@ The requested pre-flight checks gave the following result:
 | `WANDB_MODE=offline` | Failed with the same local socket error. |
 | `WANDB_DISABLE_SERVICE=true WANDB_MODE=offline` | Succeeded for offline logging only. |
 | `WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread`, with `WANDB_MODE` unset | Succeeded for live cloud streaming when the process had network access. |
+| `MPLBACKEND=Agg WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread`, with `WANDB_MODE` unset | Succeeded for a 100-epoch live non-smoke run and avoided Tcl/Tk rendering crashes. |
 
 Future live non-smoke runs in this environment should therefore use:
 
 ```bash
+export MPLBACKEND=Agg
 export WANDB_DISABLE_SERVICE=true
 export WANDB_START_METHOD=thread
 unset WANDB_MODE
+```
+
+Use the equivalent inline form for command logs:
+
+```bash
+env -u WANDB_MODE MPLBACKEND=Agg WANDB_DISABLE_SERVICE=true WANDB_START_METHOD=thread poetry run ...
 ```
 
 The intended W&B project and entity remain:
@@ -107,7 +115,9 @@ When `--wandb` is enabled, the runner passes:
 In this socket-restricted environment, the runner also defaults W&B-enabled
 subprocesses to `WANDB_DISABLE_SERVICE=true` and `WANDB_START_METHOD=thread`,
 and removes `WANDB_MODE` from the subprocess environment so live cloud tracking
-is not silently downgraded to offline mode.
+is not silently downgraded to offline mode. Export `MPLBACKEND=Agg` in the
+parent shell before invoking the runner so training and evaluation subprocesses
+inherit the headless Matplotlib backend.
 
 ## Dry Run
 
@@ -150,4 +160,5 @@ These aggregate files are generated verification artefacts and are not committed
 
 The setup is ready for the next non-smoke ablation stage. The next run should
 compare depth `2` and `3` at context lengths `10` and `20`, with W&B live
-streaming through service disablement plus threaded start mode.
+streaming through headless Matplotlib rendering, service disablement, and
+threaded start mode.
