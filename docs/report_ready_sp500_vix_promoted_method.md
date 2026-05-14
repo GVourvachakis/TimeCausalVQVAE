@@ -9,10 +9,10 @@ cross-attention, GroupedRVQ, and MGVQ are not part of the final method.
 
 ## Notebooks
 
-- `notebooks/sp500_vix.ipynb`: final S&P500/VIX promoted-method notebook. It checks the
+- `notebooks/discrete/sp500_vix.ipynb`: final S&P500/VIX promoted-method notebook. It checks the
   tokenizer, token data, latent geometry, additive-prior, and paper-style output paths; displays
   report figure manifests; and prints the exact paper-style evaluation command.
-- `notebooks/discrete_latent_geometry_demo.ipynb`: lightweight latent-geometry inspection
+- `notebooks/discrete/discrete_latent_geometry_demo.ipynb`: lightweight latent-geometry inspection
   notebook. The default preset is standard VQ; `rvq_q2` is available only for the ablation.
 
 Both notebooks should remain output-stripped in Git. Generated PNGs, tensors, JSON summaries, and

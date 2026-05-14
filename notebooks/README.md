@@ -1,24 +1,45 @@
-# Notebook Guidance
+# Notebook Guide
 
-Notebooks are demonstrative only. The canonical workflow is the CLI/script route in the
-repository README.
+The notebooks are organised by demonstration role.
 
-Kept notebooks:
+## `continuous/`
+
+Refactored continuous TC-VAE baseline demos. These notebooks show the selected continuous config,
+print dry-run training and evaluation commands, and avoid released-checkpoint requirements by
+default.
 
 - `black_scholes.ipynb`
-- `discrete_latent_geometry_demo.ipynb`
 - `heston.ipynb`
 - `pdv.ipynb`
 - `sp500_vix.ipynb`
 
-These notebooks should stay output-stripped and should not contain generated figures,
-checkpoints, or local data. Generated artefacts belong under ignored `outputs/` paths.
+## `discrete/`
 
-`sp500_vix.ipynb` is the final promoted-method notebook for the S&P500/VIX report workflow. It
-centres the standard causal VQ tokenizer and additive scalar-conditioned causal AR prior, with
-continuous TC-VAE outputs as optional reference artefacts only.
+TC-VQVAE discrete-latent demos. The S&P500/VIX notebook is the promoted public method demo:
+standard causal VQ tokenizer, additive scalar-conditioned causal AR prior, paper-style diagnostics,
+and latent-geometry diagnostics. RVQ q2 remains ablation/future evidence only.
 
-`discrete_latent_geometry_demo.ipynb` is a lightweight inspection notebook for the CLI-generated
-latent-geometry summaries and plots. It defaults to the promoted standard VQ preset, includes an
-RVQ q2 ablation preset, and prints setup instructions when tokenizer or token-data artefacts are
-absent.
+- `black_scholes.ipynb`
+- `heston.ipynb`
+- `pdv.ipynb`
+- `sp500_vix.ipynb`
+- `discrete_latent_geometry_demo.ipynb`
+
+## `report/`
+
+Report-specific figure notebooks. These read figures from ignored `outputs/` paths and do not
+train models by default.
+
+- `sp500_vix_report_figures.ipynb`
+
+## Output Policy
+
+Committed notebooks should remain output-stripped. Generated figures, executed notebooks,
+checkpoints, tensors, JSON summaries, logs, and local data belong under ignored `outputs/` or
+`data/processed/` paths.
+
+The S&P500/VIX data file is local and is not committed:
+
+```text
+data/processed/sp500vix/sp500vix_normalized.npy
+```
