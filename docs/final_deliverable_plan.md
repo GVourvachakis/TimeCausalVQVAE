@@ -215,8 +215,8 @@ Paper-style generated-path figures:
 
 Required notebooks:
 
-- `notebooks/sp500_vix.ipynb`.
-- `notebooks/discrete_latent_geometry_demo.ipynb`.
+- `notebooks/discrete/sp500_vix.ipynb`.
+- `notebooks/discrete/discrete_latent_geometry_demo.ipynb`.
 
 Notebook roles:
 
@@ -293,13 +293,13 @@ directory.
 ```bash
 poetry run jupyter nbconvert \
   --to notebook \
-  --execute notebooks/sp500_vix.ipynb \
+  --execute notebooks/discrete/sp500_vix.ipynb \
   --output-dir outputs/notebook_checks \
   --output sp500_vix.executed.ipynb
 
 poetry run jupyter nbconvert \
   --to notebook \
-  --execute notebooks/discrete_latent_geometry_demo.ipynb \
+  --execute notebooks/discrete/discrete_latent_geometry_demo.ipynb \
   --output-dir outputs/notebook_checks \
   --output discrete_latent_geometry_demo.executed.ipynb
 ```
