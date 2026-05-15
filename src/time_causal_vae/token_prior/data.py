@@ -13,7 +13,10 @@ import yaml
 from torch import Tensor
 
 from time_causal_vae.data.base import BaseDataset
-from time_causal_vae.data.frequency import causal_ema_frequency_channels
+from time_causal_vae.data.frequency import (
+    causal_ema_frequency_transform,
+    normalise_frequency_component,
+)
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.evaluation.tokenizer import load_trained_tokenizer, summarise_code_usage
 from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
@@ -80,6 +83,11 @@ def frequency_decomposition(data_config: Mapping[str, Any]) -> str | None:
     return "ema"
 
 
+def frequency_component(data_config: Mapping[str, Any]) -> str | None:
+    """Return the optional tokenizer data frequency component selector."""
+    return normalise_frequency_component(data_config.get("frequency_component"))
+
+
 def apply_frequency_decomposition(
     dataset: BaseDataset,
     data_config: Mapping[str, Any],
@@ -88,7 +96,11 @@ def apply_frequency_decomposition(
     if frequency_decomposition(data_config) is None:
         return dataset
     alpha = float(data_config.get("ema_alpha", 0.2))
-    transformed = causal_ema_frequency_channels(dataset.data, alpha)
+    transformed = causal_ema_frequency_transform(
+        dataset.data,
+        alpha,
+        component=frequency_component(data_config),
+    )
     return BaseDataset(transformed, dataset.labels)
 
 

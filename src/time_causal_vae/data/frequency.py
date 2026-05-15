@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import math
-from typing import TypeAlias
+from typing import Literal, TypeAlias, cast
 
 import torch
 from torch import Tensor
 
 Alpha: TypeAlias = float | int
+FrequencyComponent: TypeAlias = Literal["low", "high"]
 
 
 def causal_ema(path: Tensor, alpha: Alpha) -> Tensor:
@@ -60,6 +61,51 @@ def causal_ema_frequency_channels(path: Tensor, alpha: Alpha) -> Tensor:
         )
     low, high = causal_ema_decompose(path, alpha)
     return torch.cat([low, high], dim=-1)
+
+
+def causal_ema_frequency_component(
+    path: Tensor,
+    alpha: Alpha,
+    component: FrequencyComponent,
+) -> Tensor:
+    """Return one causal EMA frequency component for one-channel paths."""
+    channels = causal_ema_frequency_channels(path, alpha)
+    low, high = split_low_high_channels(channels)
+    if component == "low":
+        return low
+    if component == "high":
+        return high
+    raise ValueError(f"frequency component must be 'low' or 'high'; got {component!r}.")
+
+
+def causal_ema_frequency_transform(
+    path: Tensor,
+    alpha: Alpha,
+    component: str | None = None,
+) -> Tensor:
+    """Return joint or component-specific causal EMA frequency data.
+
+    When ``component`` is ``None``, this preserves the existing joint-tokenizer
+    behaviour and returns ``[low, high]`` channels. When it is ``low`` or
+    ``high``, the returned tensor keeps the one-channel ``[batch, time, 1]``
+    shape required by separate tokenizers.
+    """
+    selected = normalise_frequency_component(component)
+    if selected is None:
+        return causal_ema_frequency_channels(path, alpha)
+    return causal_ema_frequency_component(path, alpha, selected)
+
+
+def normalise_frequency_component(value: object) -> FrequencyComponent | None:
+    """Normalise an optional frequency component config value."""
+    if value is None:
+        return None
+    text = str(value).lower()
+    if text in {"none", "null", "both", "joint", "all"}:
+        return None
+    if text in {"low", "high"}:
+        return cast(FrequencyComponent, text)
+    raise ValueError(f"data.frequency_component must be null, 'low', or 'high'; got {value!r}.")
 
 
 def split_low_high_channels(channels: Tensor) -> tuple[Tensor, Tensor]:

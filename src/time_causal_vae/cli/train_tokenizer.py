@@ -18,7 +18,10 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
-from time_causal_vae.data.frequency import causal_ema_frequency_channels
+from time_causal_vae.data.frequency import (
+    causal_ema_frequency_transform,
+    normalise_frequency_component,
+)
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.random import set_seed
@@ -222,12 +225,19 @@ def build_tokenizer_config(run_config: Mapping[str, Any]) -> VQTokenizerConfig:
     """Build the model config for the causal VQ tokenizer."""
     model_config = cast(Mapping[str, Any], run_config["model"])
     data_config = cast(Mapping[str, Any], run_config["data"])
-    expected_data_dim = (
-        2 if frequency_decomposition(data_config) == "ema" else data_config["data_dim"]
-    )
+    decomposition = frequency_decomposition(data_config)
+    component = frequency_component(data_config)
+    if decomposition == "ema":
+        expected_data_dim = 1 if component is not None else 2
+    else:
+        expected_data_dim = int(data_config["data_dim"])
     data_dim = int(model_config.get("data_dim", expected_data_dim))
-    if frequency_decomposition(data_config) == "ema" and data_dim != 2:
-        raise SystemExit("EMA frequency tokenizers require model.data_dim=2.")
+    if decomposition == "ema" and data_dim != expected_data_dim:
+        component_text = "joint" if component is None else component
+        raise SystemExit(
+            "EMA frequency tokenizers require "
+            f"model.data_dim={expected_data_dim} for component={component_text!r}."
+        )
     return VQTokenizerConfig(
         data_dim=data_dim,
         data_length=int(model_config.get("data_length", data_config["n_timesteps"])),
@@ -285,6 +295,14 @@ def frequency_decomposition(data_config: Mapping[str, Any]) -> str | None:
     return "ema"
 
 
+def frequency_component(data_config: Mapping[str, Any]) -> str | None:
+    """Return the optional EMA frequency component selector."""
+    try:
+        return normalise_frequency_component(data_config.get("frequency_component"))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
 def apply_frequency_decomposition(
     dataset: BaseDataset,
     data_config: Mapping[str, Any],
@@ -293,7 +311,11 @@ def apply_frequency_decomposition(
     if frequency_decomposition(data_config) is None:
         return dataset
     alpha = float(data_config.get("ema_alpha", 0.2))
-    transformed = causal_ema_frequency_channels(dataset.data, alpha)
+    transformed = causal_ema_frequency_transform(
+        dataset.data,
+        alpha,
+        component=frequency_component(data_config),
+    )
     return BaseDataset(transformed, dataset.labels)
 
 

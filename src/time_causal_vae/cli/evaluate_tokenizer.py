@@ -12,7 +12,11 @@ import torch
 import yaml
 
 from time_causal_vae.data.base import BaseDataset
-from time_causal_vae.data.frequency import causal_ema_frequency_channels, compose_frequency_channels
+from time_causal_vae.data.frequency import (
+    causal_ema_frequency_transform,
+    compose_frequency_channels,
+    normalise_frequency_component,
+)
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.evaluation.tokenizer import (
     compute_frequency_reconstruction_metrics,
@@ -286,6 +290,14 @@ def frequency_decomposition(data_config: Mapping[str, Any]) -> str | None:
     return "ema"
 
 
+def frequency_component(data_config: Mapping[str, Any]) -> str | None:
+    """Return the optional EMA frequency component selector."""
+    try:
+        return normalise_frequency_component(data_config.get("frequency_component"))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+
+
 def apply_frequency_decomposition(
     dataset: BaseDataset,
     data_config: Mapping[str, Any],
@@ -294,14 +306,20 @@ def apply_frequency_decomposition(
     if frequency_decomposition(data_config) is None:
         return dataset
     alpha = float(data_config.get("ema_alpha", 0.2))
-    transformed = causal_ema_frequency_channels(dataset.data, alpha)
+    transformed = causal_ema_frequency_transform(
+        dataset.data,
+        alpha,
+        component=frequency_component(data_config),
+    )
     return BaseDataset(transformed, dataset.labels)
 
 
 def should_compose_output(data_config: Mapping[str, Any]) -> bool:
     """Return whether frequency tokenizer outputs should be composed for evaluation."""
-    return frequency_decomposition(data_config) == "ema" and bool(
-        data_config.get("compose_output", True)
+    return (
+        frequency_decomposition(data_config) == "ema"
+        and frequency_component(data_config) is None
+        and bool(data_config.get("compose_output", True))
     )
 
 
