@@ -137,4 +137,3 @@ Recommended next action:
 - run one more hidden128 prior seed only if the next branch needs stronger seed-level confidence;
 - do not switch to another tokenizer, GroupedRVQ, MGVQ, or signatures before closing this
   standard-VQ robustness decision.
-
