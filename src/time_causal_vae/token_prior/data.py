@@ -13,6 +13,7 @@ import yaml
 from torch import Tensor
 
 from time_causal_vae.data.base import BaseDataset
+from time_causal_vae.data.frequency import causal_ema_frequency_channels
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.evaluation.tokenizer import load_trained_tokenizer, summarise_code_usage
 from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
@@ -49,7 +50,11 @@ def build_tokenizer_datasets(
     exp_config.data_params = dict(cast(Mapping[str, Any], data.get("data_params", {})))
     if "rho" in data:
         exp_config.rho = data["rho"]
-    return cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+    train_dataset, eval_dataset = cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+    return (
+        apply_frequency_decomposition(train_dataset, data),
+        apply_frequency_decomposition(eval_dataset, data),
+    )
 
 
 def require_mapping(raw_config: Mapping[str, Any], key: str) -> dict[str, Any]:
@@ -58,6 +63,33 @@ def require_mapping(raw_config: Mapping[str, Any], key: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"Tokenizer config requires a mapping section named {key!r}.")
     return cast(dict[str, Any], value)
+
+
+def frequency_decomposition(data_config: Mapping[str, Any]) -> str | None:
+    """Return the optional tokenizer data frequency decomposition mode."""
+    value = data_config.get("frequency_decomposition")
+    if value is None:
+        return None
+    if str(value).lower() in {"none", "null"}:
+        return None
+    if str(value).lower() != "ema":
+        raise ValueError(
+            "data.frequency_decomposition must be null or 'ema'; "
+            f"got {data_config.get('frequency_decomposition')!r}."
+        )
+    return "ema"
+
+
+def apply_frequency_decomposition(
+    dataset: BaseDataset,
+    data_config: Mapping[str, Any],
+) -> BaseDataset:
+    """Apply optional causal frequency decomposition before token extraction."""
+    if frequency_decomposition(data_config) is None:
+        return dataset
+    alpha = float(data_config.get("ema_alpha", 0.2))
+    transformed = causal_ema_frequency_channels(dataset.data, alpha)
+    return BaseDataset(transformed, dataset.labels)
 
 
 def load_frozen_tokenizer(

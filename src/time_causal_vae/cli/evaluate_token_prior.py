@@ -12,6 +12,7 @@ import torch
 import yaml
 
 from time_causal_vae.data.base import BaseDataset
+from time_causal_vae.data.frequency import compose_frequency_channels
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.evaluation.token_diagnostics import (
     compare_token_sequences,
@@ -87,10 +88,11 @@ def main() -> None:
     device = select_device(args.device)
     raw_config = load_token_prior_yaml(args.config)
     prior, prior_config, _prior_checkpoint = load_trained_token_prior(prior_dir, device=device)
-    tokenizer, tokenizer_config, _tokenizer_checkpoint = load_trained_tokenizer(
+    tokenizer, tokenizer_config, tokenizer_checkpoint = load_trained_tokenizer(
         tokenizer_dir,
         device=device,
     )
+    tokenizer_data_config = tokenizer_frequency_data_config(tokenizer_checkpoint)
     freeze_tokenizer(tokenizer)
     conditional_payload = load_conditional_eval_payload(
         raw_config,
@@ -126,6 +128,9 @@ def main() -> None:
         sampled_tokens,
         conditions=sample_conditions,
     )
+    if should_compose_frequency_output(tokenizer_data_config):
+        decoded_paths = compose_if_frequency_channels(decoded_paths)
+        real_paths = compose_if_frequency_channels(real_paths)
     metrics = compute_token_prior_sample_metrics(
         sampled_tokens=sampled_tokens,
         decoded_paths=decoded_paths,
@@ -363,6 +368,39 @@ def require_mapping(raw_config: Mapping[str, Any], key: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SystemExit(f"Token-prior config requires a mapping section named {key!r}.")
     return cast(dict[str, Any], value)
+
+
+def tokenizer_frequency_data_config(tokenizer_checkpoint: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return the tokenizer training data config if it was persisted."""
+    training_config = tokenizer_checkpoint.get("training_config")
+    if not isinstance(training_config, Mapping):
+        return {}
+    data_config = training_config.get("data")
+    if not isinstance(data_config, Mapping):
+        return {}
+    return data_config
+
+
+def should_compose_frequency_output(data_config: Mapping[str, Any]) -> bool:
+    """Return whether decoded tokenizer outputs should be composed."""
+    decomposition = data_config.get("frequency_decomposition")
+    if decomposition is None or str(decomposition).lower() in {"none", "null"}:
+        return False
+    if str(decomposition).lower() != "ema":
+        raise SystemExit(f"Unsupported tokenizer frequency_decomposition: {decomposition!r}")
+    return bool(data_config.get("compose_output", True))
+
+
+def compose_if_frequency_channels(paths: torch.Tensor) -> torch.Tensor:
+    """Compose two-channel frequency paths and leave one-channel paths unchanged."""
+    if paths.ndim == 3 and paths.shape[-1] == 2:
+        return compose_frequency_channels(paths)
+    if paths.ndim == 3 and paths.shape[-1] == 1:
+        return paths
+    raise ValueError(
+        "Expected paths with shape [batch, length, 1] or [batch, length, 2]; "
+        f"got {tuple(paths.shape)}."
+    )
 
 
 def load_reference_tokens(raw_config: Mapping[str, Any], *, n_sample: int) -> torch.Tensor | None:
