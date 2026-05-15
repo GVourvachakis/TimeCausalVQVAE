@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import torch
 from torch import Tensor
 
+from time_causal_vae.data.frequency import compose_frequency_channels, split_low_high_channels
 from time_causal_vae.evaluation.style import apply_clean_style, apply_source_style
 from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.output import ModelOutput
@@ -125,6 +126,62 @@ def compute_tokenizer_metrics(
         "volatility_reconstruction_error": float(volatility_error.detach().cpu()),
         **code_stats,
         **transition_summary,
+    }
+
+
+def compute_frequency_reconstruction_metrics(
+    *,
+    original_paths: Tensor,
+    frequency_inputs: Tensor,
+    frequency_reconstructions: Tensor,
+) -> dict[str, Any]:
+    """Compute component and composed-path reconstruction metrics."""
+    if original_paths.ndim != 3 or original_paths.shape[-1] != 1:
+        raise ValueError(
+            f"original_paths must have shape [batch, length, 1]; got {tuple(original_paths.shape)}."
+        )
+    if frequency_inputs.shape != frequency_reconstructions.shape:
+        raise ValueError(
+            "frequency input and reconstruction shapes must match; got "
+            f"{frequency_inputs.shape} and {frequency_reconstructions.shape}."
+        )
+    input_low, input_high = split_low_high_channels(frequency_inputs)
+    recon_low, recon_high = split_low_high_channels(frequency_reconstructions)
+    composed_reconstructions = compose_frequency_channels(frequency_reconstructions)
+    composed_differences = composed_reconstructions - original_paths
+    low_differences = recon_low - input_low
+    high_differences = recon_high - input_high
+    return {
+        "frequency_original_reconstruction_l1": float(
+            composed_differences.abs().mean().detach().cpu()
+        ),
+        "frequency_original_reconstruction_l2": float(
+            composed_differences.square().mean().sqrt().detach().cpu()
+        ),
+        "frequency_low_reconstruction_l1": float(low_differences.abs().mean().detach().cpu()),
+        "frequency_low_reconstruction_l2": float(
+            low_differences.square().mean().sqrt().detach().cpu()
+        ),
+        "frequency_high_reconstruction_l1": float(high_differences.abs().mean().detach().cpu()),
+        "frequency_high_reconstruction_l2": float(
+            high_differences.square().mean().sqrt().detach().cpu()
+        ),
+        "frequency_composed_terminal_return_error": float(
+            terminal_return(original_paths)
+            .sub(terminal_return(composed_reconstructions))
+            .abs()
+            .mean()
+            .detach()
+            .cpu()
+        ),
+        "frequency_composed_volatility_reconstruction_error": float(
+            path_volatility(original_paths)
+            .sub(path_volatility(composed_reconstructions))
+            .abs()
+            .mean()
+            .detach()
+            .cpu()
+        ),
     }
 
 
@@ -318,6 +375,8 @@ def save_tokenizer_batch(
     output: ModelOutput,
     metrics: Mapping[str, Any],
     conditions: Tensor | None = None,
+    original_inputs: Tensor | None = None,
+    composed_reconstructions: Tensor | None = None,
 ) -> None:
     """Save tensors from an evaluated tokenizer batch."""
     payload = {
@@ -330,6 +389,10 @@ def save_tokenizer_batch(
     }
     if conditions is not None:
         payload["conditions"] = conditions.detach().cpu()
+    if original_inputs is not None:
+        payload["original_x"] = original_inputs.detach().cpu()
+    if composed_reconstructions is not None:
+        payload["composed_recon_x"] = composed_reconstructions.detach().cpu()
     torch.save(payload, path)
 
 

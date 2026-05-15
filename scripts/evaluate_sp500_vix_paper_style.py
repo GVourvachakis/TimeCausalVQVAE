@@ -17,6 +17,7 @@ from time_causal_vae.cli.evaluate_token_prior import (
     load_conditional_eval_payload,
     load_token_prior_yaml,
 )
+from time_causal_vae.data.frequency import compose_frequency_channels
 from time_causal_vae.evaluation.checkpoints import TargetModelEvaluator
 from time_causal_vae.evaluation.market_diagnostics import (
     DEFAULT_AUTOCORRELATION_LAGS,
@@ -236,10 +237,11 @@ def generate_discrete_samples(
     """Sample the promoted discrete prior and decode through the frozen tokenizer."""
     raw_config = load_token_prior_yaml(config_path)
     prior, prior_config, _prior_checkpoint = load_trained_token_prior(prior_dir, device=device)
-    tokenizer, _tokenizer_config, _tokenizer_checkpoint = load_trained_tokenizer(
+    tokenizer, _tokenizer_config, tokenizer_checkpoint = load_trained_tokenizer(
         tokenizer_dir,
         device=device,
     )
+    tokenizer_data_config = tokenizer_frequency_data_config(tokenizer_checkpoint)
     freeze_tokenizer(tokenizer)
     payload = load_conditional_eval_payload(
         raw_config,
@@ -264,6 +266,11 @@ def generate_discrete_samples(
         sampled_tokens,
         conditions=conditions,
     )
+    decoded_frequency_paths = None
+    if should_compose_frequency_output(tokenizer_data_config):
+        decoded_frequency_paths = decoded_paths
+        decoded_paths = compose_if_frequency_channels(decoded_paths)
+        real_paths = compose_if_frequency_channels(real_paths)
     sampled_tokens_cpu = sampled_tokens.detach().cpu()
     token_comparison: dict[str, Any]
     if real_tokens.ndim == 2 and sampled_tokens_cpu.ndim == 2:
@@ -292,6 +299,9 @@ def generate_discrete_samples(
         "prior_config": prior_config,
         "real_paths": real_paths.detach().cpu(),
         "decoded_paths": decoded_paths.detach().cpu(),
+        "decoded_frequency_paths": (
+            decoded_frequency_paths.detach().cpu() if decoded_frequency_paths is not None else None
+        ),
         "conditions": conditions.detach().cpu(),
         "sampled_tokens": sampled_tokens_cpu,
         "real_tokens": real_tokens,
@@ -305,6 +315,39 @@ def generate_discrete_samples(
             codebook_size=prior_config.codebook_size,
         ),
     }
+
+
+def tokenizer_frequency_data_config(tokenizer_checkpoint: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return the tokenizer training data config if it was persisted."""
+    training_config = tokenizer_checkpoint.get("training_config")
+    if not isinstance(training_config, Mapping):
+        return {}
+    data_config = training_config.get("data")
+    if not isinstance(data_config, Mapping):
+        return {}
+    return data_config
+
+
+def should_compose_frequency_output(data_config: Mapping[str, Any]) -> bool:
+    """Return whether decoded tokenizer outputs should be composed."""
+    decomposition = data_config.get("frequency_decomposition")
+    if decomposition is None or str(decomposition).lower() in {"none", "null"}:
+        return False
+    if str(decomposition).lower() != "ema":
+        raise SystemExit(f"Unsupported tokenizer frequency_decomposition: {decomposition!r}")
+    return bool(data_config.get("compose_output", True))
+
+
+def compose_if_frequency_channels(paths: Tensor) -> Tensor:
+    """Compose two-channel frequency paths and leave one-channel paths unchanged."""
+    if paths.ndim == 3 and paths.shape[-1] == 2:
+        return compose_frequency_channels(paths)
+    if paths.ndim == 3 and paths.shape[-1] == 1:
+        return paths
+    raise ValueError(
+        "Expected paths with shape [batch, length, 1] or [batch, length, 2]; "
+        f"got {tuple(paths.shape)}."
+    )
 
 
 def load_or_generate_continuous_samples(

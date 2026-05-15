@@ -12,8 +12,10 @@ import torch
 import yaml
 
 from time_causal_vae.data.base import BaseDataset
+from time_causal_vae.data.frequency import causal_ema_frequency_channels, compose_frequency_channels
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.evaluation.tokenizer import (
+    compute_frequency_reconstruction_metrics,
     evaluate_tokenizer_batch,
     load_trained_tokenizer,
     plot_code_usage,
@@ -66,13 +68,15 @@ def main() -> None:
     set_seed(args.seed)
     device = select_device(args.device)
     raw_config = load_tokenizer_yaml(args.config)
-    dataset = build_dataset(
+    original_dataset = build_dataset(
         raw_config,
         n_sample_test=args.n_sample_test,
         base_data_dir=args.base_data_dir,
     )
+    dataset = apply_frequency_decomposition(original_dataset, require_mapping(raw_config, "data"))
     tokenizer, tokenizer_config, _checkpoint = load_trained_tokenizer(tokenizer_dir, device=device)
     inputs = dataset.data.to(device)
+    original_inputs = original_dataset.data.to(device)
     conditions = condition_tensor(dataset, tokenizer, device)
 
     output, metrics = evaluate_tokenizer_batch(
@@ -81,6 +85,17 @@ def main() -> None:
         conditions=conditions,
         codebook_size=tokenizer_config.codebook_size,
     )
+    composed_reconstructions = None
+    if should_compose_output(require_mapping(raw_config, "data")):
+        frequency_reconstructions = cast(torch.Tensor, output["recon_x"])
+        composed_reconstructions = compose_frequency_channels(frequency_reconstructions)
+        metrics.update(
+            compute_frequency_reconstruction_metrics(
+                original_paths=original_inputs,
+                frequency_inputs=inputs,
+                frequency_reconstructions=frequency_reconstructions,
+            )
+        )
     tensor_shapes = {
         "x": list(inputs.shape),
         "recon_x": list(output["recon_x"].shape),
@@ -88,6 +103,9 @@ def main() -> None:
         "z_q": list(output["z_q"].shape),
         "indices": list(output["indices"].shape),
     }
+    if composed_reconstructions is not None:
+        tensor_shapes["original_x"] = list(original_inputs.shape)
+        tensor_shapes["composed_recon_x"] = list(composed_reconstructions.shape)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     save_tokenizer_summary(
@@ -106,6 +124,8 @@ def main() -> None:
         output=output,
         metrics=metrics,
         conditions=conditions,
+        original_inputs=original_inputs if composed_reconstructions is not None else None,
+        composed_reconstructions=composed_reconstructions,
     )
     plot_code_usage(
         output_dir / "code_usage.png",
@@ -114,8 +134,12 @@ def main() -> None:
     )
     plot_reconstruction_examples(
         output_dir / "reconstruction_examples.png",
-        inputs=inputs,
-        reconstructions=cast(torch.Tensor, output["recon_x"]),
+        inputs=original_inputs if composed_reconstructions is not None else inputs,
+        reconstructions=(
+            composed_reconstructions
+            if composed_reconstructions is not None
+            else cast(torch.Tensor, output["recon_x"])
+        ),
     )
 
     print("Tokenizer evaluation complete.")
@@ -126,6 +150,15 @@ def main() -> None:
     print(f"indices_shape: {tensor_shapes['indices']}")
     print(f"reconstruction_l1: {metrics['reconstruction_l1']:.8f}")
     print(f"reconstruction_l2: {metrics['reconstruction_l2']:.8f}")
+    if composed_reconstructions is not None:
+        print(
+            "frequency_original_reconstruction_l1: "
+            f"{metrics['frequency_original_reconstruction_l1']:.8f}"
+        )
+        print(f"frequency_low_reconstruction_l1: {metrics['frequency_low_reconstruction_l1']:.8f}")
+        print(
+            f"frequency_high_reconstruction_l1: {metrics['frequency_high_reconstruction_l1']:.8f}"
+        )
     print(f"terminal_return_error: {metrics['terminal_return_error']:.8f}")
     print(f"volatility_reconstruction_error: {metrics['volatility_reconstruction_error']:.8f}")
     print(
@@ -236,6 +269,40 @@ def condition_tensor(
             f"{tuple(labels.shape)}."
         )
     return labels
+
+
+def frequency_decomposition(data_config: Mapping[str, Any]) -> str | None:
+    """Return the optional data frequency decomposition mode."""
+    value = data_config.get("frequency_decomposition")
+    if value is None:
+        return None
+    if str(value).lower() in {"none", "null"}:
+        return None
+    if str(value).lower() != "ema":
+        raise SystemExit(
+            "data.frequency_decomposition must be null or 'ema'; "
+            f"got {data_config.get('frequency_decomposition')!r}."
+        )
+    return "ema"
+
+
+def apply_frequency_decomposition(
+    dataset: BaseDataset,
+    data_config: Mapping[str, Any],
+) -> BaseDataset:
+    """Apply optional causal frequency decomposition to dataset data."""
+    if frequency_decomposition(data_config) is None:
+        return dataset
+    alpha = float(data_config.get("ema_alpha", 0.2))
+    transformed = causal_ema_frequency_channels(dataset.data, alpha)
+    return BaseDataset(transformed, dataset.labels)
+
+
+def should_compose_output(data_config: Mapping[str, Any]) -> bool:
+    """Return whether frequency tokenizer outputs should be composed for evaluation."""
+    return frequency_decomposition(data_config) == "ema" and bool(
+        data_config.get("compose_output", True)
+    )
 
 
 if __name__ == "__main__":

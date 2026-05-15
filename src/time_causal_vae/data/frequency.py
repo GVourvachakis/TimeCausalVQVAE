@@ -52,6 +52,31 @@ def compose_low_high(low: Tensor, high: Tensor) -> Tensor:
     return low + high
 
 
+def causal_ema_frequency_channels(path: Tensor, alpha: Alpha) -> Tensor:
+    """Return two-channel ``[low, high]`` EMA decomposition for one-channel paths."""
+    if path.ndim != 3 or path.shape[-1] != 1:
+        raise ValueError(
+            f"frequency decomposition expects [batch, time, 1] paths; got {tuple(path.shape)}."
+        )
+    low, high = causal_ema_decompose(path, alpha)
+    return torch.cat([low, high], dim=-1)
+
+
+def split_low_high_channels(channels: Tensor) -> tuple[Tensor, Tensor]:
+    """Split a two-channel frequency tensor into low and high components."""
+    if channels.ndim != 3 or channels.shape[-1] != 2:
+        raise ValueError(
+            f"frequency channels must have shape [batch, time, 2]; got {tuple(channels.shape)}."
+        )
+    return channels[..., 0:1], channels[..., 1:2]
+
+
+def compose_frequency_channels(channels: Tensor) -> Tensor:
+    """Compose two-channel frequency paths into one-channel path space."""
+    low, high = split_low_high_channels(channels)
+    return compose_low_high(low, high)
+
+
 def _validate_alpha(alpha: Alpha) -> float:
     """Validate and normalise the EMA smoothing parameter."""
     value = float(alpha)

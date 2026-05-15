@@ -18,6 +18,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
+from time_causal_vae.data.frequency import causal_ema_frequency_channels
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.random import set_seed
@@ -210,15 +211,25 @@ def build_datasets(run_config: Mapping[str, Any]) -> tuple[BaseDataset, BaseData
     exp_config.data_params = dict(cast(Mapping[str, Any], data_config.get("data_params", {})))
     if "rho" in data_config:
         exp_config.rho = data_config["rho"]
-    return cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+    train_dataset, eval_dataset = cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+    return (
+        apply_frequency_decomposition(train_dataset, data_config),
+        apply_frequency_decomposition(eval_dataset, data_config),
+    )
 
 
 def build_tokenizer_config(run_config: Mapping[str, Any]) -> VQTokenizerConfig:
     """Build the model config for the causal VQ tokenizer."""
     model_config = cast(Mapping[str, Any], run_config["model"])
     data_config = cast(Mapping[str, Any], run_config["data"])
+    expected_data_dim = (
+        2 if frequency_decomposition(data_config) == "ema" else data_config["data_dim"]
+    )
+    data_dim = int(model_config.get("data_dim", expected_data_dim))
+    if frequency_decomposition(data_config) == "ema" and data_dim != 2:
+        raise SystemExit("EMA frequency tokenizers require model.data_dim=2.")
     return VQTokenizerConfig(
-        data_dim=int(model_config.get("data_dim", data_config["data_dim"])),
+        data_dim=data_dim,
         data_length=int(model_config.get("data_length", data_config["n_timesteps"])),
         embedding_dim=int(model_config["embedding_dim"]),
         codebook_size=int(model_config["codebook_size"]),
@@ -257,6 +268,33 @@ def optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def frequency_decomposition(data_config: Mapping[str, Any]) -> str | None:
+    """Return the optional data frequency decomposition mode."""
+    value = data_config.get("frequency_decomposition")
+    if value is None:
+        return None
+    if str(value).lower() in {"none", "null"}:
+        return None
+    if str(value).lower() != "ema":
+        raise SystemExit(
+            "data.frequency_decomposition must be null or 'ema'; "
+            f"got {data_config.get('frequency_decomposition')!r}."
+        )
+    return "ema"
+
+
+def apply_frequency_decomposition(
+    dataset: BaseDataset,
+    data_config: Mapping[str, Any],
+) -> BaseDataset:
+    """Apply optional causal frequency decomposition to dataset data."""
+    if frequency_decomposition(data_config) is None:
+        return dataset
+    alpha = float(data_config.get("ema_alpha", 0.2))
+    transformed = causal_ema_frequency_channels(dataset.data, alpha)
+    return BaseDataset(transformed, dataset.labels)
 
 
 def select_device(device_name: str | None) -> torch.device:
