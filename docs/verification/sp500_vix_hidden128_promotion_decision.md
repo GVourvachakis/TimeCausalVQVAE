@@ -216,4 +216,3 @@ The next branch should not jump directly to MGVQ. Two reasonable paths remain:
 Given the current evidence, causal frequency decomposition is the cleaner next branch. It targets
 the residual volatility/autocorrelation weaknesses while avoiding the sparse same-time code-pair
 problem already observed for RVQ q2.
-
