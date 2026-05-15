@@ -1,0 +1,30 @@
+experiment:
+  name: sp500_vix_causal_token_prior_freq_ema_alpha01
+  dataset: sp500_vix
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/sp500_vix_discrete/frequency_tokenizer_ablation/sp500_vix_causal_vq_tokenizer_freq_ema_alpha01_seed0
+  token_data_dir: outputs/sp500_vix_discrete/token_prior/freq_ema_alpha01_tokens
+  base_data_dir: data/processed
+
+model:
+  family: causal_token_prior
+  codebook_size: 64
+  sequence_length: 60
+  token_embedding_dim: 128
+  num_layers: 4
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+  condition_dim: 1
+  condition_injection: additive
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 256
+  eval_batch_size: 256
+  epochs: 100
