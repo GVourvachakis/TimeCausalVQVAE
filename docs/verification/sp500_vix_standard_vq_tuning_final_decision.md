@@ -180,4 +180,3 @@ weaknesses while preserving a simpler prior interface than grouped or multi-code
 
 GroupedRVQ and MGVQ remain deferred until there is a stable multi-code prior interface and a
 specific measured failure mode that standard VQ plus causal decomposition cannot address.
-
