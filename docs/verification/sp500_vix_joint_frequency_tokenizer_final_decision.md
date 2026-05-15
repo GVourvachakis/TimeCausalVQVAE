@@ -57,7 +57,7 @@ The tokenizer-only ablation compared EMA `alpha` values `0.1`, `0.2`, and `0.5`,
 joint one-code interface.
 
 | EMA alpha | Original-path L1 | Original-path L2 | Volatility error | Active codes | Perplexity |
-|---:|---:|---:|---:|---:|---:|
+|--- :| --- :| --- :| --- :| --- :| --- :|
 | 0.1 | 0.00669039 | 0.00808084 | 0.00067805 | 59 | 47.1625 |
 | 0.2 | 0.01165698 | 0.01289017 | 0.00075628 | 60 | 47.7753 |
 | 0.5 | 0.00681011 | 0.00857277 | 0.00080509 | 26 | 18.0589 |
@@ -73,7 +73,7 @@ train and eval indices had shape `[2457, 60]`, labels had shape `[2457, 1]`, and
 had shape `[2457, 60, 2]`.
 
 | Tokenizer | Active codes | Perplexity | Entropy | Very-low bucket | Very-high bucket |
-|---|---:|---:|---:|---:|---:|
+|--- | --- :| --- :| --- :| --- :| --- :|
 | EMA alpha 0.1 | 64 / 64 | 53.01815796 | 3.97063446 | 60 / 37.3818 | 64 / 53.6918 |
 | EMA alpha 0.2 | 64 / 64 | 54.60705566 | 4.00016308 | 61 / 40.1668 | 64 / 54.7603 |
 
@@ -86,7 +86,7 @@ tokenizer-only reconstruction.
 Both priors used the same additive VIX-only causal AR architecture and 100-epoch schedule.
 
 | Alpha | Best eval CE | Best eval accuracy | Best eval perplexity | Runtime seconds |
-|---:|---:|---:|---:|---:|
+|--- :| --- :| --- :| --- :| --- :|
 | 0.1 | 1.05693870 | 0.59681862 | 2.88918605 | 1213.060 |
 | 0.2 | 1.19572794 | 0.53785104 | 3.32426902 | 1285.088 |
 
@@ -97,7 +97,7 @@ Default decoded prior evaluation used temperature `0.8`, top-k `40`, `n_sample=1
 `99`.
 
 | Alpha | Active sampled codes | Sampled perplexity | MMD | SWD | Volatility W1 | Terminal W1 |
-|---:|---:|---:|---:|---:|---:|---:|
+|--- :| --- :| --- :| --- :| --- :|--- :| --- :|
 | 0.1 | 61 / 64 | 38.84451675 | 0.42002434 | 0.01306464 | 0.00112879 | 0.01346600 |
 | 0.2 | 64 / 64 | 42.20855331 | 0.28922948 | 0.00982244 | 0.00122682 | 0.00667941 |
 
@@ -112,7 +112,7 @@ market diagnostics. The grid used temperatures `0.6`, `0.8`, and `1.0`, with unr
 top-k, top-k `20`, and top-k `40`.
 
 | Candidate | Selected setting | Guardrail score | MMD | SWD | Volatility W1 | Sq-return AC L1 | Flat sq-return AC L1 | Drawdown W1 | Terminal W1 |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+|--- | --- | --- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :|
 | Alpha 0.1 | temp 1.0, top-k none | 0.36820728 | 0.34736192 | 0.01155593 | 0.00123859 | 0.03023081 | 0.06069550 | 0.00815493 | 0.00805083 |
 | Alpha 0.2 | temp 0.8, top-k 40 | 0.31450129 | 0.29730234 | 0.00940700 | 0.00113100 | 0.03540378 | 0.02522561 | 0.00707990 | 0.00666096 |
 
@@ -124,7 +124,7 @@ too much on MMD, SWD, flattened squared-return autocorrelation, and terminal-ret
 ## Baseline Comparison
 
 | Model / setting | MMD | SWD | Volatility W1 | Sq-return AC L1 | Flat sq-return AC L1 | Drawdown W1 | Terminal W1 |
-|---|---:|---:|---:|---:|---:|---:|---:|
+|--- | --- :| --- :| --- :| --- :| --- :| --- :| --- :|
 | Joint EMA alpha 0.2, temp 0.8 top-k 40 | 0.29730234 | 0.00940700 | 0.00113100 | 0.03540378 | 0.02522561 | 0.00707990 | 0.00666096 |
 | Joint EMA alpha 0.1, temp 1.0 top-k none | 0.34736192 | 0.01155593 | 0.00123859 | 0.03023081 | 0.06069550 | 0.00815493 | 0.00805083 |
 | Promoted baseline, temp 0.8 top-k 40 | 0.27934083 | 0.00767375 | 0.00118835 | 0.04129972 | 0.12882016 | 0.01050232 | 0.00981713 |
