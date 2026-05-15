@@ -1,0 +1,34 @@
+experiment:
+  name: sp500_vix_causal_vq_tokenizer_cb32_dim16
+  dataset: sp500_vix
+  seed: 0
+data:
+  n_samples: 2457
+  n_timesteps: 60
+  data_dim: 1
+  condition_dim: 1
+  condition_feature: vix
+  data_params: {}
+model:
+  family: causal_vq_tokenizer
+  data_dim: 1
+  data_length: 60
+  embedding_dim: 64
+  codebook_size: 32
+  commitment_weight: 0.1
+  encoder_hidden_dim: 64
+  decoder_hidden_dim: 64
+  num_layers: 4
+  dilations: [1, 2, 4, 8]
+  dropout: 0.0
+  condition_dim: 1
+  kmeans_init: true
+  kmeans_iters: 10
+  use_cosine_sim: false
+  codebook_dim: 16
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 256
+  eval_batch_size: 256
+  epochs: 100
