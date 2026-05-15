@@ -38,7 +38,7 @@ metrics or expose a wrapper that returns composed paths whenever it is used as a
 
 ## Option A: Joint Low/High Tokenizer
 
-### Interface
+### Interface of Option A
 
 Use a deterministic preprocessing step:
 
@@ -137,7 +137,7 @@ For tokenizer-only evaluation, report both:
 
 ## Option B: Separate Low and High Tokenizers
 
-### Interface
+### Interface of Option B
 
 Use the same deterministic decomposition but train two independent standard tokenizers:
 
