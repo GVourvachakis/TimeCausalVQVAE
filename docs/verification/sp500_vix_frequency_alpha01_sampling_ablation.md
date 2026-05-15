@@ -31,7 +31,7 @@ below are native two-channel frequency-space diagnostics. They are useful for to
 but the terminal-return scale is not used for scalar-path model selection.
 
 | Temp | Top-k | MMD | SWD | Volatility W1 | Active codes | Token perplexity | Marginal L1 | Transition L1 | Run length |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|--- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :|
 | 0.6 | none | 0.58215129 | 0.01103355 | 0.00162294 | 59 | 32.98244476 | 0.32696664 | 0.32781351 | 1.25224447 |
 | 0.6 | 20 | 0.60067564 | 0.01103090 | 0.00162093 | 60 | 32.31309128 | 0.32866666 | 0.34080625 | 1.20386374 |
 | 0.6 | 40 | 0.57108200 | 0.01061516 | 0.00160692 | 59 | 33.39359665 | 0.31200001 | 0.33832172 | 1.24004614 |
@@ -52,7 +52,7 @@ Paper-style diagnostics compose decoded frequency channels back to scalar paths 
 market diagnostics. This is the decision table for sampling.
 
 | Temp | Top-k | Guardrail score | MMD | SWD | Volatility W1 | Sq-return AC L1 | Flat sq-return AC L1 | Drawdown W1 | Terminal W1 |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+|--- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :| --- :|
 | 0.6 | none | 0.49988284 | 0.46798772 | 0.01577175 | 0.00220311 | 0.03977151 | 0.05431695 | 0.01857388 | 0.01392026 |
 | 0.6 | 20 | 0.51915601 | 0.48730984 | 0.01575460 | 0.00216434 | 0.04087482 | 0.07266629 | 0.01860889 | 0.01392722 |
 | 0.6 | 40 | 0.49305029 | 0.46125007 | 0.01515895 | 0.00214772 | 0.04189021 | 0.04526834 | 0.01869622 | 0.01449355 |
@@ -71,7 +71,7 @@ best within-path squared-return autocorrelation is `temperature=1.0, top_k=20`.
 ## Comparison
 
 | Model | MMD | SWD | Volatility W1 | Sq-return AC L1 | Flat sq-return AC L1 | Drawdown W1 | Terminal W1 |
-|---|---:|---:|---:|---:|---:|---:|---:|
+|--- | --- :| --- :| --- :| --- :| --- :| --- :| --- :|
 | Alpha01 selected, temp 1.0 top-k none | 0.34736192 | 0.01155593 | 0.00123859 | 0.03023081 | 0.06069550 | 0.00815493 | 0.00805083 |
 | Alpha01 prior-quality, temp 0.8 top-k 40 | 0.38490504 | 0.01312830 | 0.00105531 | 0.03702611 | 0.05022892 | 0.00993632 | 0.01201044 |
 | Promoted baseline, temp 0.8 top-k 40 | 0.27934083 | 0.00767375 | 0.00118835 | 0.04129972 | 0.12882016 | 0.01050232 | 0.00981713 |

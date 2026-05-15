@@ -38,7 +38,7 @@ available for this run.
 ## Token Likelihood
 
 | Metric | Value |
-|---|---:|
+|---| --- :|
 | Best epoch | 100 |
 | Best eval cross-entropy | 1.05693870 |
 | Best eval accuracy | 0.59681862 |
@@ -54,7 +54,7 @@ selection metric.
 Sampling used `n_sample=1000`, seed 99, temperature 0.8, and top-k 40.
 
 | Metric | Value |
-|---|---:|
+|---| --- :|
 | Sampled active codes | 61 / 64 |
 | Sampled token perplexity | 38.84451675 |
 | Real token perplexity | 42.43110275 |
@@ -69,7 +69,7 @@ Sampling used `n_sample=1000`, seed 99, temperature 0.8, and top-k 40.
 ## VIX-Bucket Diagnostics
 
 | Bucket | n | MMD | Volatility W1 | Terminal W1 | Active codes | Token perplexity |
-|---|---:|---:|---:|---:|---:|---:|
+|---| --- :| --- :| --- :| --- :| --- :| --- :|
 | very_low | 200 | 0.40261537 | 0.00104584 | 0.00458284 | 56 | 25.90332031 |
 | low | 200 | 0.61337960 | 0.00083256 | 0.01669003 | 57 | 31.05168915 |
 | mid | 200 | 0.61059898 | 0.00141071 | 0.02029739 | 58 | 36.74652863 |
@@ -82,7 +82,7 @@ largest path-distribution errors.
 ## Paper-Style Metrics
 
 | Model | MMD | SWD | Volatility W1 | Sq-return AC L1 | Flattened sq-return AC L1 | Drawdown W1 | Terminal W1 |
-|---|---:|---:|---:|---:|---:|---:|---:|
+|---| --- :| --- :| --- :| --- :| --- :| --- :| --- :|
 | Frequency alpha 0.1 discrete | 0.38490504 | 0.01312830 | 0.00105531 | 0.03702611 | 0.05022892 | 0.00993632 | 0.01201044 |
 | Promoted baseline discrete | 0.27934083 | 0.00767375 | 0.00118835 | 0.04129972 | 0.12882016 | 0.01050232 | 0.00981713 |
 | Hidden128 top-k20 discrete | 0.22907834 | 0.00717505 | 0.00125777 | 0.06088475 | 0.07886228 | 0.00891025 | 0.00450928 |
@@ -103,7 +103,7 @@ paper-style run.
 ## Paper-Style VIX Buckets
 
 | Bucket | Discrete MMD | Discrete SWD | Volatility W1 | Sq-return AC L1 | Drawdown W1 | Terminal W1 |
-|---|---:|---:|---:|---:|---:|---:|
+|---| --- :| --- :| --- :| --- :| --- :| --- :|
 | very_low | 0.29783794 | 0.01566142 | 0.00120966 | 0.03115140 | 0.01381801 | 0.00829731 |
 | low | 0.62183762 | 0.01569005 | 0.00069234 | 0.06620464 | 0.00776177 | 0.01535573 |
 | mid | 0.63282794 | 0.02026321 | 0.00143847 | 0.06575284 | 0.01521172 | 0.01910943 |
