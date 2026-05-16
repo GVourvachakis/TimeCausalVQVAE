@@ -25,6 +25,7 @@ def build_token_prior_model(
 ) -> (
     CausalTokenTransformerPrior
     | CausalConvTransformerPrior
+    | NativeRecurrentTokenPrior
     | FactorisedMultiCodeTokenPrior
     | HierarchicalRVQ2TokenPrior
 ):
@@ -33,6 +34,8 @@ def build_token_prior_model(
         return CausalTokenTransformerPrior(config)
     if config.prior_type == "causal_conv_transformer":
         return CausalConvTransformerPrior(config)
+    if config.prior_type == "native_recurrent":
+        return NativeRecurrentTokenPrior(config)
     if config.prior_type == "factorised_multi_code":
         return FactorisedMultiCodeTokenPrior(config)
     if config.prior_type == "hierarchical_rvq_q2":
@@ -309,6 +312,313 @@ class CausalConvTransformerPrior(CausalTokenTransformerPrior):
     def preprocess_hidden(self, hidden: Tensor) -> Tensor:
         """Apply the causal convolutional preprocessor before attention."""
         return cast(Tensor, self.conv_preprocessor(hidden))
+
+
+class NativeRecurrentTokenPrior(nn.Module):
+    """Dependency-free GRU prior for single-stream tokenizer indices.
+
+    The prior follows the same BOS-shifted next-token convention as
+    ``CausalTokenTransformerPrior``. Full-sequence training and stepwise
+    generation both consume exactly one shifted token per output position.
+    """
+
+    def __init__(self, config: CausalTokenPriorConfig) -> None:
+        """Initialise embeddings, GRU recurrence, and output projection."""
+        super().__init__()
+        if config.prior_type != "native_recurrent":
+            raise ValueError("NativeRecurrentTokenPrior requires prior_type='native_recurrent'.")
+        if config.recurrent_type != "gru":
+            raise ValueError("NativeRecurrentTokenPrior currently supports recurrent_type='gru'.")
+        self.config = config
+        self.input_vocab_size = config.codebook_size + 1
+        self.token_embedding = nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
+        self.position_embedding = nn.Embedding(config.sequence_length, config.token_embedding_dim)
+        self.condition_projection = build_condition_projection(config)
+        recurrent_dropout = config.recurrent_dropout if config.recurrent_num_layers > 1 else 0.0
+        self.recurrent = nn.GRU(
+            input_size=config.token_embedding_dim,
+            hidden_size=config.recurrent_hidden_dim,
+            num_layers=config.recurrent_num_layers,
+            dropout=recurrent_dropout,
+            batch_first=True,
+        )
+        self.output_projection = nn.Linear(config.recurrent_hidden_dim, config.codebook_size)
+
+    def forward(
+        self,
+        tokens: Tensor,
+        targets: Tensor | None = None,
+        conditions: Tensor | None = None,
+    ) -> ModelOutput:
+        """Return logits and next-token training metrics."""
+        validate_token_sequence(tokens, self.config, tensor_name="tokens")
+        target_tokens = tokens if targets is None else targets
+        validate_token_sequence(target_tokens, self.config, tensor_name="targets")
+
+        shifted_inputs = self.build_shifted_inputs(tokens)
+        logits = self.logits_from_shifted_inputs(shifted_inputs, conditions=conditions)
+        cross_entropy = token_cross_entropy(
+            logits,
+            target_tokens,
+            pad_token_id=self.config.pad_token_id,
+        )
+        accuracy = token_accuracy(
+            logits,
+            target_tokens,
+            pad_token_id=self.config.pad_token_id,
+        )
+        perplexity = torch.exp(cross_entropy.detach())
+        return ModelOutput(
+            logits=logits,
+            loss=cross_entropy,
+            cross_entropy=cross_entropy,
+            accuracy=accuracy,
+            perplexity=perplexity,
+        )
+
+    def build_shifted_inputs(self, tokens: Tensor) -> Tensor:
+        """Build ``[BOS, k_0, ..., k_{T-2}]`` inputs from target tokens."""
+        validate_token_sequence(tokens, self.config, tensor_name="tokens")
+        batch_size = tokens.shape[0]
+        bos_token_id = self.config.codebook_size
+        if self.config.bos_token_id is not None:
+            bos_token_id = self.config.bos_token_id
+        bos_tokens = torch.full(
+            (batch_size, 1),
+            bos_token_id,
+            dtype=tokens.dtype,
+            device=tokens.device,
+        )
+        return torch.cat([bos_tokens, tokens[:, :-1]], dim=1)
+
+    def logits_from_shifted_inputs(
+        self,
+        shifted_inputs: Tensor,
+        *,
+        conditions: Tensor | None = None,
+    ) -> Tensor:
+        """Return logits from full BOS-shifted token inputs."""
+        recurrent_inputs = self.recurrent_inputs_from_shifted_inputs(
+            shifted_inputs,
+            conditions=conditions,
+        )
+        encoded, _state = self.recurrent(recurrent_inputs)
+        return cast(Tensor, self.output_projection(encoded))
+
+    def recurrent_inputs_from_shifted_inputs(
+        self,
+        shifted_inputs: Tensor,
+        *,
+        conditions: Tensor | None = None,
+    ) -> Tensor:
+        """Embed shifted token inputs with positions and optional conditions."""
+        validate_shifted_sequence(shifted_inputs, self.config)
+        batch_size, sequence_length = shifted_inputs.shape
+        positions = torch.arange(sequence_length, device=shifted_inputs.device)
+        positions = positions.unsqueeze(0).expand(batch_size, sequence_length)
+        hidden = self.token_embedding(shifted_inputs) + self.position_embedding(positions)
+        condition_sequence = self.prepare_conditions(
+            conditions,
+            batch_size=batch_size,
+            sequence_length=sequence_length,
+            device=shifted_inputs.device,
+            dtype=hidden.dtype,
+        )
+        if self.config.condition_injection == "additive":
+            hidden = hidden + self.condition_embedding(condition_sequence)
+        return cast(Tensor, hidden)
+
+    def prepare_conditions(
+        self,
+        conditions: Tensor | None,
+        *,
+        batch_size: int,
+        sequence_length: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> Tensor | None:
+        """Return prepared condition sequences or ``None`` for unconditional mode."""
+        if self.config.condition_injection == "none":
+            if conditions is not None:
+                raise ValueError("conditions were provided but condition_injection='none'.")
+            return None
+        return prepare_condition_sequence(
+            conditions,
+            config=self.config,
+            batch_size=batch_size,
+            sequence_length=sequence_length,
+            device=device,
+            dtype=dtype,
+        )
+
+    def prepare_step_conditions(
+        self,
+        conditions: Tensor | None,
+        *,
+        batch_size: int,
+        position: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> Tensor | None:
+        """Return one-position condition input for recurrent stepping."""
+        if self.config.condition_injection == "none":
+            if conditions is not None:
+                raise ValueError("conditions were provided but condition_injection='none'.")
+            return None
+        if conditions is None:
+            raise ValueError("conditions are required when condition_injection is enabled.")
+        if conditions.ndim == 2:
+            scalar_expected_shape = (batch_size, self.config.condition_dim)
+            if conditions.shape != scalar_expected_shape:
+                raise ValueError(
+                    f"scalar conditions must have shape {scalar_expected_shape}; "
+                    f"got {tuple(conditions.shape)}."
+                )
+            step_conditions = conditions[:, None, :]
+        elif conditions.ndim == 3:
+            temporal_expected_shape = (
+                batch_size,
+                self.config.sequence_length,
+                self.config.condition_dim,
+            )
+            if conditions.shape != temporal_expected_shape:
+                raise ValueError(
+                    f"temporal conditions must have shape {temporal_expected_shape}; "
+                    f"got {tuple(conditions.shape)}."
+                )
+            step_conditions = conditions[:, position : position + 1, :]
+        else:
+            raise ValueError(
+                "conditions must be [batch, condition_dim] or "
+                "[batch, sequence_length, condition_dim]; "
+                f"got {tuple(conditions.shape)}."
+            )
+        return step_conditions.to(device=device, dtype=dtype)
+
+    def condition_embedding(self, condition_sequence: Tensor | None) -> Tensor:
+        """Return additive condition embeddings."""
+        if condition_sequence is None:
+            raise RuntimeError("condition_sequence is required for additive conditioning.")
+        if self.condition_projection is None:
+            raise RuntimeError("condition_projection is required for additive conditioning.")
+        return cast(Tensor, self.condition_projection(condition_sequence))
+
+    def logits_from_recurrent_step(
+        self,
+        input_tokens: Tensor,
+        *,
+        position: int,
+        state: Tensor | None = None,
+        conditions: Tensor | None = None,
+    ) -> tuple[Tensor, Tensor]:
+        """Return one-step logits and updated GRU state."""
+        if not 0 <= position < self.config.sequence_length:
+            raise ValueError(
+                f"position must satisfy 0 <= position < {self.config.sequence_length}; "
+                f"got {position}."
+            )
+        validate_step_input_tokens(input_tokens, self.config)
+        batch_size = input_tokens.shape[0]
+        position_ids = torch.full(
+            (batch_size,),
+            position,
+            dtype=torch.long,
+            device=input_tokens.device,
+        )
+        hidden = self.token_embedding(input_tokens) + self.position_embedding(position_ids)
+        hidden_sequence = hidden[:, None, :]
+        condition_sequence = self.prepare_step_conditions(
+            conditions,
+            batch_size=batch_size,
+            position=position,
+            device=input_tokens.device,
+            dtype=hidden_sequence.dtype,
+        )
+        if self.config.condition_injection == "additive":
+            hidden_sequence = hidden_sequence + self.condition_embedding(condition_sequence)
+        encoded, next_state = self.recurrent(hidden_sequence, state)
+        logits = self.output_projection(encoded[:, 0, :])
+        return cast(Tensor, logits), cast(Tensor, next_state)
+
+    def teacher_forced_stepwise_logits(
+        self,
+        tokens: Tensor,
+        *,
+        conditions: Tensor | None = None,
+    ) -> Tensor:
+        """Return logits from explicit teacher-forced recurrent stepping."""
+        validate_token_sequence(tokens, self.config, tensor_name="tokens")
+        shifted_inputs = self.build_shifted_inputs(tokens)
+        state: Tensor | None = None
+        logits_by_step = []
+        for position in range(self.config.sequence_length):
+            step_logits, state = self.logits_from_recurrent_step(
+                shifted_inputs[:, position],
+                position=position,
+                state=state,
+                conditions=conditions,
+            )
+            logits_by_step.append(step_logits)
+        return torch.stack(logits_by_step, dim=1)
+
+    @torch.no_grad()
+    def sample(
+        self,
+        batch_size: int,
+        device: torch.device | str,
+        temperature: float = 1.0,
+        top_k: int | None = None,
+        conditions: Tensor | None = None,
+    ) -> Tensor:
+        """Generate token sequences by updating recurrent state left to right."""
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive.")
+        if temperature <= 0.0:
+            raise ValueError("temperature must be positive.")
+        if top_k is not None and not 0 < top_k <= self.config.codebook_size:
+            raise ValueError("top_k must satisfy 0 < top_k <= codebook_size.")
+
+        sample_device = torch.device(device)
+        prepared_conditions = None
+        if self.config.condition_injection != "none":
+            prepared_conditions = prepare_condition_sequence(
+                conditions,
+                config=self.config,
+                batch_size=batch_size,
+                sequence_length=self.config.sequence_length,
+                device=sample_device,
+                dtype=torch.float32,
+            )
+        elif conditions is not None:
+            raise ValueError("conditions were provided but condition_injection='none'.")
+
+        was_training = self.training
+        self.eval()
+        try:
+            bos_token_id = self.config.codebook_size
+            if self.config.bos_token_id is not None:
+                bos_token_id = self.config.bos_token_id
+            previous_tokens = torch.full(
+                (batch_size,),
+                bos_token_id,
+                dtype=torch.long,
+                device=sample_device,
+            )
+            state: Tensor | None = None
+            generated_steps = []
+            for position in range(self.config.sequence_length):
+                logits, state = self.logits_from_recurrent_step(
+                    previous_tokens,
+                    position=position,
+                    state=state,
+                    conditions=prepared_conditions,
+                )
+                next_token = sample_from_logits(logits / temperature, top_k=top_k)
+                generated_steps.append(next_token)
+                previous_tokens = next_token
+        finally:
+            self.train(was_training)
+        return torch.stack(generated_steps, dim=1)
 
 
 class CausalResidualConvStack(nn.Module):
@@ -1103,6 +1413,23 @@ def validate_shifted_sequence(shifted_inputs: Tensor, config: CausalTokenPriorCo
         )
 
 
+def validate_step_input_tokens(input_tokens: Tensor, config: CausalTokenPriorConfig) -> None:
+    """Validate one-step BOS-shifted input tokens."""
+    if input_tokens.ndim != 1:
+        raise ValueError(f"input_tokens must be [batch]; got {tuple(input_tokens.shape)}.")
+    if input_tokens.dtype != torch.long:
+        raise ValueError(f"input_tokens must have dtype torch.long; got {input_tokens.dtype}.")
+    if input_tokens.numel() == 0:
+        return
+    min_value = int(input_tokens.min().item())
+    max_value = int(input_tokens.max().item())
+    if min_value < 0 or max_value > config.codebook_size:
+        raise ValueError(
+            "input_tokens values must be tokenizer codes or BOS in "
+            f"[0, {config.codebook_size}]; observed [{min_value}, {max_value}]."
+        )
+
+
 def prepare_condition_sequence(
     conditions: Tensor | None,
     *,
@@ -1192,7 +1519,7 @@ def sample_from_logits(logits: Tensor, *, top_k: int | None) -> Tensor:
 
 
 def assert_token_prior_no_future_leakage(
-    model: CausalTokenTransformerPrior,
+    model: CausalTokenTransformerPrior | NativeRecurrentTokenPrior,
     tokens: Tensor,
     cutoff: int,
     *,
@@ -1261,6 +1588,37 @@ def assert_token_prior_no_future_leakage(
                 f"max_difference={max_difference}."
             )
     return reference_logits, changed_logits
+
+
+def assert_native_recurrent_stepwise_equivalence(
+    model: NativeRecurrentTokenPrior,
+    tokens: Tensor,
+    *,
+    conditions: Tensor | None = None,
+    atol: float = 1e-6,
+    rtol: float = 1e-5,
+) -> tuple[Tensor, Tensor]:
+    """Assert full-sequence GRU logits match explicit teacher-forced stepping."""
+    validate_token_sequence(tokens, model.config, tensor_name="tokens")
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.no_grad():
+            full_logits = cast(Tensor, model(tokens, conditions=conditions).logits)
+            stepwise_logits = model.teacher_forced_stepwise_logits(
+                tokens,
+                conditions=conditions,
+            )
+    finally:
+        model.train(was_training)
+
+    if not torch.allclose(full_logits, stepwise_logits, atol=atol, rtol=rtol):
+        max_difference = (full_logits - stepwise_logits).abs().max().item()
+        raise AssertionError(
+            "Native recurrent full-sequence logits differ from stepwise logits; "
+            f"max_difference={max_difference}."
+        )
+    return full_logits, stepwise_logits
 
 
 def assert_multicode_token_prior_no_future_leakage(

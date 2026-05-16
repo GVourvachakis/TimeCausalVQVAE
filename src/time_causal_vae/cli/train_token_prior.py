@@ -274,6 +274,10 @@ def build_prior_config(run_config: Mapping[str, Any]) -> CausalTokenPriorConfig:
         conv_kernel_size=int(model_config.get("conv_kernel_size", 3)),
         conv_dilations=optional_int_list(model_config.get("conv_dilations")),
         conv_dropout=float(model_config.get("conv_dropout", 0.0)),
+        recurrent_type=parse_recurrent_type(model_config.get("recurrent_type", "gru")),
+        recurrent_hidden_dim=int(model_config.get("recurrent_hidden_dim", 128)),
+        recurrent_num_layers=int(model_config.get("recurrent_num_layers", 1)),
+        recurrent_dropout=float(model_config.get("recurrent_dropout", 0.0)),
     )
 
 
@@ -307,6 +311,7 @@ def parse_prior_type(
 ) -> Literal[
     "single_code",
     "causal_conv_transformer",
+    "native_recurrent",
     "factorised_multi_code",
     "hierarchical_rvq_q2",
 ]:
@@ -315,22 +320,32 @@ def parse_prior_type(
     if parsed not in {
         "single_code",
         "causal_conv_transformer",
+        "native_recurrent",
         "factorised_multi_code",
         "hierarchical_rvq_q2",
     }:
         raise SystemExit(
             "prior_type must be 'single_code', 'causal_conv_transformer', "
-            "'factorised_multi_code', or 'hierarchical_rvq_q2'."
+            "'native_recurrent', 'factorised_multi_code', or 'hierarchical_rvq_q2'."
         )
     return cast(
         Literal[
             "single_code",
             "causal_conv_transformer",
+            "native_recurrent",
             "factorised_multi_code",
             "hierarchical_rvq_q2",
         ],
         parsed,
     )
+
+
+def parse_recurrent_type(value: Any) -> Literal["gru"]:
+    """Parse the supported recurrent prior cell type."""
+    parsed = str(value)
+    if parsed != "gru":
+        raise SystemExit("recurrent_type must be 'gru'.")
+    return cast(Literal["gru"], parsed)
 
 
 def parse_condition_injection(value: Any) -> Literal["none", "additive", "adaln_lite"]:
@@ -344,7 +359,7 @@ def parse_condition_injection(value: Any) -> Literal["none", "additive", "adaln_
 def validate_token_data(tokens: Tensor, config: CausalTokenPriorConfig, *, split_name: str) -> None:
     """Validate token tensor shape and range."""
     expected_shape: tuple[int, ...]
-    if config.prior_type in {"single_code", "causal_conv_transformer"}:
+    if config.prior_type in {"single_code", "causal_conv_transformer", "native_recurrent"}:
         expected_shape = (config.sequence_length,)
     else:
         expected_shape = (config.sequence_length, *config.component_shape)

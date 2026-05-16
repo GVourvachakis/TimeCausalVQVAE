@@ -32,6 +32,7 @@ from time_causal_vae.token_prior import (
     CausalTokenTransformerPrior,
     FactorisedMultiCodeTokenPrior,
     HierarchicalRVQ2TokenPrior,
+    NativeRecurrentTokenPrior,
     build_token_prior_model,
 )
 from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
@@ -44,6 +45,7 @@ def load_trained_token_prior(
 ) -> tuple[
     CausalTokenTransformerPrior
     | CausalConvTransformerPrior
+    | NativeRecurrentTokenPrior
     | FactorisedMultiCodeTokenPrior
     | HierarchicalRVQ2TokenPrior,
     CausalTokenPriorConfig,

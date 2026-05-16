@@ -37,6 +37,7 @@ class CausalTokenPriorConfig:
     prior_type: Literal[
         "single_code",
         "causal_conv_transformer",
+        "native_recurrent",
         "factorised_multi_code",
         "hierarchical_rvq_q2",
     ] = "single_code"
@@ -48,6 +49,10 @@ class CausalTokenPriorConfig:
     conv_kernel_size: int = 3
     conv_dilations: list[int] | None = None
     conv_dropout: float = 0.0
+    recurrent_type: Literal["gru"] = "gru"
+    recurrent_hidden_dim: int = 128
+    recurrent_num_layers: int = 1
+    recurrent_dropout: float = 0.0
 
     def __post_init__(self) -> None:
         """Validate dimensions and token identifiers."""
@@ -83,12 +88,13 @@ class CausalTokenPriorConfig:
         if self.prior_type not in {
             "single_code",
             "causal_conv_transformer",
+            "native_recurrent",
             "factorised_multi_code",
             "hierarchical_rvq_q2",
         }:
             raise ValueError(
                 "prior_type must be 'single_code', 'causal_conv_transformer', "
-                "'factorised_multi_code', or 'hierarchical_rvq_q2'."
+                "'native_recurrent', 'factorised_multi_code', or 'hierarchical_rvq_q2'."
             )
         if self.conv_num_layers < 0:
             raise ValueError("conv_num_layers must be non-negative.")
@@ -101,6 +107,14 @@ class CausalTokenPriorConfig:
                 raise ValueError("conv_dilations values must be positive.")
         if not 0.0 <= self.conv_dropout < 1.0:
             raise ValueError("conv_dropout must satisfy 0.0 <= conv_dropout < 1.0.")
+        if self.recurrent_type != "gru":
+            raise ValueError("recurrent_type must be 'gru'.")
+        if self.recurrent_hidden_dim <= 0:
+            raise ValueError("recurrent_hidden_dim must be positive.")
+        if self.recurrent_num_layers <= 0:
+            raise ValueError("recurrent_num_layers must be positive.")
+        if not 0.0 <= self.recurrent_dropout < 1.0:
+            raise ValueError("recurrent_dropout must satisfy 0.0 <= recurrent_dropout < 1.0.")
         if self.num_quantizers <= 0:
             raise ValueError("num_quantizers must be positive.")
         if self.groups <= 0:
@@ -112,7 +126,7 @@ class CausalTokenPriorConfig:
                 raise ValueError("index_shape values must be positive.")
             if self.index_shape[0] != self.sequence_length:
                 raise ValueError("index_shape must start with sequence_length.")
-        if self.prior_type in {"single_code", "causal_conv_transformer"}:
+        if self.prior_type in {"single_code", "causal_conv_transformer", "native_recurrent"}:
             if self.index_shape is not None and self.index_shape != [self.sequence_length]:
                 raise ValueError(
                     "single-stream index_shape must be [sequence_length] when provided."
@@ -123,12 +137,16 @@ class CausalTokenPriorConfig:
                 raise ValueError("groups must be 1 for single-stream priors.")
             if self.component_loss_weights is not None:
                 raise ValueError("component_loss_weights is only valid for factorised priors.")
-            if self.prior_type == "single_code" and self.conv_num_layers != 0:
-                raise ValueError("conv_num_layers must be 0 for single_code priors.")
+            if self.prior_type in {"single_code", "native_recurrent"} and self.conv_num_layers != 0:
+                raise ValueError(
+                    "conv_num_layers must be 0 for single_code and native_recurrent priors."
+                )
             if self.prior_type == "causal_conv_transformer" and self.conv_num_layers <= 0:
                 raise ValueError(
                     "conv_num_layers must be positive for causal_conv_transformer priors."
                 )
+            if self.prior_type == "native_recurrent" and self.condition_injection == "adaln_lite":
+                raise ValueError("AdaLN-lite is not supported for native_recurrent yet.")
         elif self.prior_type == "factorised_multi_code":
             expected_shape = [self.sequence_length, *self.component_shape]
             if self.index_shape is not None and self.index_shape != expected_shape:
@@ -182,7 +200,7 @@ class CausalTokenPriorConfig:
     @property
     def component_shape(self) -> tuple[int, ...]:
         """Return the non-time component shape for this prior."""
-        if self.prior_type in {"single_code", "causal_conv_transformer"}:
+        if self.prior_type in {"single_code", "causal_conv_transformer", "native_recurrent"}:
             return ()
         if self.groups == 1:
             return (self.num_quantizers,)
