@@ -47,6 +47,8 @@ SUMMARY_FIELDS = [
     "wandb_enabled",
     "wandb_project",
     "wandb_entity",
+    "wandb_fallback_used",
+    "wandb_failure",
     "best_epoch",
     "best_eval_cross_entropy",
     "best_eval_accuracy",
@@ -211,7 +213,14 @@ def run_one_config(
     )
 
     print(f"$ {shlex.join(train_command)}", flush=True)
-    run_command(train_command)
+    train_command, wandb_fallback_used, wandb_failure = run_training_command(
+        train_command=train_command,
+        config_path=config_path,
+        output_dir=output_dir,
+        args=args,
+        experiment_name=experiment_name,
+        training_seed=training_seed,
+    )
 
     metrics: dict[str, Any] = {}
     best_eval_status = "skipped_dry_run"
@@ -241,7 +250,7 @@ def run_one_config(
         "best_evaluation_dir": str(best_evaluation_dir),
         "paper_style_dir": str(paper_style_dir),
         "dry_run": bool(args.dry_run),
-        "train_status": "passed",
+        "train_status": "passed_no_wandb_fallback" if wandb_fallback_used else "passed",
         "best_eval_status": best_eval_status,
         "paper_style_status": paper_style_status,
         "runtime_seconds": runtime_seconds,
@@ -251,6 +260,8 @@ def run_one_config(
         "wandb_enabled": wandb_enabled,
         "wandb_project": args.wandb_project if wandb_enabled else None,
         "wandb_entity": args.wandb_entity if wandb_enabled else None,
+        "wandb_fallback_used": wandb_fallback_used,
+        "wandb_failure": wandb_failure,
         "train_command": shlex.join(train_command),
         "best_eval_command": shlex.join(best_eval_command),
         "paper_style_command": shlex.join(paper_style_command),
@@ -266,6 +277,7 @@ def build_train_command(
     args: argparse.Namespace,
     experiment_name: str,
     training_seed: int,
+    force_no_wandb: bool = False,
 ) -> list[str]:
     """Build a token-prior training command."""
     command = [
@@ -281,7 +293,8 @@ def build_train_command(
         command.extend(["--epochs", str(args.epochs)])
     if args.device:
         command.extend(["--device", str(args.device)])
-    if args.wandb and not args.no_wandb:
+    wandb_enabled = bool(args.wandb and not args.no_wandb and not force_no_wandb)
+    if wandb_enabled:
         command.extend(
             [
                 "--wandb",
@@ -295,11 +308,45 @@ def build_train_command(
         )
     else:
         command.append("--no-wandb")
-    if args.wandb_mode:
+    if args.wandb_mode and wandb_enabled:
         command.extend(["--wandb-mode", str(args.wandb_mode)])
     if args.dry_run:
         command.append("--dry-run")
     return command
+
+
+def run_training_command(
+    *,
+    train_command: list[str],
+    config_path: Path,
+    output_dir: Path,
+    args: argparse.Namespace,
+    experiment_name: str,
+    training_seed: int,
+) -> tuple[list[str], bool, str | None]:
+    """Run training, falling back to no-W&B if online initialisation fails."""
+    wandb_enabled = bool(args.wandb and not args.no_wandb and args.wandb_mode != "disabled")
+    try:
+        run_command(train_command)
+        return train_command, False, None
+    except subprocess.CalledProcessError as exc:
+        if not wandb_enabled:
+            raise
+        fallback_command = build_train_command(
+            config_path=config_path,
+            output_dir=output_dir,
+            args=args,
+            experiment_name=experiment_name,
+            training_seed=training_seed,
+            force_no_wandb=True,
+        )
+        print(
+            f"W&B training command failed; retrying with --no-wandb. exit_code={exc.returncode}",
+            flush=True,
+        )
+        print(f"$ {shlex.join(fallback_command)}", flush=True)
+        run_command(fallback_command)
+        return fallback_command, True, f"wandb_training_failed_exit_{exc.returncode}"
 
 
 def build_evaluation_command(
@@ -441,6 +488,8 @@ def validate_candidate_config(raw_config: Mapping[str, Any], *, config_path: Pat
     checks = {
         "experiment.dataset": experiment.get("dataset") == "sp500_vix",
         "model.family": model.get("family") == "causal_token_prior",
+        "model.prior_type": model.get("prior_type", "single_code")
+        in {"single_code", "causal_conv_transformer"},
         "model.condition_dim": int(model.get("condition_dim", -1)) == 1,
         "model.condition_injection": model.get("condition_injection") == "additive",
         "data.tokenizer_dir": Path(str(data.get("tokenizer_dir", ""))).is_dir(),
@@ -488,6 +537,8 @@ def empty_metrics() -> dict[str, Any]:
         "wandb_enabled",
         "wandb_project",
         "wandb_entity",
+        "wandb_fallback_used",
+        "wandb_failure",
     }
     return {field: None for field in SUMMARY_FIELDS if field not in excluded}
 
