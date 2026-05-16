@@ -58,8 +58,8 @@ configs/experiments/sp500_vix_causal_token_prior_additive.yaml
 ```
 
 The current best discrete research model is a hidden128 VQ tokenizer with a causal
-conv-transformer k3 prior, sampled with temperature `1.0` and unrestricted top-k. When the
-research configs are present in a local checkout, the prior config path is:
+conv-transformer k3 prior, sampled with temperature `1.0` and unrestricted top-k. The optional
+research prior config path is:
 
 ```text
 configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
@@ -68,6 +68,9 @@ configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
 This research variant is documented for comparison only. It is not the new public default, and
 its outputs, checkpoints, token artefacts, local data, and paper-style diagnostics remain local
 ignored files under `outputs/` or `data/processed/`.
+
+See `docs/research_variants/hidden128_conv_transformer.md` for the concise research-variant
+summary.
 
 Inspect the selected YAML files with:
 

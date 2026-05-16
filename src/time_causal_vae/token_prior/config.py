@@ -36,6 +36,7 @@ class CausalTokenPriorConfig:
     adaln_hidden_dim: int | None = None
     prior_type: Literal[
         "single_code",
+        "causal_conv_transformer",
         "factorised_multi_code",
         "hierarchical_rvq_q2",
     ] = "single_code"
@@ -43,6 +44,10 @@ class CausalTokenPriorConfig:
     num_quantizers: int = 1
     groups: int = 1
     component_loss_weights: list[float] | None = None
+    conv_num_layers: int = 0
+    conv_kernel_size: int = 3
+    conv_dilations: list[int] | None = None
+    conv_dropout: float = 0.0
 
     def __post_init__(self) -> None:
         """Validate dimensions and token identifiers."""
@@ -77,13 +82,25 @@ class CausalTokenPriorConfig:
             raise ValueError("adaln_hidden_dim must be positive when provided.")
         if self.prior_type not in {
             "single_code",
+            "causal_conv_transformer",
             "factorised_multi_code",
             "hierarchical_rvq_q2",
         }:
             raise ValueError(
-                "prior_type must be 'single_code', 'factorised_multi_code', "
-                "or 'hierarchical_rvq_q2'."
+                "prior_type must be 'single_code', 'causal_conv_transformer', "
+                "'factorised_multi_code', or 'hierarchical_rvq_q2'."
             )
+        if self.conv_num_layers < 0:
+            raise ValueError("conv_num_layers must be non-negative.")
+        if self.conv_kernel_size <= 0:
+            raise ValueError("conv_kernel_size must be positive.")
+        if self.conv_dilations is not None:
+            if len(self.conv_dilations) != self.conv_num_layers:
+                raise ValueError("conv_dilations length must equal conv_num_layers.")
+            if any(dilation <= 0 for dilation in self.conv_dilations):
+                raise ValueError("conv_dilations values must be positive.")
+        if not 0.0 <= self.conv_dropout < 1.0:
+            raise ValueError("conv_dropout must satisfy 0.0 <= conv_dropout < 1.0.")
         if self.num_quantizers <= 0:
             raise ValueError("num_quantizers must be positive.")
         if self.groups <= 0:
@@ -95,15 +112,23 @@ class CausalTokenPriorConfig:
                 raise ValueError("index_shape values must be positive.")
             if self.index_shape[0] != self.sequence_length:
                 raise ValueError("index_shape must start with sequence_length.")
-        if self.prior_type == "single_code":
+        if self.prior_type in {"single_code", "causal_conv_transformer"}:
             if self.index_shape is not None and self.index_shape != [self.sequence_length]:
-                raise ValueError("single_code index_shape must be [sequence_length] when provided.")
+                raise ValueError(
+                    "single-stream index_shape must be [sequence_length] when provided."
+                )
             if self.num_quantizers != 1:
-                raise ValueError("num_quantizers must be 1 for single_code priors.")
+                raise ValueError("num_quantizers must be 1 for single-stream priors.")
             if self.groups != 1:
-                raise ValueError("groups must be 1 for single_code priors.")
+                raise ValueError("groups must be 1 for single-stream priors.")
             if self.component_loss_weights is not None:
                 raise ValueError("component_loss_weights is only valid for factorised priors.")
+            if self.prior_type == "single_code" and self.conv_num_layers != 0:
+                raise ValueError("conv_num_layers must be 0 for single_code priors.")
+            if self.prior_type == "causal_conv_transformer" and self.conv_num_layers <= 0:
+                raise ValueError(
+                    "conv_num_layers must be positive for causal_conv_transformer priors."
+                )
         elif self.prior_type == "factorised_multi_code":
             expected_shape = [self.sequence_length, *self.component_shape]
             if self.index_shape is not None and self.index_shape != expected_shape:
@@ -157,7 +182,7 @@ class CausalTokenPriorConfig:
     @property
     def component_shape(self) -> tuple[int, ...]:
         """Return the non-time component shape for this prior."""
-        if self.prior_type == "single_code":
+        if self.prior_type in {"single_code", "causal_conv_transformer"}:
             return ()
         if self.groups == 1:
             return (self.num_quantizers,)

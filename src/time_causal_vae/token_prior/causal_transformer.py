@@ -22,10 +22,17 @@ from time_causal_vae.utils.output import ModelOutput
 
 def build_token_prior_model(
     config: CausalTokenPriorConfig,
-) -> CausalTokenTransformerPrior | FactorisedMultiCodeTokenPrior | HierarchicalRVQ2TokenPrior:
+) -> (
+    CausalTokenTransformerPrior
+    | CausalConvTransformerPrior
+    | FactorisedMultiCodeTokenPrior
+    | HierarchicalRVQ2TokenPrior
+):
     """Build the configured token-prior module."""
     if config.prior_type == "single_code":
         return CausalTokenTransformerPrior(config)
+    if config.prior_type == "causal_conv_transformer":
+        return CausalConvTransformerPrior(config)
     if config.prior_type == "factorised_multi_code":
         return FactorisedMultiCodeTokenPrior(config)
     if config.prior_type == "hierarchical_rvq_q2":
@@ -45,8 +52,10 @@ class CausalTokenTransformerPrior(nn.Module):
     def __init__(self, config: CausalTokenPriorConfig) -> None:
         """Initialise token embeddings, causal transformer, and projection."""
         super().__init__()
-        if config.prior_type != "single_code":
-            raise ValueError("CausalTokenTransformerPrior requires prior_type='single_code'.")
+        if config.prior_type != self.expected_prior_type:
+            raise ValueError(
+                f"{self.__class__.__name__} requires prior_type={self.expected_prior_type!r}."
+            )
         self.config = config
         self.input_vocab_size = config.codebook_size + 1
         self.token_embedding = nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
@@ -73,6 +82,11 @@ class CausalTokenTransformerPrior(nn.Module):
                 num_layers=config.num_layers,
             )
         self.output_projection = nn.Linear(config.token_embedding_dim, config.codebook_size)
+
+    @property
+    def expected_prior_type(self) -> str:
+        """Return the config prior type accepted by this module."""
+        return "single_code"
 
     def forward(
         self,
@@ -155,6 +169,7 @@ class CausalTokenTransformerPrior(nn.Module):
         )
         if self.config.condition_injection == "additive":
             hidden = hidden + self.condition_embedding(condition_sequence)
+        hidden = self.preprocess_hidden(hidden)
         attention_mask = causal_attention_mask(
             sequence_length,
             device=shifted_inputs.device,
@@ -167,6 +182,10 @@ class CausalTokenTransformerPrior(nn.Module):
                 raise RuntimeError("transformer encoder is required for this condition mode.")
             encoded = self.transformer(hidden, mask=attention_mask)
         return cast(Tensor, self.output_projection(encoded))
+
+    def preprocess_hidden(self, hidden: Tensor) -> Tensor:
+        """Return hidden states before the causal transformer trunk."""
+        return hidden
 
     def prepare_conditions(
         self,
@@ -272,6 +291,88 @@ class CausalTokenTransformerPrior(nn.Module):
         finally:
             self.train(was_training)
         return generated
+
+
+class CausalConvTransformerPrior(CausalTokenTransformerPrior):
+    """Single-stream prior with a causal residual convolutional front-end."""
+
+    @property
+    def expected_prior_type(self) -> str:
+        """Return the config prior type accepted by this module."""
+        return "causal_conv_transformer"
+
+    def __init__(self, config: CausalTokenPriorConfig) -> None:
+        """Initialise the BOS-shifted conv-transformer prior."""
+        super().__init__(config)
+        self.conv_preprocessor = CausalResidualConvStack(config)
+
+    def preprocess_hidden(self, hidden: Tensor) -> Tensor:
+        """Apply the causal convolutional preprocessor before attention."""
+        return cast(Tensor, self.conv_preprocessor(hidden))
+
+
+class CausalResidualConvStack(nn.Module):
+    """Stack of residual 1-D convolutions with left-only causal padding."""
+
+    def __init__(self, config: CausalTokenPriorConfig) -> None:
+        """Initialise the configured causal convolution stack."""
+        super().__init__()
+        dilations = config.conv_dilations
+        if dilations is None:
+            dilations = [1] * config.conv_num_layers
+        self.blocks = nn.ModuleList(
+            [
+                CausalResidualConvBlock(
+                    channels=config.token_embedding_dim,
+                    kernel_size=config.conv_kernel_size,
+                    dilation=dilation,
+                    dropout=config.conv_dropout,
+                )
+                for dilation in dilations
+            ]
+        )
+
+    def forward(self, hidden: Tensor) -> Tensor:
+        """Return causally filtered hidden states with sequence length preserved."""
+        for block in self.blocks:
+            hidden = block(hidden)
+        return hidden
+
+
+class CausalResidualConvBlock(nn.Module):
+    """One residual causal convolution block for ``[batch, time, channels]`` states."""
+
+    def __init__(
+        self,
+        *,
+        channels: int,
+        kernel_size: int,
+        dilation: int,
+        dropout: float,
+    ) -> None:
+        """Initialise normalisation, causal convolution, activation, and dropout."""
+        super().__init__()
+        self.left_padding = (kernel_size - 1) * dilation
+        self.norm = nn.LayerNorm(channels)
+        self.conv = nn.Conv1d(
+            in_channels=channels,
+            out_channels=channels,
+            kernel_size=kernel_size,
+            dilation=dilation,
+        )
+        self.activation = nn.GELU()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, hidden: Tensor) -> Tensor:
+        """Apply left-padded convolution without changing sequence length."""
+        residual = hidden
+        convolved = self.norm(hidden).transpose(1, 2)
+        convolved = functional.pad(convolved, (self.left_padding, 0))
+        convolved = self.conv(convolved)
+        if convolved.shape[-1] != hidden.shape[1]:
+            convolved = convolved[..., : hidden.shape[1]]
+        convolved = self.activation(convolved.transpose(1, 2))
+        return cast(Tensor, residual + self.dropout(convolved))
 
 
 class FactorisedMultiCodeTokenPrior(nn.Module):

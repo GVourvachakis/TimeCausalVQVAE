@@ -27,6 +27,7 @@ from time_causal_vae.evaluation.tokenizer import (
 )
 from time_causal_vae.models.distances import GaussianMMD
 from time_causal_vae.token_prior import (
+    CausalConvTransformerPrior,
     CausalTokenPriorConfig,
     CausalTokenTransformerPrior,
     FactorisedMultiCodeTokenPrior,
@@ -41,7 +42,10 @@ def load_trained_token_prior(
     *,
     device: torch.device,
 ) -> tuple[
-    CausalTokenTransformerPrior | FactorisedMultiCodeTokenPrior | HierarchicalRVQ2TokenPrior,
+    CausalTokenTransformerPrior
+    | CausalConvTransformerPrior
+    | FactorisedMultiCodeTokenPrior
+    | HierarchicalRVQ2TokenPrior,
     CausalTokenPriorConfig,
     dict[str, Any],
 ]:
