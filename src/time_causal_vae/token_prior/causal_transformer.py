@@ -2,9 +2,20 @@
 
 References
 ----------
-    [vqvae_2017], [timevqvae_2023], [chronos_2024] in README.md.
-Borrowed idea:
-    Model discrete time-series tokens with a causal next-token objective and scalar conditioning.
+- Neural Discrete Representation Learning, van den Oord, Vinyals, and Kavukcuoglu
+(DOI: 10.5555/3295222.3295378) - adapted the learned prior over discrete latent codes.
+
+- Vector Quantized Time Series Generation with a Bidirectional Prior Model, Lee, Malacarne,
+and Aune (PMLR 206; arXiv DOI: 10.48550/arXiv.2303.04743) - used as a VQ
+time-series contrast; this module keeps the prior causal rather than bidirectional.
+
+- TCCT: Tightly-Coupled Convolutional Transformer on Time Series Forecasting, Shen and Wang
+(DOI: 10.1016/j.neucom.2022.01.039; arXiv DOI: 10.48550/arXiv.2108.12784) -
+architectural reference for local causal convolution plus Transformer modelling in the
+hidden128 conv-transformer research prior.
+
+- Chronos: Learning the Language of Time Series
+(arXiv DOI: 10.48550/arXiv.2403.07815) - contrast with scalar-value tokenisation for forecasting.
 """
 
 from __future__ import annotations
@@ -46,17 +57,21 @@ class CausalTokenTransformerPrior(nn.Module):
         """Initialise token embeddings, causal transformer, and projection."""
         super().__init__()
         if config.prior_type != "single_code":
-            raise ValueError("CausalTokenTransformerPrior requires prior_type='single_code'.")
+            raise ValueError(
+                "CausalTokenTransformerPrior requires prior_type='single_code'.")
         self.config = config
         self.input_vocab_size = config.codebook_size + 1
-        self.token_embedding = nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
-        self.position_embedding = nn.Embedding(config.sequence_length, config.token_embedding_dim)
+        self.token_embedding = nn.Embedding(
+            self.input_vocab_size, config.token_embedding_dim)
+        self.position_embedding = nn.Embedding(
+            config.sequence_length, config.token_embedding_dim)
         self.condition_projection = build_condition_projection(config)
         self.transformer: nn.TransformerEncoder | None = None
         self.adaln_blocks = nn.ModuleList()
         if config.condition_injection == "adaln_lite":
             self.adaln_blocks = nn.ModuleList(
-                [AdaLNCausalTransformerBlock(config) for _ in range(config.num_layers)]
+                [AdaLNCausalTransformerBlock(config)
+                 for _ in range(config.num_layers)]
             )
         else:
             encoder_layer = nn.TransformerEncoderLayer(
@@ -72,7 +87,8 @@ class CausalTokenTransformerPrior(nn.Module):
                 encoder_layer=encoder_layer,
                 num_layers=config.num_layers,
             )
-        self.output_projection = nn.Linear(config.token_embedding_dim, config.codebook_size)
+        self.output_projection = nn.Linear(
+            config.token_embedding_dim, config.codebook_size)
 
     def forward(
         self,
@@ -96,10 +112,12 @@ class CausalTokenTransformerPrior(nn.Module):
         """
         validate_token_sequence(tokens, self.config, tensor_name="tokens")
         target_tokens = tokens if targets is None else targets
-        validate_token_sequence(target_tokens, self.config, tensor_name="targets")
+        validate_token_sequence(
+            target_tokens, self.config, tensor_name="targets")
 
         shifted_inputs = self.build_shifted_inputs(tokens)
-        logits = self.logits_from_shifted_inputs(shifted_inputs, conditions=conditions)
+        logits = self.logits_from_shifted_inputs(
+            shifted_inputs, conditions=conditions)
         cross_entropy = token_cross_entropy(
             logits,
             target_tokens,
@@ -145,7 +163,8 @@ class CausalTokenTransformerPrior(nn.Module):
         batch_size, sequence_length = shifted_inputs.shape
         positions = torch.arange(sequence_length, device=shifted_inputs.device)
         positions = positions.unsqueeze(0).expand(batch_size, sequence_length)
-        hidden = self.token_embedding(shifted_inputs) + self.position_embedding(positions)
+        hidden = self.token_embedding(
+            shifted_inputs) + self.position_embedding(positions)
         condition_sequence = self.prepare_conditions(
             conditions,
             batch_size=batch_size,
@@ -161,10 +180,12 @@ class CausalTokenTransformerPrior(nn.Module):
             dtype=hidden.dtype,
         )
         if self.config.condition_injection == "adaln_lite":
-            encoded = self.encode_with_adaln(hidden, condition_sequence, attention_mask)
+            encoded = self.encode_with_adaln(
+                hidden, condition_sequence, attention_mask)
         else:
             if self.transformer is None:
-                raise RuntimeError("transformer encoder is required for this condition mode.")
+                raise RuntimeError(
+                    "transformer encoder is required for this condition mode.")
             encoded = self.transformer(hidden, mask=attention_mask)
         return cast(Tensor, self.output_projection(encoded))
 
@@ -180,7 +201,8 @@ class CausalTokenTransformerPrior(nn.Module):
         """Return prepared condition sequences or ``None`` for unconditional mode."""
         if self.config.condition_injection == "none":
             if conditions is not None:
-                raise ValueError("conditions were provided but condition_injection='none'.")
+                raise ValueError(
+                    "conditions were provided but condition_injection='none'.")
             return None
         return prepare_condition_sequence(
             conditions,
@@ -194,9 +216,11 @@ class CausalTokenTransformerPrior(nn.Module):
     def condition_embedding(self, condition_sequence: Tensor | None) -> Tensor:
         """Return additive condition embeddings."""
         if condition_sequence is None:
-            raise RuntimeError("condition_sequence is required for additive conditioning.")
+            raise RuntimeError(
+                "condition_sequence is required for additive conditioning.")
         if self.condition_projection is None:
-            raise RuntimeError("condition_projection is required for additive conditioning.")
+            raise RuntimeError(
+                "condition_projection is required for additive conditioning.")
         return cast(Tensor, self.condition_projection(condition_sequence))
 
     def encode_with_adaln(
@@ -207,7 +231,8 @@ class CausalTokenTransformerPrior(nn.Module):
     ) -> Tensor:
         """Encode with AdaLN-lite causal blocks."""
         if condition_sequence is None:
-            raise RuntimeError("condition_sequence is required for AdaLN-lite conditioning.")
+            raise RuntimeError(
+                "condition_sequence is required for AdaLN-lite conditioning.")
         encoded = hidden
         for block in self.adaln_blocks:
             encoded = block(encoded, condition_sequence, attention_mask)
@@ -247,7 +272,8 @@ class CausalTokenTransformerPrior(nn.Module):
                 dtype=torch.float32,
             )
         elif conditions is not None:
-            raise ValueError("conditions were provided but condition_injection='none'.")
+            raise ValueError(
+                "conditions were provided but condition_injection='none'.")
         was_training = self.training
         self.eval()
         try:
@@ -265,7 +291,8 @@ class CausalTokenTransformerPrior(nn.Module):
                 )
                 if position > 0:
                     prefix_inputs[:, :position] = generated
-                logits = cast(Tensor, self(prefix_inputs, conditions=prepared_conditions).logits)
+                logits = cast(Tensor, self(
+                    prefix_inputs, conditions=prepared_conditions).logits)
                 next_logits = logits[:, position, :] / temperature
                 next_token = sample_from_logits(next_logits, top_k=top_k)
                 generated = torch.cat([generated, next_token[:, None]], dim=1)
@@ -292,7 +319,8 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
                 "FactorisedMultiCodeTokenPrior requires prior_type='factorised_multi_code'."
             )
         if config.component_count <= 1:
-            raise ValueError("factorised_multi_code requires at least two components.")
+            raise ValueError(
+                "factorised_multi_code requires at least two components.")
         self.config = config
         self.input_vocab_size = config.codebook_size + 1
         self.component_embeddings = nn.ModuleList(
@@ -301,7 +329,8 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
                 for _ in range(config.component_count)
             ]
         )
-        self.position_embedding = nn.Embedding(config.sequence_length, config.token_embedding_dim)
+        self.position_embedding = nn.Embedding(
+            config.sequence_length, config.token_embedding_dim)
         self.condition_projection = build_condition_projection(config)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=config.token_embedding_dim,
@@ -324,7 +353,8 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
             ]
         )
         weights = component_loss_weights(config)
-        self.register_buffer("component_loss_weights", weights, persistent=False)
+        self.register_buffer("component_loss_weights",
+                             weights, persistent=False)
 
     def forward(
         self,
@@ -335,10 +365,12 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
         """Return factorised component logits and aggregate training metrics."""
         validate_multicode_sequence(tokens, self.config, tensor_name="tokens")
         target_tokens = tokens if targets is None else targets
-        validate_multicode_sequence(target_tokens, self.config, tensor_name="targets")
+        validate_multicode_sequence(
+            target_tokens, self.config, tensor_name="targets")
 
         shifted_inputs = self.build_shifted_inputs(tokens)
-        logits = self.logits_from_shifted_inputs(shifted_inputs, conditions=conditions)
+        logits = self.logits_from_shifted_inputs(
+            shifted_inputs, conditions=conditions)
         target_components = flatten_components(target_tokens, self.config)
         component_losses: list[Tensor] = []
         component_accuracies: list[Tensor] = []
@@ -362,7 +394,8 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
             logits_by_component[component_name] = component_logits
             output_payload[f"component_cross_entropy_{component_name}"] = ce
             output_payload[f"component_accuracy_{component_name}"] = accuracy
-            output_payload[f"component_perplexity_{component_name}"] = torch.exp(ce.detach())
+            output_payload[f"component_perplexity_{component_name}"] = torch.exp(
+                ce.detach())
 
         weights = cast(Tensor, self.component_loss_weights).to(
             device=tokens.device,
@@ -425,8 +458,10 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
         )
         if self.config.condition_injection == "additive":
             if self.condition_projection is None:
-                raise RuntimeError("condition_projection is required for additive conditioning.")
-            hidden = hidden + cast(Tensor, self.condition_projection(condition_sequence))
+                raise RuntimeError(
+                    "condition_projection is required for additive conditioning.")
+            hidden = hidden + \
+                cast(Tensor, self.condition_projection(condition_sequence))
         attention_mask = causal_attention_mask(
             sequence_length,
             device=shifted_inputs.device,
@@ -465,7 +500,8 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
                 dtype=torch.float32,
             )
         elif conditions is not None:
-            raise ValueError("conditions were provided but condition_injection='none'.")
+            raise ValueError(
+                "conditions were provided but condition_injection='none'.")
 
         was_training = self.training
         self.eval()
@@ -477,7 +513,8 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
             )
             for position in range(self.config.sequence_length):
                 prefix_inputs = torch.zeros(
-                    (batch_size, self.config.sequence_length, *self.config.component_shape),
+                    (batch_size, self.config.sequence_length,
+                     *self.config.component_shape),
                     dtype=torch.long,
                     device=sample_device,
                 )
@@ -489,8 +526,10 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
                 )
                 next_component_tokens = []
                 for component_index in range(self.config.component_count):
-                    component_logits = logits[:, position, component_index, :] / temperature
-                    next_component_tokens.append(sample_from_logits(component_logits, top_k=top_k))
+                    component_logits = logits[:, position,
+                                              component_index, :] / temperature
+                    next_component_tokens.append(
+                        sample_from_logits(component_logits, top_k=top_k))
                 next_block = torch.stack(next_component_tokens, dim=1).reshape(
                     batch_size,
                     1,
@@ -519,7 +558,8 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
                 "HierarchicalRVQ2TokenPrior requires prior_type='hierarchical_rvq_q2'."
             )
         if config.groups != 1 or config.num_quantizers != 2:
-            raise ValueError("hierarchical_rvq_q2 requires groups=1 and num_quantizers=2.")
+            raise ValueError(
+                "hierarchical_rvq_q2 requires groups=1 and num_quantizers=2.")
         self.config = config
         self.input_vocab_size = config.codebook_size + 1
         self.component_embeddings = nn.ModuleList(
@@ -528,7 +568,8 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
                 for _component_index in range(2)
             ]
         )
-        self.position_embedding = nn.Embedding(config.sequence_length, config.token_embedding_dim)
+        self.position_embedding = nn.Embedding(
+            config.sequence_length, config.token_embedding_dim)
         self.condition_projection = build_condition_projection(config)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=config.token_embedding_dim,
@@ -543,15 +584,18 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
             encoder_layer=encoder_layer,
             num_layers=config.num_layers,
         )
-        self.q0_head = nn.Linear(config.token_embedding_dim, config.codebook_size)
+        self.q0_head = nn.Linear(
+            config.token_embedding_dim, config.codebook_size)
         self.q0_condition_embedding = nn.Embedding(
             config.codebook_size,
             config.token_embedding_dim,
         )
-        self.q1_head = nn.Linear(config.token_embedding_dim, config.codebook_size)
+        self.q1_head = nn.Linear(
+            config.token_embedding_dim, config.codebook_size)
         self.component_names = ["q0", "q1"]
         weights = component_loss_weights(config)
-        self.register_buffer("component_loss_weights", weights, persistent=False)
+        self.register_buffer("component_loss_weights",
+                             weights, persistent=False)
 
     def forward(
         self,
@@ -562,7 +606,8 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
         """Return hierarchical q0/q1 logits and training metrics."""
         validate_multicode_sequence(tokens, self.config, tensor_name="tokens")
         target_tokens = tokens if targets is None else targets
-        validate_multicode_sequence(target_tokens, self.config, tensor_name="targets")
+        validate_multicode_sequence(
+            target_tokens, self.config, tensor_name="targets")
 
         shifted_inputs = self.build_shifted_inputs(tokens)
         target_components = flatten_components(target_tokens, self.config)
@@ -646,7 +691,8 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
         batch_size, sequence_length = shifted_inputs.shape[:2]
         component_inputs = flatten_components(shifted_inputs, self.config)
         hidden = self.component_embeddings[0](component_inputs[:, :, 0])
-        hidden = hidden + self.component_embeddings[1](component_inputs[:, :, 1])
+        hidden = hidden + \
+            self.component_embeddings[1](component_inputs[:, :, 1])
         positions = torch.arange(sequence_length, device=shifted_inputs.device)
         positions = positions.unsqueeze(0).expand(batch_size, sequence_length)
         hidden = hidden + self.position_embedding(positions)
@@ -660,8 +706,10 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
         )
         if self.config.condition_injection == "additive":
             if self.condition_projection is None:
-                raise RuntimeError("condition_projection is required for additive conditioning.")
-            hidden = hidden + cast(Tensor, self.condition_projection(condition_sequence))
+                raise RuntimeError(
+                    "condition_projection is required for additive conditioning.")
+            hidden = hidden + \
+                cast(Tensor, self.condition_projection(condition_sequence))
         attention_mask = causal_attention_mask(
             sequence_length,
             device=shifted_inputs.device,
@@ -677,8 +725,10 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
         conditions: Tensor | None = None,
     ) -> Tensor:
         """Return ``[batch, time, 2, codebook]`` logits conditioned on q0 tokens."""
-        validate_token_sequence(q0_tokens, self.config, tensor_name="q0_tokens")
-        encoded = self.encode_shifted_inputs(shifted_inputs, conditions=conditions)
+        validate_token_sequence(q0_tokens, self.config,
+                                tensor_name="q0_tokens")
+        encoded = self.encode_shifted_inputs(
+            shifted_inputs, conditions=conditions)
         q0_logits = self.q0_head(encoded)
         q1_hidden = encoded + self.q0_condition_embedding(q0_tokens)
         q1_logits = self.q1_head(q1_hidden)
@@ -713,7 +763,8 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
                 dtype=torch.float32,
             )
         elif conditions is not None:
-            raise ValueError("conditions were provided but condition_injection='none'.")
+            raise ValueError(
+                "conditions were provided but condition_injection='none'.")
 
         was_training = self.training
         self.eval()
@@ -738,10 +789,12 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
                 current_hidden = encoded[:, position, :]
                 q0_logits = self.q0_head(current_hidden) / temperature
                 q0_tokens = sample_from_logits(q0_logits, top_k=top_k)
-                q1_hidden = current_hidden + self.q0_condition_embedding(q0_tokens)
+                q1_hidden = current_hidden + \
+                    self.q0_condition_embedding(q0_tokens)
                 q1_logits = self.q1_head(q1_hidden) / temperature
                 q1_tokens = sample_from_logits(q1_logits, top_k=top_k)
-                next_block = torch.stack([q0_tokens, q1_tokens], dim=1)[:, None, :]
+                next_block = torch.stack([q0_tokens, q1_tokens], dim=1)[
+                    :, None, :]
                 generated = torch.cat([generated, next_block], dim=1)
         finally:
             self.train(was_training)
@@ -855,7 +908,8 @@ def validate_token_sequence(
 ) -> None:
     """Validate tokenizer-code tensors in ``[batch, sequence_length]`` format."""
     if tokens.ndim != 2:
-        raise ValueError(f"{tensor_name} must be [batch, sequence_length]; got {tokens.shape}.")
+        raise ValueError(
+            f"{tensor_name} must be [batch, sequence_length]; got {tokens.shape}.")
     if tokens.shape[1] != config.sequence_length:
         raise ValueError(
             f"{tensor_name} length must be {config.sequence_length}; got {tokens.shape[1]}."
@@ -869,7 +923,8 @@ def validate_token_sequence(
                 f"observed [{min_value}, {max_value}]."
             )
     if tokens.dtype != torch.long:
-        raise ValueError(f"{tensor_name} must have dtype torch.long; got {tokens.dtype}.")
+        raise ValueError(
+            f"{tensor_name} must have dtype torch.long; got {tokens.dtype}.")
 
 
 def validate_multicode_sequence(
@@ -891,7 +946,8 @@ def validate_multicode_sequence(
             f"got {tuple(tokens.shape[1:])}."
         )
     if tokens.dtype != torch.long:
-        raise ValueError(f"{tensor_name} must have dtype torch.long; got {tokens.dtype}.")
+        raise ValueError(
+            f"{tensor_name} must have dtype torch.long; got {tokens.dtype}.")
     if tokens.numel() == 0:
         return
     min_value = int(tokens.min().item())
@@ -920,7 +976,8 @@ def validate_multicode_shifted_sequence(
             f"got {tuple(shifted_inputs.shape[1:])}."
         )
     if shifted_inputs.dtype != torch.long:
-        raise ValueError(f"shifted_inputs must have dtype torch.long; got {shifted_inputs.dtype}.")
+        raise ValueError(
+            f"shifted_inputs must have dtype torch.long; got {shifted_inputs.dtype}.")
     if shifted_inputs.numel() == 0:
         return
     min_value = int(shifted_inputs.min().item())
@@ -954,7 +1011,8 @@ def component_loss_weights(config: CausalTokenPriorConfig) -> Tensor:
     if config.component_loss_weights is None:
         weights = torch.ones(config.component_count, dtype=torch.float32)
     else:
-        weights = torch.tensor(config.component_loss_weights, dtype=torch.float32)
+        weights = torch.tensor(
+            config.component_loss_weights, dtype=torch.float32)
     return weights / weights.sum().clamp_min(1e-12)
 
 
@@ -962,7 +1020,8 @@ def same_time_pair_perplexity(tokens: Tensor, config: CausalTokenPriorConfig) ->
     """Return empirical same-time q0/q1 pair perplexity for RVQ q2 tensors."""
     validate_multicode_sequence(tokens, config, tensor_name="tokens")
     if config.component_count != 2:
-        raise ValueError("same_time_pair_perplexity requires exactly two components.")
+        raise ValueError(
+            "same_time_pair_perplexity requires exactly two components.")
     components = flatten_components(tokens, config)
     pair_ids = components[:, :, 0] * config.codebook_size + components[:, :, 1]
     counts = torch.bincount(
@@ -990,7 +1049,8 @@ def validate_shifted_sequence(shifted_inputs: Tensor, config: CausalTokenPriorCo
             f"got {shifted_inputs.shape[1]}."
         )
     if shifted_inputs.dtype != torch.long:
-        raise ValueError(f"shifted_inputs must have dtype torch.long; got {shifted_inputs.dtype}.")
+        raise ValueError(
+            f"shifted_inputs must have dtype torch.long; got {shifted_inputs.dtype}.")
     if shifted_inputs.numel() == 0:
         return
     min_value = int(shifted_inputs.min().item())
@@ -1014,21 +1074,24 @@ def prepare_condition_sequence(
     """Validate and broadcast scalar or temporal conditions for conditional modes."""
     if config.condition_injection == "none":
         if conditions is not None:
-            raise ValueError("conditions were provided but condition_injection='none'.")
+            raise ValueError(
+                "conditions were provided but condition_injection='none'.")
         return torch.zeros(
             (batch_size, sequence_length, config.condition_dim),
             device=device,
             dtype=dtype,
         )
     if conditions is None:
-        raise ValueError("conditions are required when condition_injection is enabled.")
+        raise ValueError(
+            "conditions are required when condition_injection is enabled.")
     if conditions.ndim == 2:
         if conditions.shape != (batch_size, config.condition_dim):
             raise ValueError(
                 "scalar conditions must have shape "
                 f"{(batch_size, config.condition_dim)}; got {tuple(conditions.shape)}."
             )
-        prepared = conditions[:, None, :].expand(batch_size, sequence_length, config.condition_dim)
+        prepared = conditions[:, None, :].expand(
+            batch_size, sequence_length, config.condition_dim)
     elif conditions.ndim == 3:
         if conditions.shape != (batch_size, sequence_length, config.condition_dim):
             raise ValueError(
@@ -1084,7 +1147,8 @@ def sample_from_logits(logits: Tensor, *, top_k: int | None) -> Tensor:
     if top_k is not None:
         top_values, top_indices = torch.topk(logits, k=top_k, dim=-1)
         probabilities = functional.softmax(top_values, dim=-1)
-        sampled_positions = torch.multinomial(probabilities, num_samples=1).squeeze(-1)
+        sampled_positions = torch.multinomial(
+            probabilities, num_samples=1).squeeze(-1)
         return top_indices.gather(dim=-1, index=sampled_positions[:, None]).squeeze(-1)
     probabilities = functional.softmax(logits, dim=-1)
     return torch.multinomial(probabilities, num_samples=1).squeeze(-1)
@@ -1110,25 +1174,30 @@ def assert_token_prior_no_future_leakage(
     validate_token_sequence(tokens, model.config, tensor_name="tokens")
     length = tokens.shape[1]
     if not 0 <= cutoff < length:
-        raise ValueError(f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
+        raise ValueError(
+            f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
 
     changed_tokens = tokens.clone()
     if cutoff + 1 < length:
-        future = changed_tokens[:, cutoff + 1 :]
-        changed_tokens[:, cutoff + 1 :] = (future + 1) % model.config.codebook_size
+        future = changed_tokens[:, cutoff + 1:]
+        changed_tokens[:, cutoff +
+                       1:] = (future + 1) % model.config.codebook_size
 
     changed_conditions = None
     if conditions is not None and conditions.ndim == 3:
         changed_conditions = conditions.clone()
         if cutoff + 1 < length:
-            changed_conditions[:, cutoff + 1 :] = changed_conditions[:, cutoff + 1 :] + 1.0
+            changed_conditions[:, cutoff +
+                               1:] = changed_conditions[:, cutoff + 1:] + 1.0
 
     was_training = model.training
     model.eval()
     try:
         with torch.no_grad():
-            reference_logits = cast(Tensor, model(tokens, conditions=conditions).logits)
-            changed_logits = cast(Tensor, model(changed_tokens, conditions=conditions).logits)
+            reference_logits = cast(Tensor, model(
+                tokens, conditions=conditions).logits)
+            changed_logits = cast(Tensor, model(
+                changed_tokens, conditions=conditions).logits)
             if changed_conditions is not None:
                 changed_condition_logits = cast(
                     Tensor,
@@ -1154,7 +1223,8 @@ def assert_token_prior_no_future_leakage(
             atol=atol,
             rtol=rtol,
         ):
-            max_difference = (reference_prefix - changed_condition_prefix).abs().max().item()
+            max_difference = (reference_prefix -
+                              changed_condition_prefix).abs().max().item()
             raise AssertionError(
                 "Token prior prefix logits changed after future-condition perturbation; "
                 f"max_difference={max_difference}."
@@ -1175,25 +1245,30 @@ def assert_multicode_token_prior_no_future_leakage(
     validate_multicode_sequence(tokens, model.config, tensor_name="tokens")
     length = tokens.shape[1]
     if not 0 <= cutoff < length:
-        raise ValueError(f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
+        raise ValueError(
+            f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
 
     changed_tokens = tokens.clone()
     if cutoff + 1 < length:
-        future = changed_tokens[:, cutoff + 1 :]
-        changed_tokens[:, cutoff + 1 :] = (future + 1) % model.config.codebook_size
+        future = changed_tokens[:, cutoff + 1:]
+        changed_tokens[:, cutoff +
+                       1:] = (future + 1) % model.config.codebook_size
 
     changed_conditions = None
     if conditions is not None and conditions.ndim == 3:
         changed_conditions = conditions.clone()
         if cutoff + 1 < length:
-            changed_conditions[:, cutoff + 1 :] = changed_conditions[:, cutoff + 1 :] + 1.0
+            changed_conditions[:, cutoff +
+                               1:] = changed_conditions[:, cutoff + 1:] + 1.0
 
     was_training = model.training
     model.eval()
     try:
         with torch.no_grad():
-            reference_logits = cast(Tensor, model(tokens, conditions=conditions).logits)
-            changed_logits = cast(Tensor, model(changed_tokens, conditions=conditions).logits)
+            reference_logits = cast(Tensor, model(
+                tokens, conditions=conditions).logits)
+            changed_logits = cast(Tensor, model(
+                changed_tokens, conditions=conditions).logits)
             if changed_conditions is not None:
                 changed_condition_logits = cast(
                     Tensor,
@@ -1219,7 +1294,8 @@ def assert_multicode_token_prior_no_future_leakage(
             atol=atol,
             rtol=rtol,
         ):
-            max_difference = (reference_prefix - changed_condition_prefix).abs().max().item()
+            max_difference = (reference_prefix -
+                              changed_condition_prefix).abs().max().item()
             raise AssertionError(
                 "Multi-code token-prior prefix logits changed after future-condition "
                 f"perturbation; max_difference={max_difference}."
@@ -1240,25 +1316,30 @@ def assert_hierarchical_rvq_prior_no_future_leakage(
     validate_multicode_sequence(tokens, model.config, tensor_name="tokens")
     length = tokens.shape[1]
     if not 0 <= cutoff < length:
-        raise ValueError(f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
+        raise ValueError(
+            f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
 
     changed_tokens = tokens.clone()
     if cutoff + 1 < length:
-        future = changed_tokens[:, cutoff + 1 :]
-        changed_tokens[:, cutoff + 1 :] = (future + 1) % model.config.codebook_size
+        future = changed_tokens[:, cutoff + 1:]
+        changed_tokens[:, cutoff +
+                       1:] = (future + 1) % model.config.codebook_size
 
     changed_conditions = None
     if conditions is not None and conditions.ndim == 3:
         changed_conditions = conditions.clone()
         if cutoff + 1 < length:
-            changed_conditions[:, cutoff + 1 :] = changed_conditions[:, cutoff + 1 :] + 1.0
+            changed_conditions[:, cutoff +
+                               1:] = changed_conditions[:, cutoff + 1:] + 1.0
 
     was_training = model.training
     model.eval()
     try:
         with torch.no_grad():
-            reference_logits = cast(Tensor, model(tokens, conditions=conditions).logits)
-            changed_logits = cast(Tensor, model(changed_tokens, conditions=conditions).logits)
+            reference_logits = cast(Tensor, model(
+                tokens, conditions=conditions).logits)
+            changed_logits = cast(Tensor, model(
+                changed_tokens, conditions=conditions).logits)
             if changed_conditions is not None:
                 changed_condition_logits = cast(
                     Tensor,
@@ -1284,7 +1365,8 @@ def assert_hierarchical_rvq_prior_no_future_leakage(
             atol=atol,
             rtol=rtol,
         ):
-            max_difference = (reference_prefix - changed_condition_prefix).abs().max().item()
+            max_difference = (reference_prefix -
+                              changed_condition_prefix).abs().max().item()
             raise AssertionError(
                 "Hierarchical RVQ q2 prefix logits changed after future-condition "
                 f"perturbation; max_difference={max_difference}."

@@ -2,9 +2,15 @@
 
 References
 ----------
-    [vqvae_2017], [vector_quantize_pytorch], [mgvq_2025] in README.md.
-Borrowed idea:
-    Inspect codebook geometry, usage, and residual-code compatibility before adding new tokenizers.
+- Neural Discrete Representation Learning, van den Oord, Vinyals, and Kavukcuoglu
+(DOI: 10.5555/3295222.3295378) - motivates inspection of learned discrete codebooks.
+
+- vector-quantize-pytorch, lucidrains
+(repository: https://github.com/lucidrains/vector-quantize-pytorch) - source of wrapped VQ-family
+backends whose codebooks are inspected here.
+
+- MGVQ: Could VQ-VAE Beat VAE? A Generalizable Tokenizer with Multi-group Quantization
+(arXiv DOI: 10.48550/arXiv.2507.07997) - future grouped-tokenizer motivation only.
 """
 
 from __future__ import annotations
@@ -79,8 +85,10 @@ def extract_codebook_geometry(
             notes=notes,
         )
     if observed_indices is None:
-        raise ValueError("Observed indices are required when codebook extraction is unavailable.")
-    notes.append("Falling back to mean decoded embeddings from observed token indices.")
+        raise ValueError(
+            "Observed indices are required when codebook extraction is unavailable.")
+    notes.append(
+        "Falling back to mean decoded embeddings from observed token indices.")
     return observed_quantized_geometry(
         tokenizer,
         observed_indices=observed_indices,
@@ -117,7 +125,8 @@ def geometry_from_array(
         ]
         group_indices = [None] * flat.shape[0]
     elif array.ndim == 4:
-        flat = array.reshape(array.shape[0] * array.shape[1] * array.shape[2], array.shape[3])
+        flat = array.reshape(
+            array.shape[0] * array.shape[1] * array.shape[2], array.shape[3])
         code_indices = [
             code
             for _group in range(array.shape[0])
@@ -176,7 +185,8 @@ def observed_quantized_geometry(
 ) -> CodebookGeometry:
     """Approximate geometry by averaging decoded embeddings for observed indices."""
     with torch.no_grad():
-        quantized = cast(Any, tokenizer).quantizer.decode_indices(observed_indices).detach().cpu()
+        quantized = cast(Any, tokenizer).quantizer.decode_indices(
+            observed_indices).detach().cpu()
     if quantized.shape[:2] != observed_indices.shape[:2]:
         raise ValueError(
             "Decoded quantized embeddings must share the batch/time prefix with indices; "
@@ -212,7 +222,8 @@ def project_embeddings(embeddings: np.ndarray, *, method: str = "pca") -> tuple[
     if method != "pca":
         raise ValueError(f"Unsupported projection method: {method}")
     if embeddings.ndim != 2:
-        raise ValueError(f"Expected [n_code, dim] embeddings; got {embeddings.shape}.")
+        raise ValueError(
+            f"Expected [n_code, dim] embeddings; got {embeddings.shape}.")
     if embeddings.shape[0] == 0:
         raise ValueError("Cannot project an empty codebook.")
     centred = embeddings - embeddings.mean(axis=0, keepdims=True)
@@ -221,7 +232,8 @@ def project_embeddings(embeddings: np.ndarray, *, method: str = "pca") -> tuple[
     try:
         from sklearn.decomposition import PCA
 
-        projection = PCA(n_components=2, random_state=0).fit_transform(embeddings)
+        projection = PCA(
+            n_components=2, random_state=0).fit_transform(embeddings)
         return cast(np.ndarray, projection), "sklearn_pca"
     except Exception:
         _u, _singular, vh = np.linalg.svd(centred, full_matrices=False)
@@ -266,7 +278,8 @@ def code_usage_summary(indices: Tensor, codebook_size: int) -> dict[str, Any]:
                         "quantizer_index": quantizer,
                         **summarise_counts(
                             torch.bincount(
-                                indices[:, :, group, quantizer].detach().cpu().reshape(-1),
+                                indices[:, :, group, quantizer].detach(
+                                ).cpu().reshape(-1),
                                 minlength=codebook_size,
                             )[:codebook_size]
                         ),
@@ -296,7 +309,8 @@ def summarise_counts(counts: Tensor) -> dict[str, Any]:
     else:
         probabilities = counts_cpu.float() / float(total)
         active_probabilities = probabilities[probabilities > 0.0]
-        entropy_tensor = -(active_probabilities * active_probabilities.log()).sum()
+        entropy_tensor = -(active_probabilities *
+                           active_probabilities.log()).sum()
         entropy = float(entropy_tensor.item())
         perplexity = float(torch.exp(entropy_tensor).item())
         active_indices = [
@@ -367,7 +381,8 @@ def condition_bucket_usage(
 def q0_q1_pair_summary(indices: Tensor, codebook_size: int) -> dict[str, Any]:
     """Summarise q0/q1 pair usage for two-level RVQ token indices."""
     if indices.ndim != 3 or indices.shape[-1] != 2:
-        raise ValueError(f"Expected [batch, time, 2] indices; got {tuple(indices.shape)}.")
+        raise ValueError(
+            f"Expected [batch, time, 2] indices; got {tuple(indices.shape)}.")
     pairs = indices.detach().cpu().long().reshape(-1, 2)
     pair_counts = torch.zeros((codebook_size, codebook_size), dtype=torch.long)
     valid = (
@@ -380,13 +395,16 @@ def q0_q1_pair_summary(indices: Tensor, codebook_size: int) -> dict[str, Any]:
         pair_counts[int(q0), int(q1)] += 1
     total_pairs = int(pair_counts.sum().item())
     active_pairs = int((pair_counts > 0).sum().item())
-    absent_pair_mass = 1.0 - active_pairs / float(codebook_size * codebook_size)
+    absent_pair_mass = 1.0 - active_pairs / \
+        float(codebook_size * codebook_size)
     return {
         "q0": summarise_counts(
-            torch.bincount(indices[:, :, 0].reshape(-1), minlength=codebook_size)[:codebook_size]
+            torch.bincount(indices[:, :, 0].reshape(-1),
+                           minlength=codebook_size)[:codebook_size]
         ),
         "q1": summarise_counts(
-            torch.bincount(indices[:, :, 1].reshape(-1), minlength=codebook_size)[:codebook_size]
+            torch.bincount(indices[:, :, 1].reshape(-1),
+                           minlength=codebook_size)[:codebook_size]
         ),
         "pair_count": total_pairs,
         "active_pair_count": active_pairs,
@@ -400,7 +418,8 @@ def load_token_artifacts(token_data_dir: str | Path) -> TokenArtifactData:
     """Load and concatenate train/eval token artifacts from an extraction directory."""
     directory = Path(token_data_dir)
     if not directory.exists():
-        raise FileNotFoundError(f"Token data directory does not exist: {directory}")
+        raise FileNotFoundError(
+            f"Token data directory does not exist: {directory}")
     payloads: list[Mapping[str, Any]] = []
     source_files: list[str] = []
     for name in ("train_tokens.pt", "eval_tokens.pt"):
@@ -408,7 +427,8 @@ def load_token_artifacts(token_data_dir: str | Path) -> TokenArtifactData:
         if path.exists():
             loaded = torch.load(path, map_location="cpu", weights_only=True)
             if not isinstance(loaded, Mapping) or "indices" not in loaded:
-                raise ValueError(f"Token artifact must contain an 'indices' tensor: {path}")
+                raise ValueError(
+                    f"Token artifact must contain an 'indices' tensor: {path}")
             payloads.append(loaded)
             source_files.append(str(path))
     if not payloads:
@@ -462,7 +482,8 @@ def synthetic_token_artifacts(
         for quantizer in range(num_quantizers):
             scale = 1.0 / float(quantizer + 1)
             codebooks.append(
-                vector_codebook * scale + rng.normal(scale=0.03, size=vector_codebook.shape)
+                vector_codebook * scale +
+                rng.normal(scale=0.03, size=vector_codebook.shape)
             )
         geometry = geometry_from_array(
             np.stack(codebooks),
@@ -472,7 +493,8 @@ def synthetic_token_artifacts(
         )
         indices = torch.stack(
             [
-                synthetic_indices(batch_size, sequence_length, codebook_size, offset=quantizer)
+                synthetic_indices(batch_size, sequence_length,
+                                  codebook_size, offset=quantizer)
                 for quantizer in range(num_quantizers)
             ],
             dim=-1,
@@ -484,7 +506,8 @@ def synthetic_token_artifacts(
             for quantizer in range(num_quantizers):
                 scale = 1.0 / float(group + quantizer + 1)
                 group_books.append(
-                    vector_codebook * scale + rng.normal(scale=0.03, size=vector_codebook.shape)
+                    vector_codebook * scale +
+                    rng.normal(scale=0.03, size=vector_codebook.shape)
                 )
             codebooks.append(np.stack(group_books))
         geometry = geometry_from_array(
@@ -513,7 +536,8 @@ def synthetic_token_artifacts(
             source="synthetic_codebook",
             notes=["Synthetic vector codebook used for smoke diagnostics."],
         )
-        indices = synthetic_indices(batch_size, sequence_length, codebook_size, offset=0)
+        indices = synthetic_indices(
+            batch_size, sequence_length, codebook_size, offset=0)
     data = torch.zeros((batch_size, sequence_length, 1), dtype=torch.float32)
     metadata = {
         "quantizer_type": quantizer_type,
@@ -588,7 +612,8 @@ def write_projection_csv(
     """Write 2D codebook projection coordinates."""
     with Path(path).open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["entry", "label", "code", "quantizer", "group", "x", "y"])
+        writer.writerow(["entry", "label", "code",
+                        "quantizer", "group", "x", "y"])
         for row, (x_value, y_value) in enumerate(projection):
             writer.writerow(
                 [
@@ -619,7 +644,8 @@ def plot_codebook_projection(
     )
     for index, label in enumerate(geometry.labels):
         if len(geometry.labels) <= 96:
-            ax.text(projection[index, 0], projection[index, 1], label, fontsize=6, alpha=0.75)
+            ax.text(projection[index, 0], projection[index,
+                    1], label, fontsize=6, alpha=0.75)
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     ax.set_title(title)
@@ -676,7 +702,8 @@ def plot_usage_projection(
     ax.set_xlabel("PC1")
     ax.set_ylabel("PC2")
     ax.set_title("Code usage on PCA projection")
-    fig.colorbar(scatter, ax=ax, fraction=0.046, pad=0.04, label="Usage probability")
+    fig.colorbar(scatter, ax=ax, fraction=0.046,
+                 pad=0.04, label="Usage probability")
     fig.tight_layout()
     fig.savefig(path, dpi=170)
     plt.close(fig)
@@ -690,17 +717,20 @@ def plot_vix_bucket_usage(
     """Plot code usage by VIX/condition bucket."""
     if not buckets:
         return False
-    matrix = np.asarray([bucket["code_usage_probability"] for bucket in buckets], dtype=np.float64)
+    matrix = np.asarray([bucket["code_usage_probability"]
+                        for bucket in buckets], dtype=np.float64)
     labels = [str(bucket["bucket_label"]) for bucket in buckets]
     apply_clean_style()
     fig, ax = plt.subplots(figsize=(10, max(3.0, 0.55 * len(labels))))
-    image = ax.imshow(matrix, aspect="auto", interpolation="nearest", cmap="magma")
+    image = ax.imshow(matrix, aspect="auto",
+                      interpolation="nearest", cmap="magma")
     ax.set_yticks(np.arange(len(labels)))
     ax.set_yticklabels(labels)
     ax.set_xlabel("Code index")
     ax.set_ylabel("Condition bucket")
     ax.set_title("Code usage by VIX bucket")
-    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04, label="Usage probability")
+    fig.colorbar(image, ax=ax, fraction=0.046,
+                 pad=0.04, label="Usage probability")
     fig.tight_layout()
     fig.savefig(path, dpi=170)
     plt.close(fig)
@@ -718,8 +748,10 @@ def plot_nearest_region(
     y_values = projection[:, 1]
     x_pad = max((float(x_values.max() - x_values.min()) * 0.08), 1e-3)
     y_pad = max((float(y_values.max() - y_values.min()) * 0.08), 1e-3)
-    x_grid = np.linspace(float(x_values.min()) - x_pad, float(x_values.max()) + x_pad, 260)
-    y_grid = np.linspace(float(y_values.min()) - y_pad, float(y_values.max()) + y_pad, 260)
+    x_grid = np.linspace(float(x_values.min()) - x_pad,
+                         float(x_values.max()) + x_pad, 260)
+    y_grid = np.linspace(float(y_values.min()) - y_pad,
+                         float(y_values.max()) + y_pad, 260)
     xx, yy = np.meshgrid(x_grid, y_grid)
     grid = np.column_stack([xx.reshape(-1), yy.reshape(-1)])
     distances = ((grid[:, None, :] - projection[None, :, :]) ** 2).sum(axis=2)
@@ -765,7 +797,8 @@ def plot_voronoi_or_fallback(
 ) -> str:
     """Plot exact Voronoi regions when available, otherwise nearest-region fallback."""
     if projection.shape[0] < 3:
-        plot_nearest_region(fallback_path, projection=projection, geometry=geometry)
+        plot_nearest_region(
+            fallback_path, projection=projection, geometry=geometry)
         return str(Path(fallback_path).name)
     try:
         from scipy.spatial import Voronoi, voronoi_plot_2d
@@ -781,7 +814,8 @@ def plot_voronoi_or_fallback(
             point_size=20,
         )
         ax = cast(Any, fig).axes[0]
-        ax.scatter(projection[:, 0], projection[:, 1], c=component_colours(geometry), s=34)
+        ax.scatter(projection[:, 0], projection[:, 1],
+                   c=component_colours(geometry), s=34)
         ax.set_xlabel("PC1")
         ax.set_ylabel("PC2")
         ax.set_title("Projected codebook Voronoi diagram")
@@ -790,7 +824,8 @@ def plot_voronoi_or_fallback(
         plt.close(fig)
         return str(Path(path).name)
     except Exception:
-        plot_nearest_region(fallback_path, projection=projection, geometry=geometry)
+        plot_nearest_region(
+            fallback_path, projection=projection, geometry=geometry)
         return str(Path(fallback_path).name)
 
 
@@ -810,7 +845,8 @@ def plot_token_trajectories(
     token_paths = projected_token_paths(indices, lookup, max_paths=max_paths)
     if not token_paths:
         return False
-    condition_values_tensor = condition_values(labels) if labels is not None else None
+    condition_values_tensor = condition_values(
+        labels) if labels is not None else None
     apply_clean_style()
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(projection[:, 0], projection[:, 1], c="#d8d8d8", s=24, zorder=1)
@@ -853,7 +889,8 @@ def plot_q0_q1_pair_heatmap(
     matrix = np.asarray(pair_summary["pair_counts"], dtype=np.float64)
     apply_clean_style()
     fig, ax = plt.subplots(figsize=(7, 6))
-    image = ax.imshow(np.log1p(matrix), aspect="auto", interpolation="nearest", cmap="viridis")
+    image = ax.imshow(np.log1p(matrix), aspect="auto",
+                      interpolation="nearest", cmap="viridis")
     ax.set_xlabel("q1 code")
     ax.set_ylabel("q0 code")
     ax.set_title("RVQ q0/q1 pair usage (log1p count)")
@@ -1006,7 +1043,8 @@ def usage_probabilities_for_geometry(
     usage: Mapping[str, Any],
 ) -> np.ndarray:
     """Map marginal or component usage probabilities to flattened geometry rows."""
-    marginal = np.asarray(usage.get("code_usage_probability", []), dtype=np.float64)
+    marginal = np.asarray(
+        usage.get("code_usage_probability", []), dtype=np.float64)
     probabilities = np.zeros(len(geometry.code_indices), dtype=np.float64)
     per_quantizer = {
         int(item["quantizer_index"]): np.asarray(item["code_usage_probability"], dtype=np.float64)
@@ -1046,7 +1084,8 @@ def projection_lookup(
     """Build a component-aware projection lookup."""
     lookup: dict[tuple[int | None, int | None, int], np.ndarray] = {}
     for row, code in enumerate(geometry.code_indices):
-        key = (geometry.group_indices[row], geometry.quantizer_indices[row], code)
+        key = (geometry.group_indices[row],
+               geometry.quantizer_indices[row], code)
         lookup[key] = projection[row]
     return lookup
 
@@ -1071,7 +1110,8 @@ def projected_token_paths(
             for time_index in range(cpu_indices.shape[1]):
                 component_points = []
                 for quantizer in range(cpu_indices.shape[2]):
-                    code = int(cpu_indices[batch_index, time_index, quantizer].item())
+                    code = int(cpu_indices[batch_index,
+                               time_index, quantizer].item())
                     point = lookup.get((None, quantizer, code))
                     if point is not None:
                         component_points.append(point)
@@ -1082,7 +1122,8 @@ def projected_token_paths(
                 component_points = []
                 for group in range(cpu_indices.shape[2]):
                     for quantizer in range(cpu_indices.shape[3]):
-                        code = int(cpu_indices[batch_index, time_index, group, quantizer].item())
+                        code = int(
+                            cpu_indices[batch_index, time_index, group, quantizer].item())
                         point = lookup.get((group, quantizer, code))
                         if point is not None:
                             component_points.append(point)
@@ -1115,13 +1156,15 @@ def _direct_codebook_from_tokenizer(tokenizer: nn.Module) -> np.ndarray | None:
             candidates.append((name, value.detach().cpu()))
     if not candidates:
         return None
-    candidates.sort(key=lambda item: (item[1].ndim, item[1].numel()), reverse=True)
+    candidates.sort(key=lambda item: (
+        item[1].ndim, item[1].numel()), reverse=True)
     return normalise_direct_codebook(candidates[0][1])
 
 
 def _grouped_residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray | None:
     """Collect GroupedResidualVQ codebooks from guarded state-dict names."""
-    pattern = re.compile(r"^rvqs\.(?P<group>\d+)\.layers\.(?P<quantizer>\d+)\..*\.embed$")
+    pattern = re.compile(
+        r"^rvqs\.(?P<group>\d+)\.layers\.(?P<quantizer>\d+)\..*\.embed$")
     entries: dict[tuple[int, int], np.ndarray] = {}
     for name, value in state.items():
         match = pattern.match(name)
@@ -1138,7 +1181,8 @@ def _grouped_residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray 
         return None
     stacked: np.ndarray = np.stack(
         [
-            np.stack([entries[(group, quantizer)] for quantizer in range(quantizer_count)])
+            np.stack([entries[(group, quantizer)]
+                     for quantizer in range(quantizer_count)])
             for group in range(group_count)
         ]
     )
@@ -1159,7 +1203,8 @@ def _residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray | None:
     quantizer_count = max(entries) + 1
     if len(entries) != quantizer_count:
         return None
-    stacked: np.ndarray = np.stack([entries[quantizer] for quantizer in range(quantizer_count)])
+    stacked: np.ndarray = np.stack(
+        [entries[quantizer] for quantizer in range(quantizer_count)])
     return stacked
 
 
@@ -1175,7 +1220,8 @@ def _squeeze_codebook(value: Tensor) -> np.ndarray:
     array = value.detach().cpu().float().numpy()
     squeezed = np.squeeze(array)
     if squeezed.ndim != 2:
-        raise ValueError(f"Expected a rank-2 codebook after squeezing; got {squeezed.shape}.")
+        raise ValueError(
+            f"Expected a rank-2 codebook after squeezing; got {squeezed.shape}.")
     return squeezed
 
 
@@ -1205,7 +1251,8 @@ def _decode_all_codes(
     if quantizer is None or not hasattr(quantizer, "decode_indices"):
         return None
     try:
-        probe = torch.arange(codebook_size, dtype=torch.long).reshape(codebook_size, 1)
+        probe = torch.arange(
+            codebook_size, dtype=torch.long).reshape(codebook_size, 1)
         with torch.no_grad():
             decoded = cast(Any, quantizer).decode_indices(probe).detach().cpu()
         if decoded.ndim != 3:
@@ -1234,7 +1281,8 @@ def _observed_vector_geometry(
             sums[code] = flat_quantized[mask].mean(dim=0)
             counts[code] = 1.0
     active = counts > 0.0
-    code_indices = [int(code) for code in torch.nonzero(active, as_tuple=False).flatten()]
+    code_indices = [int(code) for code in torch.nonzero(
+        active, as_tuple=False).flatten()]
     embeddings = sums[active].numpy()
     return CodebookGeometry(
         embeddings=embeddings,

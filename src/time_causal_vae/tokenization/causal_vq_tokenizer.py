@@ -2,10 +2,19 @@
 
 References
 ----------
-    [tcvae_2024], [vqvae_2017], [timevqvae_2023], [deepvol_2022] in README.md.
-Borrowed idea:
-    Use no-future convolutional encoding/decoding with VQ-VAE-style discrete codes for
-    causal time-series generation.
+- Time-Causal VAE: Robust Financial Time Series Generator, Acciaio, Eckstein, and Hou
+(DOI: 10.1137/24M1711650; arXiv DOI: 10.48550/arXiv.2411.02947) - adapted
+no-anticipation financial time-series generation and diagnostics.
+
+- Neural Discrete Representation Learning, van den Oord, Vinyals, and Kavukcuoglu
+(DOI: 10.5555/3295222.3295378) - adapted vector-quantized latent tokenisation.
+
+- Vector Quantized Time Series Generation with a Bidirectional Prior Model, Lee, Malacarne,
+and Aune (PMLR 206; arXiv DOI: 10.48550/arXiv.2303.04743) - used as a
+two-stage VQ time-series contrast; bidirectional priors are not used.
+
+- DeepVol: Volatility Forecasting from High-Frequency Data with Dilated Causal Convolutions
+(arXiv DOI: 10.48550/arXiv.2210.04797) - adapted dilated causal-convolution motivation.
 """
 
 from __future__ import annotations
@@ -136,7 +145,8 @@ class CausalVQTokenizer(nn.Module):
             codebook_size=self.config.codebook_size,
             reference=recon_loss,
         )
-        loss = recon_loss + quantizer_output.commitment_loss + quantizer_output.codebook_loss
+        loss = recon_loss + quantizer_output.commitment_loss + \
+            quantizer_output.codebook_loss
         return ModelOutput(
             recon_x=recon_x,
             z_e=z_e,
@@ -166,9 +176,11 @@ def validate_observation_sequence(inputs: Tensor, config: VQTokenizerConfig) -> 
             f"got shape {tuple(inputs.shape)}."
         )
     if inputs.shape[1] != config.data_length:
-        raise ValueError(f"Expected sequence length {config.data_length}; got {inputs.shape[1]}.")
+        raise ValueError(
+            f"Expected sequence length {config.data_length}; got {inputs.shape[1]}.")
     if inputs.shape[-1] != config.data_dim:
-        raise ValueError(f"Expected data_dim={config.data_dim}; got {inputs.shape[-1]}.")
+        raise ValueError(
+            f"Expected data_dim={config.data_dim}; got {inputs.shape[-1]}.")
 
 
 def code_usage_entropy_loss(
@@ -194,7 +206,8 @@ def code_usage_entropy_loss(
         else:
             probabilities = code_counts.float() / total.float()
             active_probabilities = probabilities[probabilities > 0.0]
-            entropy = -(active_probabilities * active_probabilities.log()).sum()
+            entropy = -(active_probabilities *
+                        active_probabilities.log()).sum()
             value = -float(entropy.item())
     return reference.detach().new_tensor(value)
 
@@ -214,11 +227,13 @@ def prepare_conditioned_sequence(
             f"{tuple(inputs.shape)}."
         )
     if inputs.shape[-1] != data_dim:
-        raise ValueError(f"{module_name} expected {data_dim} channels; got {inputs.shape[-1]}.")
+        raise ValueError(
+            f"{module_name} expected {data_dim} channels; got {inputs.shape[-1]}.")
     if condition_dim == 0:
         return inputs
     if conditions is None:
-        raise ValueError(f"{module_name} requires conditions with condition_dim={condition_dim}.")
+        raise ValueError(
+            f"{module_name} requires conditions with condition_dim={condition_dim}.")
 
     batch_size, length, _ = inputs.shape
     if conditions.ndim == 2:
@@ -227,7 +242,8 @@ def prepare_conditioned_sequence(
                 f"{module_name} expected scalar conditions of shape "
                 f"{(batch_size, condition_dim)}; got {tuple(conditions.shape)}."
             )
-        prepared_conditions = conditions[:, None, :].expand(batch_size, length, condition_dim)
+        prepared_conditions = conditions[:, None, :].expand(
+            batch_size, length, condition_dim)
     elif conditions.ndim == 3:
         if conditions.shape != (batch_size, length, condition_dim):
             raise ValueError(

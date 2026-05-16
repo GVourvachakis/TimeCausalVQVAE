@@ -2,9 +2,18 @@
 
 References
 ----------
-    [vqvae_2017], [vector_quantize_pytorch], [qinco_2024], [mgvq_2025] in README.md.
-Borrowed idea:
-    Expose standard, residual, and grouped residual codebooks behind one tokenizer-facing API.
+- Neural Discrete Representation Learning, van den Oord, Vinyals, and Kavukcuoglu
+(DOI: 10.5555/3295222.3295378) - adapted vector-quantized latent tokenisation.
+
+- vector-quantize-pytorch, lucidrains
+(repository: https://github.com/lucidrains/vector-quantize-pytorch) - wrapped as the
+backend for standard, residual, and grouped residual quantizers.
+
+- Residual Quantization with Implicit Neural Codebooks
+(arXiv DOI: 10.48550/arXiv.2401.14732) - residual-quantization background only.
+
+- MGVQ: Could VQ-VAE Beat VAE? A Generalizable Tokenizer with Multi-group Quantization
+(arXiv DOI: 10.48550/arXiv.2507.07997) - future grouped-tokenizer motivation only.
 """
 
 from __future__ import annotations
@@ -135,7 +144,8 @@ class VectorQuantizerAdapter(nn.Module):
     def decode_indices(self, indices: Tensor) -> Tensor:
         """Decode ``[batch, length]`` indices to quantized embeddings."""
         if indices.ndim != 2:
-            raise ValueError(f"Vector indices must be [batch, length]; got {tuple(indices.shape)}.")
+            raise ValueError(
+                f"Vector indices must be [batch, length]; got {tuple(indices.shape)}.")
         return _decode_with_backend(self.backend, indices)
 
 
@@ -211,7 +221,8 @@ class ResidualVQAdapter(nn.Module):
         return VectorQuantizerOutput(
             quantized=quantized,
             indices=indices,
-            commitment_loss=_reduce_loss_tensor(commitment_loss, reference=inputs),
+            commitment_loss=_reduce_loss_tensor(
+                commitment_loss, reference=inputs),
             codebook_loss=inputs.new_zeros(()),
             quantizer_type=self.quantizer_type,
             index_shape=tuple(indices.shape),
@@ -314,7 +325,8 @@ class GroupedResidualVQAdapter(nn.Module):
         return VectorQuantizerOutput(
             quantized=quantized,
             indices=indices,
-            commitment_loss=_reduce_loss_tensor(commitment_loss, reference=inputs),
+            commitment_loss=_reduce_loss_tensor(
+                commitment_loss, reference=inputs),
             codebook_loss=inputs.new_zeros(()),
             quantizer_type=self.quantizer_type,
             index_shape=tuple(indices.shape),
@@ -406,7 +418,8 @@ def _codebook_loss_from_breakdown(loss_breakdown: Any, reference: Tensor) -> Ten
     for attribute_name in ("codebook_loss", "codebook_diversity", "orthogonal_reg"):
         value = getattr(loss_breakdown, attribute_name, None)
         if isinstance(value, Tensor):
-            codebook_loss = codebook_loss + value.to(device=reference.device, dtype=reference.dtype)
+            codebook_loss = codebook_loss + \
+                value.to(device=reference.device, dtype=reference.dtype)
     if not torch.isfinite(codebook_loss):
         raise ValueError("Backend returned a non-finite codebook loss.")
     return codebook_loss
@@ -455,7 +468,8 @@ def _validate_quantizer_inputs(
             f"got shape {tuple(inputs.shape)}."
         )
     if inputs.shape[-1] != embedding_dim:
-        raise ValueError(f"Expected embedding_dim={embedding_dim}; got {inputs.shape[-1]}.")
+        raise ValueError(
+            f"Expected embedding_dim={embedding_dim}; got {inputs.shape[-1]}.")
 
 
 def _reduce_loss_tensor(value: Tensor, *, reference: Tensor) -> Tensor:
@@ -469,7 +483,8 @@ def _reduce_loss_tensor(value: Tensor, *, reference: Tensor) -> Tensor:
 def _decode_with_backend(backend: nn.Module, indices: Tensor) -> Tensor:
     """Decode indices with the backend helper and validate output rank."""
     if not hasattr(backend, "get_output_from_indices"):
-        raise RuntimeError(f"{backend.__class__.__name__} does not expose get_output_from_indices.")
+        raise RuntimeError(
+            f"{backend.__class__.__name__} does not expose get_output_from_indices.")
     decode = cast(Callable[[Tensor], Tensor], backend.get_output_from_indices)
     decoded = decode(indices)
     if decoded.ndim != 3:

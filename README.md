@@ -19,7 +19,7 @@ The package is organised around five steps:
    convolutional encoders and decoders.
 3. **Causal token prior**: model token sequences with a causal autoregressive prior conditioned
    on available scalar context such as VIX.
-4. **Paper-style financial diagnostics**: compare generated and real paths with distributional,
+4. **Financial diagnostics**: compare generated and real paths with distributional,
    autocorrelation, volatility, tail, drawdown, and VIX-bucket diagnostics.
 5. **Discrete latent geometry**: inspect codebook usage, codebook projections, VIX-bucket usage,
    and example token trajectories.
@@ -72,7 +72,7 @@ configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
 configs/experiments/sp500_vix_causal_token_prior_additive.yaml
 ```
 
-Train the tokenizer, extract tokens, train the prior, and run paper-style diagnostics:
+Train the tokenizer, extract tokens, train the prior, and run diagnostics:
 
 ```bash
 poetry run tcvae-train-tokenizer \
@@ -132,9 +132,11 @@ The public discrete baseline uses:
 - additive conditioning for the S&P500/VIX public prior.
 
 The hidden128 causal conv-transformer k3 prior is a stronger research variant, not the default
-quickstart path. RVQ q2 was evaluated on research branches and is not part of the public baseline.
-Diffusion and transition-constrained sampling were also evaluated during development, but they
-remain deferred.
+quickstart path. Its closest architectural reference is TCCT, which combines causal convolutional
+locality with Transformer modelling for time-series forecasting. This project uses the idea only
+as context for an autoregressive discrete-token prior, not as a forecasting model. RVQ q2 was
+evaluated on research branches and is not part of the public baseline. Diffusion and
+transition-constrained sampling were also evaluated during development, but they remain deferred.
 
 ## Package Components
 
@@ -148,8 +150,7 @@ remain deferred.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
   compatibility, token diagnostics, and latent-geometry helpers.
 - `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
-- `scripts`: config inspection, reproduction wrappers, token extraction, paper-style evaluation,
-  latent geometry, and no-leakage checks.
+- `scripts`: config inspection, reproduction wrappers, token extraction, evaluation, latent geometry, and no-leakage checks.
 
 ## Demos
 
@@ -185,42 +186,49 @@ Do not link directly to local `outputs/` paths in committed documentation.
 
 ## References
 
-- **Time-Causal VAE: Robust Financial Time Series Generator** - arXiv:
-  [2411.02947](https://arxiv.org/abs/2411.02947), code:
+- **Time-Causal VAE: Robust Financial Time Series Generator** - Beatrice Acciaio, Stephan
+  Eckstein, and Songyan Hou. arXiv DOI:
+  [10.48550/arXiv.2411.02947](https://doi.org/10.48550/arXiv.2411.02947); code:
   [justinhou95/TimeCausalVAE](https://github.com/justinhou95/TimeCausalVAE). Adapted part:
   no-anticipation TC-VAE baseline, selected financial diagnostics, conditional PDV and
   S&P500/VIX setup.
-- **Neural Discrete Representation Learning** - arXiv:
-  [1711.00937](https://arxiv.org/abs/1711.00937). Adapted part: VQ-VAE-style discrete latent
-  codes, commitment loss, and tokenizer-prior separation.
-- **Vector Quantized Time Series Generation with a Bidirectional Prior Model** - arXiv:
-  [2303.04743](https://arxiv.org/abs/2303.04743), code:
+- **Neural Discrete Representation Learning** - Aaron van den Oord, Oriol Vinyals, and Koray
+  Kavukcuoglu. arXiv DOI:
+  [10.48550/arXiv.1711.00937](https://doi.org/10.48550/arXiv.1711.00937). Adapted part:
+  VQ-VAE-style discrete latent codes, commitment loss, and tokenizer-prior separation.
+- **Vector Quantized Time Series Generation with a Bidirectional Prior Model** - Daesoo Lee,
+  Sara Malacarne, and Erlend Aune. PMLR 206; arXiv DOI:
+  [10.48550/arXiv.2303.04743](https://doi.org/10.48550/arXiv.2303.04743); code:
   [ML4ITS/TimeVQVAE](https://github.com/ML4ITS/TimeVQVAE). Adapted part: two-stage VQ
   time-series generation reference. The prior in this package remains causal.
-- **vector-quantize-pytorch** - repository:
+- **vector-quantize-pytorch** - lucidrains. Repository:
   [lucidrains/vector-quantize-pytorch](https://github.com/lucidrains/vector-quantize-pytorch).
   Adapted part: VQ-family backend implementations wrapped behind local tokenizer adapters.
-- **Residual Quantization with Implicit Neural Codebooks** - arXiv:
-  [2401.14732](https://arxiv.org/abs/2401.14732). Adapted part: residual-quantization background
-  only.
+- **Residual Quantization with Implicit Neural Codebooks** - arXiv DOI:
+  [10.48550/arXiv.2401.14732](https://doi.org/10.48550/arXiv.2401.14732). Adapted part:
+  residual-quantization background only.
 - **MGVQ: Could VQ-VAE Beat VAE? A Generalizable Tokenizer with Multi-group Quantization** -
-  arXiv: [2507.07997](https://arxiv.org/abs/2507.07997). Adapted part: future grouped-tokenizer
-  motivation only.
+  arXiv DOI: [10.48550/arXiv.2507.07997](https://doi.org/10.48550/arXiv.2507.07997).
+  Adapted part: future grouped-tokenizer motivation only.
 - **DeepVol: Volatility Forecasting from High-Frequency Data with Dilated Causal Convolutions** -
-  arXiv: [2210.04797](https://arxiv.org/abs/2210.04797). Adapted part: dilated causal
-  convolution motivation for financial time-series encoders.
-- **Vector Quantized Diffusion Model for Text-to-Image Synthesis** - arXiv:
-  [2111.14822](https://arxiv.org/abs/2111.14822). Status: deferred; used only as discrete
-  diffusion background.
-- **Causal Diffusion Transformers for Generative Modeling** - arXiv:
-  [2412.12095](https://arxiv.org/abs/2412.12095). Status: deferred; used only as causal
-  diffusion background.
-- **aotnumerics** - repository:
+  arXiv DOI: [10.48550/arXiv.2210.04797](https://doi.org/10.48550/arXiv.2210.04797).
+  Adapted part: dilated causal convolution motivation for financial time-series encoders.
+- **TCCT: Tightly-Coupled Convolutional Transformer on Time Series Forecasting** - Li Shen and
+  Yangzhu Wang. DOI: [10.1016/j.neucom.2022.01.039](https://doi.org/10.1016/j.neucom.2022.01.039).
+  Adapted part: architectural context for local causal convolution plus Transformer
+  modelling in the hidden128 conv-transformer research prior.
+- **Vector Quantized Diffusion Model for Text-to-Image Synthesis** - arXiv DOI:
+  [10.48550/arXiv.2111.14822](https://doi.org/10.48550/arXiv.2111.14822). Status: deferred;
+  used only as discrete diffusion background.
+- **Causal Diffusion Transformers for Generative Modeling** - arXiv DOI:
+  [10.48550/arXiv.2412.12095](https://doi.org/10.48550/arXiv.2412.12095). Status: deferred;
+  used only as causal diffusion background.
+- **aotnumerics** - Stephan Eckstein. Repository:
   [stephaneckstein/aotnumerics](https://github.com/stephaneckstein/aotnumerics). Adapted part:
   adapted/causal optimal transport background; no vendored implementation is used in the public
   baseline.
-- **Chronos: Learning the Language of Time Series** - arXiv:
-  [2403.07815](https://arxiv.org/abs/2403.07815), code:
+- **Chronos: Learning the Language of Time Series** - arXiv DOI:
+  [10.48550/arXiv.2403.07815](https://doi.org/10.48550/arXiv.2403.07815), code:
   [amazon-science/chronos-forecasting](https://github.com/amazon-science/chronos-forecasting).
   Adapted part: contrast with forecasting foundation models and scalar-value tokenisation.
 - **Sig-Wasserstein-GANs** - Ni et al. (2021). Adapted part: optional expected-signature metric
