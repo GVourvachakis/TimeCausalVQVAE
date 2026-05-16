@@ -1,114 +1,58 @@
 # TimeCausalVQVAE
 
-Public-minimal research code for financial time-series generation with a refactored
-continuous TC-VAE baseline and a promoted discrete architecture:
+`time-causal-vae` is a compact research package for no-anticipation financial time-series
+generation. It keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline:
+a causal VQ tokenizer followed by a causal autoregressive token prior.
 
-```text
-causal VQ-family tokenizer + additive conditional causal AR prior
-```
+The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and
+path-dependent-volatility configs retained as small baseline and smoke workflows. Generated
+outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not
+committed.
 
-The current empirical focus is S&P500/VIX. Black-Scholes, Heston, and
-path-dependent-volatility configs remain as compact continuous baselines and tokenizer/prior
-sanity checks. Diffusion and transition-constrained sampling were evaluated during development,
-but they are not part of the promoted public method.
+## Pipeline Overview
+
+The package is organised around five steps:
+
+1. **Continuous TC-VAE baseline**: train and evaluate no-anticipation continuous VAE models for
+   the benchmark financial datasets.
+2. **Causal VQ tokenizer**: encode each time step into discrete latent codes using causal
+   convolutional encoders and decoders.
+3. **Causal token prior**: model token sequences with a causal autoregressive prior conditioned
+   on available scalar context such as VIX.
+4. **Paper-style financial diagnostics**: compare generated and real paths with distributional,
+   autocorrelation, volatility, tail, drawdown, and VIX-bucket diagnostics.
+5. **Discrete latent geometry**: inspect codebook usage, codebook projections, VIX-bucket usage,
+   and example token trajectories.
 
 ## Installation
+
+The project uses [Poetry](https://python-poetry.org/). For the full development environment:
 
 ```bash
 poetry install
 ```
 
-Optional W&B tracking is available through the tracking dependency group used by Poetry. Generated
-outputs, local data, W&B runs, checkpoints, NumPy arrays, pickles, and logs are ignored by Git.
+For a lean runtime install:
 
-## Scientific Background
-
-Compact source docstrings cite the reference keys below.
-
-- `[tcvae_2024]`: [Time-Causal VAE](https://arxiv.org/abs/2411.02947), used for
-  no-anticipation architecture, continuous TC-VAE baselines, conditional PDV and S&P500/VIX
-  benchmarks, and financial evaluation protocol.
-- `[vqvae_2017]`: [Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937),
-  used for discrete latent codes, commitment loss, and tokenizer-prior separation.
-- `[timevqvae_2023]`: [Vector Quantized Time Series Generation with a Bidirectional Prior Model](https://arxiv.org/abs/2303.04743),
-  used as a two-stage VQ time-series generation reference. The public prior remains causal.
-- `[vector_quantize_pytorch]`: [lucidrains/vector-quantize-pytorch](https://github.com/lucidrains/vector-quantize-pytorch),
-  used for VQ-family backend implementations wrapped behind local adapters.
-- `[qinco_2024]`: [Residual Quantization with Implicit Neural Codebooks](https://arxiv.org/abs/2401.14732),
-  used as residual quantisation background only.
-- `[mgvq_2025]`: [MGVQ](https://arxiv.org/abs/2507.07997), used as future grouped-tokenizer
-  motivation only.
-- `[vqdiffusion_2021]` and `[causal_diffusion_transformers_2024]`:
-  [VQ-Diffusion](https://arxiv.org/abs/2111.14822) and
-  [Causal Diffusion Transformers](https://arxiv.org/abs/2412.12095), used as diffusion
-  background. Diffusion is not part of the promoted public method.
-- `[deepvol_2022]`: [DeepVol](https://arxiv.org/abs/2210.04797), used as dilated causal
-  convolution motivation for financial time-series encoders.
-- `[aotnumerics]`: [aotnumerics](https://github.com/stephaneckstein/aotnumerics), used as
-  adapted/causal optimal transport background only.
-- `[chronos_2024]`: [Chronos](https://arxiv.org/abs/2403.07815), used as a contrast with
-  forecasting foundation models and scalar-value tokenisation.
-
-## Minimal Configs
-
-Continuous TC-VAE baselines:
-
-- `configs/experiments/black_scholes_beta_cvae.yaml`
-- `configs/experiments/heston_info_cvae.yaml`
-- `configs/experiments/pdv_info_cvae.yaml`
-- `configs/experiments/sp500_vix_beta_cvae.yaml`
-
-Discrete tokenizer and token-prior configs:
-
-- `configs/experiments/black_scholes_causal_vq_tokenizer.yaml`
-- `configs/experiments/black_scholes_causal_token_prior.yaml`
-- `configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml`
-- `configs/experiments/pdv_causal_token_prior_additive_seed1.yaml`
-- `configs/experiments/sp500_vix_causal_vq_tokenizer.yaml`
-- `configs/experiments/sp500_vix_causal_token_prior_additive.yaml`
-
-### Research Variants
-
-The public discrete default remains the simple standard VQ tokenizer with the additive VIX-only
-causal AR prior:
-
-```text
-configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
-configs/experiments/sp500_vix_causal_token_prior_additive.yaml
+```bash
+poetry install --only main
 ```
 
-The current best discrete research model is a hidden128 VQ tokenizer with a causal
-conv-transformer k3 prior, sampled with temperature `1.0` and unrestricted top-k. When the
-research configs are present in a local checkout, the prior config path is:
+Dependency groups are defined for development, notebooks, and tracking:
 
-```text
-configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
-```
+- `dev`: Ruff, mypy, pre-commit, Commitizen, nbstripout, and IPython kernel support.
+- `notebooks`: Jupyter, seaborn, torchview, and graphviz.
+- `tracking`: optional W&B logging support.
 
-This research variant is documented for comparison only. It is not the new public default, and
-its outputs, checkpoints, token artefacts, local data, and paper-style diagnostics remain local
-ignored files under `outputs/` or `data/processed/`.
+## Usage
 
-Inspect the selected YAML files with:
+Inspect the public configs without importing model code:
 
 ```bash
 poetry run python scripts/inspect_selected_configs.py
 ```
 
-## Data
-
-The S&P500/VIX experiment expects the local normalised array at:
-
-```text
-data/processed/sp500vix/sp500vix_normalized.npy
-```
-
-This file is not committed. Use `--base-data-dir data/processed` for tokenizer training,
-token extraction, token-prior evaluation, and S&P500/VIX diagnostics.
-
-## Training And Evaluation
-
-Continuous baseline smoke run:
+Run a minimal continuous S&P500/VIX smoke command:
 
 ```bash
 poetry run tcvae-train \
@@ -119,9 +63,16 @@ poetry run tcvae-train \
   --dry-run
 ```
 
-Remove `--dry-run` and use the full epoch count in the selected config to run real training.
+Remove `--dry-run` only when you intentionally want to train.
 
-Promoted S&P500/VIX discrete path:
+The public S&P500/VIX discrete baseline is:
+
+```text
+configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
+configs/experiments/sp500_vix_causal_token_prior_additive.yaml
+```
+
+Train the tokenizer, extract tokens, train the prior, and run paper-style diagnostics:
 
 ```bash
 poetry run tcvae-train-tokenizer \
@@ -154,65 +105,127 @@ poetry run python scripts/evaluate_sp500_vix_paper_style.py \
   --top-k 40
 ```
 
-RVQ q2 was evaluated on research branches and is not part of the public baseline.
+The S&P500/VIX data file is expected at:
 
-W&B can be enabled with:
-
-```bash
---wandb --wandb-project ... --wandb-entity tc_vae
+```text
+data/processed/sp500vix/sp500vix_normalized.npy
 ```
 
-## Discrete Latent Geometry Diagnostics
+This file is local and is not committed.
 
-Use the latent-geometry script to inspect tokenizer codebooks, code usage, VIX-bucket usage, and
-token trajectories. Outputs are written under ignored `outputs/` paths.
+The current best discrete research model pairs a hidden128 VQ tokenizer with a causal
+conv-transformer k3 prior. It is documented for comparison on research branches only. It is not
+the public default, and its configs, checkpoints, and evidence outputs are not part of this
+minimal public branch.
 
-Public synthetic smoke run:
+## Model Architecture
 
-```bash
-poetry run python scripts/analyze_discrete_latent_geometry.py \
-  --synthetic \
-  --output-dir outputs/latent_geometry_smoke \
-  --plot-voronoi
+All modelling paths preserve **no anticipation**: at time `t`, encoders, tokenizers, priors, and
+diagnostics should only use observations and conditions available up to that point. The causal
+convolution checks and token-prior checks in `scripts/` are small public guards for this contract.
+
+The public discrete baseline uses:
+
+- a standard VQ tokenizer with one code per time step;
+- causal convolutional encoder and decoder stacks;
+- a scalar-conditioned causal autoregressive token prior;
+- additive conditioning for the S&P500/VIX public prior.
+
+The hidden128 causal conv-transformer k3 prior is a stronger research variant, not the default
+quickstart path. RVQ q2 was evaluated on research branches and is not part of the public baseline.
+Diffusion and transition-constrained sampling were also evaluated during development, but they
+remain deferred.
+
+## Package Components
+
+- `time_causal_vae.data`: synthetic and market dataset loaders, transforms, and data-pipeline
+  helpers.
+- `time_causal_vae.models`: continuous TC-VAE modules, encoders, decoders, conditioners,
+  objectives, priors, and causal layers.
+- `time_causal_vae.tokenization`: causal VQ tokenizer configs and VQ-family quantizer adapters.
+- `time_causal_vae.token_prior`: causal token-prior configs, masks, transformer priors, and
+  sampling utilities.
+- `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
+  compatibility, token diagnostics, and latent-geometry helpers.
+- `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
+- `scripts`: config inspection, reproduction wrappers, token extraction, paper-style evaluation,
+  latent geometry, and no-leakage checks.
+
+## Demos
+
+Notebook demos are grouped by role:
+
+- `notebooks/continuous/`: continuous TC-VAE demos for Black-Scholes, Heston, PDV, and S&P500/VIX.
+- `notebooks/discrete/`: public discrete tokenizer and token-prior demos, including latent
+  geometry.
+- `notebooks/report/`: figure-manifest notebooks that read from ignored `outputs/` paths.
+
+Committed notebooks should stay output-stripped. The notebooks print guarded commands by default
+and should not train or evaluate unless their run flags are deliberately enabled.
+
+## Summary Figures
+
+No summary figures are committed on this public branch. After running the public diagnostics,
+representative generated-vs-real figures are written under ignored paths such as:
+
+```text
+outputs/sp500_vix_discrete/paper_style/
+outputs/latent_geometry/sp500_vix_standard_vq/
 ```
 
-Real S&P500/VIX standard VQ template, after training a tokenizer and extracting token indices:
+For a public release with figures, place small curated images under `assets/figures/` and link
+them here, for example:
 
-```bash
-poetry run python scripts/analyze_discrete_latent_geometry.py \
-  --config configs/experiments/sp500_vix_causal_vq_tokenizer.yaml \
-  --tokenizer-dir <tokenizer-dir> \
-  --token-data-dir <token-data-dir> \
-  --output-dir outputs/latent_geometry/sp500_vix_standard_vq \
-  --base-data-dir data/processed \
-  --plot-voronoi \
-  --wandb \
-  --wandb-project time-causal-latent-diagnostics \
-  --wandb-entity tc_vae \
-  --run-name sp500_vix_standard_vq_geometry
+```markdown
+![Returns distribution](assets/figures/returns_distribution.png)
+![Codebook usage projection](assets/figures/codebook_usage_projection.png)
 ```
 
-The default W&B destination is project `time-causal-latent-diagnostics` and entity `tc_vae`.
-Recommended generated plots for notebooks and reports are:
+Do not link directly to local `outputs/` paths in committed documentation.
 
-- `codebook_projection.png`
-- `codebook_usage_projection.png`
-- `vix_bucket_code_usage.png`
-- `token_trajectory_examples.png`
-- `codebook_voronoi.png` or `codebook_nearest_region.png`
+## References
 
-## Verification Scripts
-
-Core public checks:
-
-```bash
-poetry run python scripts/check_causal_conv_no_leakage.py
-poetry run python scripts/check_conditional_vq_tokenizer_no_leakage.py \
-  --config configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml
-poetry run python scripts/check_conditional_token_prior_no_leakage.py \
-  --config configs/experiments/sp500_vix_causal_token_prior_additive.yaml
-poetry run python scripts/check_vq_tokenizer_shapes.py
-```
-
-The reproduction wrappers under `scripts/reproduce_*.py` print or run the selected continuous
-baseline train/evaluate commands. Public generated outputs stay below ignored `outputs/` paths.
+- **Time-Causal VAE: Robust Financial Time Series Generator** - arXiv:
+  [2411.02947](https://arxiv.org/abs/2411.02947), code:
+  [justinhou95/TimeCausalVAE](https://github.com/justinhou95/TimeCausalVAE). Adapted part:
+  no-anticipation TC-VAE baseline, selected financial diagnostics, conditional PDV and
+  S&P500/VIX setup.
+- **Neural Discrete Representation Learning** - arXiv:
+  [1711.00937](https://arxiv.org/abs/1711.00937). Adapted part: VQ-VAE-style discrete latent
+  codes, commitment loss, and tokenizer-prior separation.
+- **Vector Quantized Time Series Generation with a Bidirectional Prior Model** - arXiv:
+  [2303.04743](https://arxiv.org/abs/2303.04743), code:
+  [ML4ITS/TimeVQVAE](https://github.com/ML4ITS/TimeVQVAE). Adapted part: two-stage VQ
+  time-series generation reference. The prior in this package remains causal.
+- **vector-quantize-pytorch** - repository:
+  [lucidrains/vector-quantize-pytorch](https://github.com/lucidrains/vector-quantize-pytorch).
+  Adapted part: VQ-family backend implementations wrapped behind local tokenizer adapters.
+- **Residual Quantization with Implicit Neural Codebooks** - arXiv:
+  [2401.14732](https://arxiv.org/abs/2401.14732). Adapted part: residual-quantization background
+  only.
+- **MGVQ: Could VQ-VAE Beat VAE? A Generalizable Tokenizer with Multi-group Quantization** -
+  arXiv: [2507.07997](https://arxiv.org/abs/2507.07997). Adapted part: future grouped-tokenizer
+  motivation only.
+- **DeepVol: Volatility Forecasting from High-Frequency Data with Dilated Causal Convolutions** -
+  arXiv: [2210.04797](https://arxiv.org/abs/2210.04797). Adapted part: dilated causal
+  convolution motivation for financial time-series encoders.
+- **Vector Quantized Diffusion Model for Text-to-Image Synthesis** - arXiv:
+  [2111.14822](https://arxiv.org/abs/2111.14822). Status: deferred; used only as discrete
+  diffusion background.
+- **Causal Diffusion Transformers for Generative Modeling** - arXiv:
+  [2412.12095](https://arxiv.org/abs/2412.12095). Status: deferred; used only as causal
+  diffusion background.
+- **aotnumerics** - repository:
+  [stephaneckstein/aotnumerics](https://github.com/stephaneckstein/aotnumerics). Adapted part:
+  adapted/causal optimal transport background; no vendored implementation is used in the public
+  baseline.
+- **Chronos: Learning the Language of Time Series** - arXiv:
+  [2403.07815](https://arxiv.org/abs/2403.07815), code:
+  [amazon-science/chronos-forecasting](https://github.com/amazon-science/chronos-forecasting).
+  Adapted part: contrast with forecasting foundation models and scalar-value tokenisation.
+- **Sig-Wasserstein-GANs** - Ni et al. (2021). Adapted part: optional expected-signature metric
+  background inherited from upstream evaluation helpers.
+- **Randomised-Signature-TimeSeries-Generation** - repository:
+  [niklaswalter/Randomised-Signature-TimeSeries-Generation](https://github.com/niklaswalter/Randomised-Signature-TimeSeries-Generation).
+  Adapted part: optional signature-metric and neural-SDE background. These routines are not part
+  of the public quickstart path.
