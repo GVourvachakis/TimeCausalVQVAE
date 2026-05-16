@@ -2,7 +2,7 @@
 
 References
 ----------
-    [vqvae_2017], [timevqvae_2023], [chronos_2024] in docs/references.md.
+    [vqvae_2017], [timevqvae_2023], [chronos_2024] in README.md.
 Borrowed idea:
     Model discrete time-series tokens with a causal next-token objective and scalar conditioning.
 """

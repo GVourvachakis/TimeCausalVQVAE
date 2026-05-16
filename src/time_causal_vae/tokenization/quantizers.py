@@ -2,7 +2,7 @@
 
 References
 ----------
-    [vqvae_2017], [vector_quantize_pytorch], [qinco_2024], [mgvq_2025] in docs/references.md.
+    [vqvae_2017], [vector_quantize_pytorch], [qinco_2024], [mgvq_2025] in README.md.
 Borrowed idea:
     Expose standard, residual, and grouped residual codebooks behind one tokenizer-facing API.
 """

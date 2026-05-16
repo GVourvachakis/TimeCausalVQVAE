@@ -2,7 +2,7 @@
 
 References
 ----------
-    [vqvae_2017], [vector_quantize_pytorch], [mgvq_2025] in docs/references.md.
+    [vqvae_2017], [vector_quantize_pytorch], [mgvq_2025] in README.md.
 Borrowed idea:
     Inspect codebook geometry, usage, and residual-code compatibility before adding new tokenizers.
 """
@@ -1136,12 +1136,13 @@ def _grouped_residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray 
     quantizer_count = max(quantizer for _group, quantizer in entries) + 1
     if len(entries) != group_count * quantizer_count:
         return None
-    return np.stack(
+    stacked: np.ndarray = np.stack(
         [
             np.stack([entries[(group, quantizer)] for quantizer in range(quantizer_count)])
             for group in range(group_count)
         ]
     )
+    return stacked
 
 
 def _residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray | None:
@@ -1158,7 +1159,8 @@ def _residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray | None:
     quantizer_count = max(entries) + 1
     if len(entries) != quantizer_count:
         return None
-    return np.stack([entries[quantizer] for quantizer in range(quantizer_count)])
+    stacked: np.ndarray = np.stack([entries[quantizer] for quantizer in range(quantizer_count)])
+    return stacked
 
 
 def _looks_like_codebook_embedding_name(name: str) -> bool:

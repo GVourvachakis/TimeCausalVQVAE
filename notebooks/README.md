@@ -19,8 +19,8 @@ BetaCVAE remains the strongest overall reference in the current report evidence.
 TC-VQVAE discrete-latent demos. The S&P500/VIX notebook is a public discrete-baseline demo:
 standard causal VQ tokenizer, additive scalar-conditioned causal AR prior, paper-style diagnostics,
 and latent-geometry diagnostics. The hidden128 causal conv-transformer k3 prior is an optional
-research variant for report comparison, not the default notebook workflow. RVQ q2 remains
-ablation/future evidence only.
+research variant for report comparison, not the default notebook workflow. RVQ q2 was evaluated
+on research branches and is not part of the public baseline.
 
 - `black_scholes.ipynb`
 - `heston.ipynb`

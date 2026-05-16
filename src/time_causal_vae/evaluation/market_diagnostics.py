@@ -2,7 +2,7 @@
 
 References
 ----------
-    [tcvae_2024], [deepvol_2022], [aotnumerics] in docs/references.md.
+    [tcvae_2024], [deepvol_2022], [aotnumerics] in README.md.
 Borrowed idea:
     Compare generated paths through return, volatility, autocorrelation, and downstream-risk views.
 """

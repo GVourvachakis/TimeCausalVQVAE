@@ -23,9 +23,31 @@ outputs, local data, W&B runs, checkpoints, NumPy arrays, pickles, and logs are 
 
 ## Scientific Background
 
-Compact source docstrings cite reference keys from `docs/references.md`, which records the
-paper/repository link for each reference and what this project uses or explicitly does not use
-from it.
+Compact source docstrings cite the reference keys below.
+
+- `[tcvae_2024]`: [Time-Causal VAE](https://arxiv.org/abs/2411.02947), used for
+  no-anticipation architecture, continuous TC-VAE baselines, conditional PDV and S&P500/VIX
+  benchmarks, and financial evaluation protocol.
+- `[vqvae_2017]`: [Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937),
+  used for discrete latent codes, commitment loss, and tokenizer-prior separation.
+- `[timevqvae_2023]`: [Vector Quantized Time Series Generation with a Bidirectional Prior Model](https://arxiv.org/abs/2303.04743),
+  used as a two-stage VQ time-series generation reference. The public prior remains causal.
+- `[vector_quantize_pytorch]`: [lucidrains/vector-quantize-pytorch](https://github.com/lucidrains/vector-quantize-pytorch),
+  used for VQ-family backend implementations wrapped behind local adapters.
+- `[qinco_2024]`: [Residual Quantization with Implicit Neural Codebooks](https://arxiv.org/abs/2401.14732),
+  used as residual quantisation background only.
+- `[mgvq_2025]`: [MGVQ](https://arxiv.org/abs/2507.07997), used as future grouped-tokenizer
+  motivation only.
+- `[vqdiffusion_2021]` and `[causal_diffusion_transformers_2024]`:
+  [VQ-Diffusion](https://arxiv.org/abs/2111.14822) and
+  [Causal Diffusion Transformers](https://arxiv.org/abs/2412.12095), used as diffusion
+  background. Diffusion is not part of the promoted public method.
+- `[deepvol_2022]`: [DeepVol](https://arxiv.org/abs/2210.04797), used as dilated causal
+  convolution motivation for financial time-series encoders.
+- `[aotnumerics]`: [aotnumerics](https://github.com/stephaneckstein/aotnumerics), used as
+  adapted/causal optimal transport background only.
+- `[chronos_2024]`: [Chronos](https://arxiv.org/abs/2403.07815), used as a contrast with
+  forecasting foundation models and scalar-value tokenisation.
 
 ## Minimal Configs
 
@@ -44,8 +66,6 @@ Discrete tokenizer and token-prior configs:
 - `configs/experiments/pdv_causal_token_prior_additive_seed1.yaml`
 - `configs/experiments/sp500_vix_causal_vq_tokenizer.yaml`
 - `configs/experiments/sp500_vix_causal_token_prior_additive.yaml`
-- `configs/experiments/sp500_vix_causal_rvq_tokenizer_q2.yaml`
-- `configs/experiments/sp500_vix_causal_rvq_token_prior_q2.yaml`
 
 ### Research Variants
 
@@ -134,7 +154,7 @@ poetry run python scripts/evaluate_sp500_vix_paper_style.py \
   --top-k 40
 ```
 
-Optional RVQ q2 ablation uses the matching S&P500/VIX RVQ q2 tokenizer and token-prior configs.
+RVQ q2 was evaluated on research branches and is not part of the public baseline.
 
 W&B can be enabled with:
 
@@ -180,7 +200,6 @@ Recommended generated plots for notebooks and reports are:
 - `vix_bucket_code_usage.png`
 - `token_trajectory_examples.png`
 - `codebook_voronoi.png` or `codebook_nearest_region.png`
-- `q0_q1_pair_heatmap.png` for RVQ q2 ablations
 
 ## Verification Scripts
 
@@ -192,12 +211,8 @@ poetry run python scripts/check_conditional_vq_tokenizer_no_leakage.py \
   --config configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml
 poetry run python scripts/check_conditional_token_prior_no_leakage.py \
   --config configs/experiments/sp500_vix_causal_token_prior_additive.yaml
-poetry run python scripts/check_multicode_token_prior_no_leakage.py \
-  --config configs/experiments/sp500_vix_causal_rvq_token_prior_q2.yaml
-poetry run python scripts/check_vq_family_tokenizer_shapes.py
 poetry run python scripts/check_vq_tokenizer_shapes.py
 ```
 
 The reproduction wrappers under `scripts/reproduce_*.py` print or run the selected continuous
-baseline train/evaluate commands. The S&P500/VIX tokenizer and token-prior ablation helpers are
-kept for compact public ablation runs below ignored `outputs/` paths.
+baseline train/evaluate commands. Public generated outputs stay below ignored `outputs/` paths.

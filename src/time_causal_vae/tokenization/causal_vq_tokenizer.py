@@ -2,7 +2,7 @@
 
 References
 ----------
-    [tcvae_2024], [vqvae_2017], [timevqvae_2023], [deepvol_2022] in docs/references.md.
+    [tcvae_2024], [vqvae_2017], [timevqvae_2023], [deepvol_2022] in README.md.
 Borrowed idea:
     Use no-future convolutional encoding/decoding with VQ-VAE-style discrete codes for
     causal time-series generation.
