@@ -1,6 +1,7 @@
 """Causal autoregressive token-prior modules."""
 
 from time_causal_vae.token_prior.causal_transformer import (
+    CausalConvTransformerPrior,
     CausalTokenTransformerPrior,
     FactorisedMultiCodeTokenPrior,
     HierarchicalRVQ2TokenPrior,
@@ -13,6 +14,7 @@ from time_causal_vae.token_prior.config import CausalTokenPriorConfig
 from time_causal_vae.token_prior.masks import causal_attention_mask
 
 __all__ = [
+    "CausalConvTransformerPrior",
     "CausalTokenPriorConfig",
     "CausalTokenTransformerPrior",
     "FactorisedMultiCodeTokenPrior",
