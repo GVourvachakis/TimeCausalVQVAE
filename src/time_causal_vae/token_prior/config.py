@@ -38,11 +38,14 @@ class CausalTokenPriorConfig:
         "single_code",
         "factorised_multi_code",
         "hierarchical_rvq_q2",
+        "separate_frequency_hierarchical",
     ] = "single_code"
     index_shape: list[int] | None = None
     num_quantizers: int = 1
     groups: int = 1
     component_loss_weights: list[float] | None = None
+    low_codebook_size: int | None = None
+    high_codebook_size: int | None = None
 
     def __post_init__(self) -> None:
         """Validate dimensions and token identifiers."""
@@ -79,10 +82,11 @@ class CausalTokenPriorConfig:
             "single_code",
             "factorised_multi_code",
             "hierarchical_rvq_q2",
+            "separate_frequency_hierarchical",
         }:
             raise ValueError(
                 "prior_type must be 'single_code', 'factorised_multi_code', "
-                "or 'hierarchical_rvq_q2'."
+                "'hierarchical_rvq_q2', or 'separate_frequency_hierarchical'."
             )
         if self.num_quantizers <= 0:
             raise ValueError("num_quantizers must be positive.")
@@ -122,7 +126,7 @@ class CausalTokenPriorConfig:
                     raise ValueError("component_loss_weights must be non-negative.")
                 if sum(self.component_loss_weights) <= 0.0:
                     raise ValueError("component_loss_weights must contain positive mass.")
-        else:
+        elif self.prior_type == "hierarchical_rvq_q2":
             expected_shape = [self.sequence_length, 2]
             if self.groups != 1:
                 raise ValueError("groups must be 1 for hierarchical_rvq_q2 priors.")
@@ -144,6 +148,40 @@ class CausalTokenPriorConfig:
                     raise ValueError("component_loss_weights must be non-negative.")
                 if sum(self.component_loss_weights) <= 0.0:
                     raise ValueError("component_loss_weights must contain positive mass.")
+        else:
+            expected_shape = [self.sequence_length, 2]
+            if self.groups != 1:
+                raise ValueError("groups must be 1 for separate_frequency_hierarchical priors.")
+            if self.num_quantizers != 1:
+                raise ValueError(
+                    "num_quantizers must remain 1 for separate_frequency_hierarchical priors."
+                )
+            if self.index_shape is not None and self.index_shape != expected_shape:
+                raise ValueError(
+                    "separate_frequency_hierarchical index_shape must match "
+                    f"{expected_shape}; got {self.index_shape}."
+                )
+            if self.condition_injection == "adaln_lite":
+                raise ValueError(
+                    "AdaLN-lite is not supported for separate_frequency_hierarchical yet."
+                )
+            low_codebook_size = (
+                self.codebook_size if self.low_codebook_size is None else self.low_codebook_size
+            )
+            high_codebook_size = (
+                self.codebook_size if self.high_codebook_size is None else self.high_codebook_size
+            )
+            if low_codebook_size <= 0:
+                raise ValueError("low_codebook_size must be positive.")
+            if high_codebook_size <= 0:
+                raise ValueError("high_codebook_size must be positive.")
+            object.__setattr__(self, "low_codebook_size", low_codebook_size)
+            object.__setattr__(self, "high_codebook_size", high_codebook_size)
+            if self.component_loss_weights is not None:
+                raise ValueError(
+                    "component_loss_weights is not supported for "
+                    "separate_frequency_hierarchical; use equal CE_low + CE_high."
+                )
         if self.prediction_convention != "bos_shifted_next_token":
             raise ValueError("Only prediction_convention='bos_shifted_next_token' is supported.")
         if self.bos_token_id is None:
@@ -159,6 +197,8 @@ class CausalTokenPriorConfig:
         """Return the non-time component shape for this prior."""
         if self.prior_type == "single_code":
             return ()
+        if self.prior_type == "separate_frequency_hierarchical":
+            return (2,)
         if self.groups == 1:
             return (self.num_quantizers,)
         return (self.groups, self.num_quantizers)

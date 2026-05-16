@@ -149,7 +149,9 @@ def build_run_config(
         "output_dir": str(output_dir),
         "run_name": run_name,
         "run_dir": str(output_dir / run_name),
-        "tokenizer_dir": str(data["tokenizer_dir"]),
+        "tokenizer_dir": str(data["tokenizer_dir"]) if "tokenizer_dir" in data else None,
+        "low_tokenizer_dir": optional_string(data.get("low_tokenizer_dir")),
+        "high_tokenizer_dir": optional_string(data.get("high_tokenizer_dir")),
         "token_data_dir": str(data["token_data_dir"]),
         "device": args.device,
         "wandb": wandb_enabled,
@@ -208,6 +210,8 @@ def load_token_tensors(
 ) -> tuple[Tensor, Tensor | None, Tensor, Tensor | None]:
     """Load extracted train/eval token-index tensors and optional labels."""
     directory = Path(token_data_dir)
+    if prior_config.prior_type == "separate_frequency_hierarchical":
+        return load_separate_frequency_token_tensors(directory, prior_config=prior_config)
     train_path = directory / "train_tokens.pt"
     eval_path = directory / "eval_tokens.pt"
     if not train_path.exists():
@@ -224,6 +228,68 @@ def load_token_tensors(
         eval_mapping["indices"].long(),
         load_conditions_from_payload(eval_mapping, prior_config, artifact_path=eval_path),
     )
+
+
+def load_separate_frequency_token_tensors(
+    directory: Path,
+    *,
+    prior_config: CausalTokenPriorConfig,
+) -> tuple[Tensor, Tensor | None, Tensor, Tensor | None]:
+    """Load paired separate low/high token tensors and labels."""
+    train_low_path = directory / "train_low_tokens.pt"
+    train_high_path = directory / "train_high_tokens.pt"
+    eval_low_path = directory / "eval_low_tokens.pt"
+    eval_high_path = directory / "eval_high_tokens.pt"
+    train_label_path = directory / "train_labels.pt"
+    eval_label_path = directory / "eval_labels.pt"
+    required_paths = (
+        train_low_path,
+        train_high_path,
+        eval_low_path,
+        eval_high_path,
+    )
+    for path in required_paths:
+        if not path.exists():
+            raise SystemExit(f"Missing paired token artifact: {path}")
+    train_low = load_tensor_artifact(train_low_path).long()
+    train_high = load_tensor_artifact(train_high_path).long()
+    eval_low = load_tensor_artifact(eval_low_path).long()
+    eval_high = load_tensor_artifact(eval_high_path).long()
+    train_tokens = torch.stack([train_low, train_high], dim=-1)
+    eval_tokens = torch.stack([eval_low, eval_high], dim=-1)
+    train_conditions = load_separate_frequency_conditions(
+        train_label_path,
+        prior_config=prior_config,
+    )
+    eval_conditions = load_separate_frequency_conditions(
+        eval_label_path,
+        prior_config=prior_config,
+    )
+    return train_tokens, train_conditions, eval_tokens, eval_conditions
+
+
+def load_tensor_artifact(path: Path) -> Tensor:
+    """Load one tensor artifact from disk."""
+    if not path.exists():
+        raise SystemExit(f"Missing tensor artifact: {path}")
+    loaded = torch.load(path, map_location="cpu", weights_only=True)
+    if not isinstance(loaded, Tensor):
+        raise SystemExit(f"Expected tensor artifact at {path}; got {type(loaded).__name__}.")
+    return loaded
+
+
+def load_separate_frequency_conditions(
+    path: Path,
+    *,
+    prior_config: CausalTokenPriorConfig,
+) -> Tensor | None:
+    """Load paired-token labels as conditions when conditioning is enabled."""
+    if prior_config.condition_injection == "none":
+        return None
+    labels = load_tensor_artifact(path).float()
+    if labels.ndim == 1:
+        labels = labels[:, None]
+    return labels
 
 
 def load_conditions_from_payload(
@@ -270,7 +336,16 @@ def build_prior_config(run_config: Mapping[str, Any]) -> CausalTokenPriorConfig:
         num_quantizers=int(model_config.get("num_quantizers", 1)),
         groups=int(model_config.get("groups", 1)),
         component_loss_weights=optional_float_list(model_config.get("component_loss_weights")),
+        low_codebook_size=optional_int(model_config.get("low_codebook_size")),
+        high_codebook_size=optional_int(model_config.get("high_codebook_size")),
     )
+
+
+def optional_string(value: Any) -> str | None:
+    """Return an optional string config value."""
+    if value is None:
+        return None
+    return str(value)
 
 
 def optional_int(value: Any) -> int | None:
@@ -300,14 +375,33 @@ def optional_float_list(value: Any) -> list[float] | None:
 
 def parse_prior_type(
     value: Any,
-) -> Literal["single_code", "factorised_multi_code", "hierarchical_rvq_q2"]:
+) -> Literal[
+    "single_code",
+    "factorised_multi_code",
+    "hierarchical_rvq_q2",
+    "separate_frequency_hierarchical",
+]:
     """Parse the supported token-prior type."""
     parsed = str(value)
-    if parsed not in {"single_code", "factorised_multi_code", "hierarchical_rvq_q2"}:
+    if parsed not in {
+        "single_code",
+        "factorised_multi_code",
+        "hierarchical_rvq_q2",
+        "separate_frequency_hierarchical",
+    }:
         raise SystemExit(
-            "prior_type must be 'single_code', 'factorised_multi_code', or 'hierarchical_rvq_q2'."
+            "prior_type must be 'single_code', 'factorised_multi_code', "
+            "'hierarchical_rvq_q2', or 'separate_frequency_hierarchical'."
         )
-    return cast(Literal["single_code", "factorised_multi_code", "hierarchical_rvq_q2"], parsed)
+    return cast(
+        Literal[
+            "single_code",
+            "factorised_multi_code",
+            "hierarchical_rvq_q2",
+            "separate_frequency_hierarchical",
+        ],
+        parsed,
+    )
 
 
 def parse_condition_injection(value: Any) -> Literal["none", "additive", "adaln_lite"]:
@@ -323,6 +417,8 @@ def validate_token_data(tokens: Tensor, config: CausalTokenPriorConfig, *, split
     expected_shape: tuple[int, ...]
     if config.prior_type == "single_code":
         expected_shape = (config.sequence_length,)
+    elif config.prior_type == "separate_frequency_hierarchical":
+        expected_shape = (config.sequence_length, 2)
     else:
         expected_shape = (config.sequence_length, *config.component_shape)
     if tuple(tokens.shape[1:]) != expected_shape:
@@ -330,6 +426,24 @@ def validate_token_data(tokens: Tensor, config: CausalTokenPriorConfig, *, split
             f"{split_name} tokens must have shape after batch {expected_shape}; "
             f"got {tuple(tokens.shape[1:])}."
         )
+    if config.prior_type == "separate_frequency_hierarchical":
+        if config.low_codebook_size is None or config.high_codebook_size is None:
+            raise SystemExit("separate_frequency_hierarchical requires low/high codebook sizes.")
+        if (
+            int(tokens[:, :, 0].min().item()) < 0
+            or int(tokens[:, :, 0].max().item()) >= config.low_codebook_size
+        ):
+            raise SystemExit(
+                f"{split_name} low tokens must be in [0, {config.low_codebook_size - 1}]."
+            )
+        if (
+            int(tokens[:, :, 1].min().item()) < 0
+            or int(tokens[:, :, 1].max().item()) >= config.high_codebook_size
+        ):
+            raise SystemExit(
+                f"{split_name} high tokens must be in [0, {config.high_codebook_size - 1}]."
+            )
+        return
     if int(tokens.min().item()) < 0 or int(tokens.max().item()) >= config.codebook_size:
         raise SystemExit(f"{split_name} token values must be in [0, {config.codebook_size - 1}].")
 
