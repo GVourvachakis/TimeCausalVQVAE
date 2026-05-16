@@ -6,7 +6,8 @@ The notebooks are organised by demonstration role.
 
 Refactored continuous TC-VAE baseline demos. These notebooks show the selected continuous config,
 print dry-run training and evaluation commands, and avoid released-checkpoint requirements by
-default.
+default. For S&P500/VIX, the continuous notebook is the TC-VAE baseline and the continuous
+BetaCVAE remains the strongest overall reference in the current report evidence.
 
 - `black_scholes.ipynb`
 - `heston.ipynb`
@@ -15,9 +16,11 @@ default.
 
 ## `discrete/`
 
-TC-VQVAE discrete-latent demos. The S&P500/VIX notebook is the promoted public method demo:
+TC-VQVAE discrete-latent demos. The S&P500/VIX notebook is a public discrete-baseline demo:
 standard causal VQ tokenizer, additive scalar-conditioned causal AR prior, paper-style diagnostics,
-and latent-geometry diagnostics. RVQ q2 remains ablation/future evidence only.
+and latent-geometry diagnostics. The hidden128 causal conv-transformer k3 prior is an optional
+research variant for report comparison, not the default notebook workflow. RVQ q2 remains
+ablation/future evidence only.
 
 - `black_scholes.ipynb`
 - `heston.ipynb`
@@ -28,7 +31,9 @@ and latent-geometry diagnostics. RVQ q2 remains ablation/future evidence only.
 ## `report/`
 
 Report-specific figure notebooks. These read figures from ignored `outputs/` paths and do not
-train models by default.
+train models by default. The S&P500/VIX report notebook can compare the public discrete baseline,
+the best discrete research model, and the continuous BetaCVAE reference when the corresponding
+local paper-style output directories are available.
 
 - `sp500_vix_report_figures.ipynb`
 
