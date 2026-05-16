@@ -26,7 +26,7 @@ on research branches and is not part of the public baseline.
 - `heston.ipynb`
 - `pdv.ipynb`
 - `sp500_vix.ipynb`
-- `discrete_latent_geometry_demo.ipynb`
+- `discrete_latent_geometry.ipynb`
 
 ## `report/`
 
