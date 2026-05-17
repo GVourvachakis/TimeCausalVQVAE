@@ -116,8 +116,7 @@ directories.
 
 The current best discrete research model pairs a hidden128 VQ tokenizer with a causal
 conv-transformer k3 prior. It is documented for comparison on research branches only. It is not
-the public default, and its configs, checkpoints, and evidence outputs are not part of this
-minimal public branch.
+the public default, and its configs, checkpoints, and evidence outputs are not part of this public branch.
 
 ## 🧠 Model Architecture
 
@@ -193,8 +192,6 @@ TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 Trained-model metadata is documented in `trained_models/model_registry.yaml`.
 
 ## 📚 References
-
-This README is the public reference source for the minimal branch.
 
 - **Time-Causal VAE: Robust Financial Time Series Generator** - Beatrice Acciaio, Stephan
   Eckstein, and Songyan Hou. arXiv DOI:
