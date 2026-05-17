@@ -7,8 +7,9 @@ import csv
 import json
 import shlex
 import subprocess
+import time
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -36,7 +37,7 @@ class CandidateSpec:
 
 @dataclass(frozen=True)
 class CommandPlan:
-    """Dry-run commands and validation state for one candidate."""
+    """Commands, validation state, and execution state for one candidate."""
 
     experiment: str
     candidate: str
@@ -48,9 +49,14 @@ class CommandPlan:
     tokenizer_train_command: list[str]
     token_extract_command: list[str]
     prior_train_command: list[str]
+    prior_dir: str
     validation_status: str
     smoke_status: str
     notes: str
+    execution_status: str = "not_run"
+    runtime_seconds: float | None = None
+    stage_results: list[dict[str, Any]] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
 
 CANDIDATES: tuple[CandidateSpec, ...] = (
@@ -172,7 +178,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Execute tokenizer CLI dry-runs only. Token-prior dry-runs are listed.",
     )
-    parser.add_argument("--epochs", type=int, default=1, help="Epoch override for command plans.")
+    parser.add_argument(
+        "--epochs",
+        default="1",
+        help="Epoch override for command plans, or 'full' to use each config value.",
+    )
     parser.add_argument(
         "--n-sample",
         type=int,
@@ -185,6 +195,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Base data directory for market-data commands.",
     )
     parser.add_argument("--no-wandb", action="store_true", help="Add --no-wandb to plan commands.")
+    parser.add_argument("--wandb", action="store_true", help="Enable W&B in planned commands.")
     parser.add_argument(
         "--wandb-entity",
         default="tc_vae",
@@ -196,8 +207,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     """Create and optionally smoke-check the per-experiment selection setup."""
     args = build_parser().parse_args()
-    if args.epochs <= 0:
-        raise SystemExit("--epochs must be positive.")
+    epoch_override = parse_epoch_override(str(args.epochs))
     if args.n_sample <= 0:
         raise SystemExit("--n-sample must be positive.")
     if args.smoke and args.dry_run:
@@ -208,11 +218,31 @@ def main() -> None:
     plans = [build_command_plan(candidate, args=args) for candidate in selected]
     if args.smoke:
         plans = run_tokenizer_smoke(plans)
+    elif not args.dry_run:
+        plans = run_selection(plans)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    write_json(output_dir / "selection_dry_run_plan.json", plans, args=args)
-    write_csv(output_dir / "selection_dry_run_plan.csv", plans)
+    write_json(
+        output_dir / "selection_results.json", plans, args=args, epoch_override=epoch_override
+    )
+    write_csv(output_dir / "selection_results.csv", plans)
     print_summary(plans, output_dir=output_dir)
+    failed = [plan for plan in plans if plan.execution_status.startswith("failed")]
+    if failed:
+        raise SystemExit(f"{len(failed)} candidate(s) failed. See selection_results.json.")
+
+
+def parse_epoch_override(raw_epochs: str) -> int | None:
+    """Return an epoch override, or ``None`` when each config should run in full."""
+    if raw_epochs == "full":
+        return None
+    try:
+        epochs = int(raw_epochs)
+    except ValueError as exc:
+        raise SystemExit("--epochs must be a positive integer or 'full'.") from exc
+    if epochs <= 0:
+        raise SystemExit("--epochs must be positive.")
+    return epochs
 
 
 def validate_output_dir(raw_output_dir: str) -> Path:
@@ -245,10 +275,20 @@ def build_command_plan(candidate: CandidateSpec, *, args: argparse.Namespace) ->
     )
 
     prior_data = require_mapping(prior_config, "data", prior_path)
-    tokenizer_dir = str(prior_data["tokenizer_dir"])
+    tokenizer_experiment = require_mapping(tokenizer_config, "experiment", tokenizer_path)
+    prior_experiment = require_mapping(prior_config, "experiment", prior_path)
+    configured_tokenizer_dir = Path(str(prior_data["tokenizer_dir"]))
+    tokenizer_run_dir = (
+        configured_tokenizer_dir.parent
+        / f"{tokenizer_experiment['name']}_seed{tokenizer_experiment.get('seed', 0)}"
+    )
+    tokenizer_dir = str(tokenizer_run_dir)
     token_data_dir = str(prior_data["token_data_dir"])
-    tokenizer_output_dir = str(Path(tokenizer_dir).parent)
+    tokenizer_output_dir = str(configured_tokenizer_dir.parent)
     prior_output_dir = str(Path(token_data_dir).parent / "prior")
+    prior_dir = str(
+        Path(prior_output_dir) / f"{prior_experiment['name']}_seed{prior_experiment.get('seed', 0)}"
+    )
     tokenizer_command = tokenizer_train_command(
         config=tokenizer_path,
         output_dir=Path(tokenizer_output_dir),
@@ -277,6 +317,7 @@ def build_command_plan(candidate: CandidateSpec, *, args: argparse.Namespace) ->
         tokenizer_train_command=tokenizer_command,
         token_extract_command=extract_command,
         prior_train_command=prior_command,
+        prior_dir=prior_dir,
         validation_status="ok",
         smoke_status="not_run",
         notes=note,
@@ -361,7 +402,7 @@ def validate_candidate_config(
 def tokenizer_train_command(
     *, config: Path, output_dir: Path, args: argparse.Namespace
 ) -> list[str]:
-    """Return the tokenizer training dry-run command."""
+    """Return the tokenizer training command."""
     command = [
         "poetry",
         "run",
@@ -370,12 +411,12 @@ def tokenizer_train_command(
         relative_to_repo(config),
         "--output-dir",
         str(output_dir),
-        "--epochs",
-        str(args.epochs),
         "--base-data-dir",
         str(args.base_data_dir),
-        "--dry-run",
     ]
+    append_epoch_args(command, args=args)
+    if bool(args.dry_run) or bool(args.smoke):
+        command.append("--dry-run")
     append_wandb_args(command, project="time-causal-vq-tokenizer", args=args)
     return command
 
@@ -407,7 +448,7 @@ def token_extract_command(
 
 
 def prior_train_command(*, config: Path, output_dir: Path, args: argparse.Namespace) -> list[str]:
-    """Return the token-prior training dry-run command."""
+    """Return the token-prior training command."""
     command = [
         "poetry",
         "run",
@@ -416,12 +457,18 @@ def prior_train_command(*, config: Path, output_dir: Path, args: argparse.Namesp
         relative_to_repo(config),
         "--output-dir",
         str(output_dir),
-        "--epochs",
-        str(args.epochs),
-        "--dry-run",
     ]
+    append_epoch_args(command, args=args)
+    if bool(args.dry_run) or bool(args.smoke):
+        command.append("--dry-run")
     append_wandb_args(command, project="time-causal-token-prior", args=args)
     return command
+
+
+def append_epoch_args(command: list[str], *, args: argparse.Namespace) -> None:
+    """Append an epoch override unless the user selected full config epochs."""
+    if parse_epoch_override(str(args.epochs)) is not None:
+        command.extend(["--epochs", str(args.epochs)])
 
 
 def append_wandb_args(command: list[str], *, project: str, args: argparse.Namespace) -> None:
@@ -429,9 +476,10 @@ def append_wandb_args(command: list[str], *, project: str, args: argparse.Namesp
     if bool(args.no_wandb):
         command.append("--no-wandb")
         return
-    command.extend(
-        ["--wandb", "--wandb-project", project, "--wandb-entity", str(args.wandb_entity)]
-    )
+    if bool(args.wandb):
+        command.extend(
+            ["--wandb", "--wandb-project", project, "--wandb-entity", str(args.wandb_entity)]
+        )
 
 
 def run_tokenizer_smoke(plans: Sequence[CommandPlan]) -> list[CommandPlan]:
@@ -458,6 +506,113 @@ def run_tokenizer_smoke(plans: Sequence[CommandPlan]) -> list[CommandPlan]:
     return updated
 
 
+def run_selection(plans: Sequence[CommandPlan]) -> list[CommandPlan]:
+    """Execute tokenizer, extraction, and token-prior stages for each candidate."""
+    updated: list[CommandPlan] = []
+    for plan in plans:
+        start_time = time.perf_counter()
+        stage_results: list[dict[str, Any]] = []
+        execution_status = "ok"
+        for stage_name, command, artifact_path in stage_sequence(plan):
+            stage_result = run_stage(stage_name, command, artifact_path=artifact_path)
+            stage_results.append(stage_result)
+            if str(stage_result["status"]).startswith("failed"):
+                execution_status = f"failed:{stage_name}"
+                break
+        runtime_seconds = time.perf_counter() - start_time
+        metrics = load_candidate_metrics(plan)
+        updated.append(
+            CommandPlan(
+                **{
+                    **asdict(plan),
+                    "execution_status": execution_status,
+                    "runtime_seconds": runtime_seconds,
+                    "stage_results": stage_results,
+                    "metrics": metrics,
+                }
+            )
+        )
+        if execution_status.startswith("failed"):
+            updated.extend(plans[len(updated) :])
+            return updated
+    return updated
+
+
+def stage_sequence(plan: CommandPlan) -> list[tuple[str, list[str], Path]]:
+    """Return ordered candidate stages with their completion artifacts."""
+    tokenizer_dir = Path(plan.tokenizer_dir)
+    token_data_dir = Path(plan.token_data_dir)
+    prior_dir = Path(plan.prior_dir)
+    return [
+        ("tokenizer_train", plan.tokenizer_train_command, tokenizer_dir / "tokenizer.pt"),
+        ("extract_tokens", plan.token_extract_command, token_data_dir / "train_tokens.pt"),
+        ("prior_train", plan.prior_train_command, prior_dir / "token_prior.pt"),
+    ]
+
+
+def run_stage(stage_name: str, command: list[str], *, artifact_path: Path) -> dict[str, Any]:
+    """Run one stage unless its expected artifact already exists."""
+    if artifact_path.exists():
+        return {
+            "stage": stage_name,
+            "status": "skipped_existing_artifact",
+            "artifact_path": str(artifact_path),
+            "runtime_seconds": 0.0,
+            "command": shlex.join(command),
+        }
+    start_time = time.perf_counter()
+    result = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    runtime_seconds = time.perf_counter() - start_time
+    status = "ok" if result.returncode == 0 else f"failed:{result.returncode}"
+    return {
+        "stage": stage_name,
+        "status": status,
+        "artifact_path": str(artifact_path),
+        "runtime_seconds": runtime_seconds,
+        "command": shlex.join(command),
+        "stdout_tail": tail_text(result.stdout),
+        "stderr_tail": tail_text(result.stderr),
+    }
+
+
+def tail_text(text: str, *, max_lines: int = 20) -> str:
+    """Return a compact tail for persisted stage output."""
+    lines = text.strip().splitlines()
+    return "\n".join(lines[-max_lines:])
+
+
+def load_candidate_metrics(plan: CommandPlan) -> dict[str, Any]:
+    """Load available metrics from completed tokenizer, token, and prior artifacts."""
+    tokenizer_dir = Path(plan.tokenizer_dir)
+    token_data_dir = Path(plan.token_data_dir)
+    prior_dir = Path(plan.prior_dir)
+    metrics: dict[str, Any] = {}
+    for key, path in {
+        "tokenizer_codebook": tokenizer_dir / "codebook_summary.json",
+        "tokenizer_runtime": tokenizer_dir / "runtime_summary.json",
+        "token_dataset": token_data_dir / "token_dataset_summary.json",
+        "prior_best_checkpoint": prior_dir / "best_checkpoint_summary.json",
+        "prior_runtime": prior_dir / "runtime_summary.json",
+    }.items():
+        if path.exists():
+            metrics[key] = load_json(path)
+    return metrics
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON mapping from disk."""
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise ValueError(f"{path} must contain a JSON object.")
+    return cast(dict[str, Any], loaded)
+
+
 def smoke_note(note: str, result: subprocess.CompletedProcess[str]) -> str:
     """Append compact smoke output to the candidate note."""
     if result.returncode == 0:
@@ -467,14 +622,21 @@ def smoke_note(note: str, result: subprocess.CompletedProcess[str]) -> str:
     return f"{note} Tokenizer CLI dry-run failed: {message}"
 
 
-def write_json(path: Path, plans: Sequence[CommandPlan], *, args: argparse.Namespace) -> None:
+def write_json(
+    path: Path,
+    plans: Sequence[CommandPlan],
+    *,
+    args: argparse.Namespace,
+    epoch_override: int | None,
+) -> None:
     """Write the aggregate command plan JSON file."""
     payload = {
         "script": "scripts/run_per_experiment_model_selection.py",
-        "mode": "dry_run" if bool(args.dry_run) else "smoke" if bool(args.smoke) else "plan",
-        "epochs": int(args.epochs),
+        "mode": "dry_run" if bool(args.dry_run) else "smoke" if bool(args.smoke) else "execute",
+        "epochs": "full" if epoch_override is None else epoch_override,
         "n_sample": int(args.n_sample),
         "no_wandb": bool(args.no_wandb),
+        "wandb": bool(args.wandb and not args.no_wandb),
         "candidates": [serialise_plan(plan) for plan in plans],
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -493,8 +655,13 @@ def write_csv(path: Path, plans: Sequence[CommandPlan]) -> None:
         "tokenizer_train_command",
         "token_extract_command",
         "prior_train_command",
+        "prior_dir",
         "validation_status",
         "smoke_status",
+        "execution_status",
+        "runtime_seconds",
+        "stage_results",
+        "metrics",
         "notes",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -510,6 +677,8 @@ def serialise_plan(plan: CommandPlan) -> dict[str, Any]:
     payload["tokenizer_train_command"] = shlex.join(plan.tokenizer_train_command)
     payload["token_extract_command"] = shlex.join(plan.token_extract_command)
     payload["prior_train_command"] = shlex.join(plan.prior_train_command)
+    payload["stage_results"] = json.dumps(plan.stage_results, sort_keys=True)
+    payload["metrics"] = json.dumps(plan.metrics, sort_keys=True)
     return payload
 
 
@@ -521,9 +690,10 @@ def print_summary(plans: Sequence[CommandPlan], *, output_dir: Path) -> None:
     for plan in plans:
         print(
             f"- {plan.experiment}/{plan.candidate}: "
-            f"{plan.validation_status}, smoke={plan.smoke_status}"
+            f"{plan.validation_status}, smoke={plan.smoke_status}, "
+            f"execution={plan.execution_status}"
         )
-    print("files: selection_dry_run_plan.json, selection_dry_run_plan.csv")
+    print("files: selection_results.json, selection_results.csv")
 
 
 def relative_to_repo(path: Path) -> str:
