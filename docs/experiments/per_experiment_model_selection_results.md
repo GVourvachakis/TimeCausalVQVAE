@@ -123,12 +123,12 @@ candidate trained tokenizer, token extraction, and prior stages under
 
 ## Registry Metadata
 
-Copy metadata into `trained_models/model_registry.yaml` only after the missing no-leakage,
-path-metric, and reproduction checks pass. Do not copy weight paths into the registry and do not
-commit generated outputs. The YAML below is retained as the token-run shortlist snapshot; use the
-later final-evaluation results before promoting any final S&P500/VIX discrete candidate, because
-the balanced path profile currently favours `conditional_standard_vq_additive_ar` rather than the
-token-run `conditional_hidden128_conv_transformer_k3` candidate.
+The metadata registry may record this token-run shortlist only as supporting evidence. Do not copy
+weight paths into the registry and do not commit generated outputs. The YAML below is retained as
+the token-run shortlist snapshot; use the later final-evaluation results before promoting any
+final S&P500/VIX discrete candidate, because the balanced path profile currently favours
+`conditional_standard_vq_additive_ar` rather than the token-run
+`conditional_hidden128_conv_transformer_k3` candidate.
 
 ```yaml
 per_experiment_selection:

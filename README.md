@@ -52,6 +52,18 @@ Inspect the public configs without importing model code:
 poetry run python scripts/inspect_selected_configs.py
 ```
 
+Inspect the registered selected-model metadata used by notebooks and scripts:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete --metric mmd
+```
+
+The registry is `trained_models/model_registry.yaml`. It records selected continuous and discrete
+config paths, local checkpoint conventions, selection profiles, visible metrics, and missing
+metrics. It does not contain weights. Checkpoints are local or external and should remain under
+ignored `outputs/` paths.
+
 Run a minimal continuous S&P500/VIX smoke command:
 
 ```bash
@@ -149,6 +161,8 @@ transition-constrained sampling were also evaluated during development, but they
   sampling utilities.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
   compatibility, token diagnostics, and latent-geometry helpers.
+- `time_causal_vae.experiments`: portable experiment config loading, legacy continuous-config
+  adaptation, selection profiles, and trained-model registry selection.
 - `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
 - `scripts`: config inspection, reproduction wrappers, token extraction, evaluation, latent geometry, and no-leakage checks.
 
@@ -189,7 +203,10 @@ TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
 ![S&P500/VIX hidden128 VIX-bucket code usage](assets/figures/sp500_vix_vix_bucket_code_usage.png)
 
-Trained-model metadata is documented in `trained_models/model_registry.yaml`.
+Trained-model metadata is documented in `trained_models/model_registry.yaml` and summarised by
+the model cards under `trained_models/<experiment>/model_card.md`. Notebooks can use the registry
+to auto-select the registered metadata instead of hard-coding an optimal checkpoint or config.
+Weights remain local or external and are not committed.
 
 ## 📚 References
 

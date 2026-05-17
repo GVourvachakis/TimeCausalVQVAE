@@ -1,12 +1,31 @@
 # Trained Model Metadata
 
-This public branch does not store trained checkpoints. It keeps only metadata for
-the S&P500/VIX continuous reference, public discrete baseline, and optional best
-discrete research variant.
+This directory stores lightweight metadata for selected continuous and discrete latent-variable
+models. It does not store trained checkpoints.
 
-Expected checkpoints and generated samples live under local `outputs/` paths after
-a user runs the training or evaluation commands. Do not commit model
-weights, token arrays, processed data, W&B artefacts, or generated output files.
+`model_registry.yaml` is the notebook-facing registry. It records, per experiment:
 
-See `model_registry.yaml` for the public config paths, research-branch config
-paths, expected local output locations, and sampling policies.
+- selected continuous and discrete candidate ids;
+- config paths under `configs/experiments/`;
+- local checkpoint conventions such as `outputs/.../<training-run>/final_model`;
+- selection profiles, visible metrics, missing metrics, no-leakage status, and caveats;
+- optional comparison candidates needed for dynamic selection.
+
+The per-experiment model cards provide a compact human-readable summary:
+
+- `black_scholes/model_card.md`;
+- `heston/model_card.md`;
+- `pdv/model_card.md`;
+- `sp500_vix/model_card.md`.
+
+Expected checkpoints, token arrays, generated samples, CSV/JSON summaries, W&B artefacts, and
+processed data live under local `outputs/` or `data/processed/` paths after a user runs training
+or evaluation commands. Do not commit those artefacts.
+
+Use the selector to inspect registered metadata:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete --metric mmd
+poetry run python scripts/select_registered_model.py --experiment pdv --family continuous
+```

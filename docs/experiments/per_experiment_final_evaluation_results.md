@@ -176,11 +176,15 @@ the profile definition because the hidden128 candidate wins several component me
 losing MMD and terminal W1. The registry should not be updated until the profile choice and
 notebook/reproduction status are explicitly accepted.
 
-## Registry Promotion Status
+## Registry Metadata Status
 
-Do not update `trained_models/model_registry.yaml` yet.
+`trained_models/model_registry.yaml` now contains lightweight metadata for the selected
+continuous and discrete candidates, plus the optional S&P500/VIX hidden128 comparison candidate
+needed for metric-sensitive dynamic selection. The registry records config paths, local checkpoint
+conventions, sampling policy, metrics, missing metrics, no-leakage status, and caveats only.
+Weights and generated outputs remain local and are not committed.
 
-Promotion is blocked by:
+Full public promotion remains blocked by:
 
 - missing full-profile continuous baseline metrics for Black-Scholes, Heston, and PDV4 beyond
   supplemental cloned-repo MMD/SWD;

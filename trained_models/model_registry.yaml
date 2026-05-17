@@ -1,44 +1,336 @@
-sp500_vix:
-  continuous_beta_cvae:
-    description: Continuous TC-VAE reference baseline.
-    config: configs/experiments/sp500_vix_beta_cvae.yaml
-    expected_output_paths:
-      training: outputs/sp500_vix_continuous/beta_cvae/
-      evaluation: outputs/sp500_vix_continuous/beta_cvae/evaluation_final/
-    sampling:
-      policy: latent_gaussian_decoder
-      checkpoint_selection: local_best_or_final
-    weights: local_outputs_only
+schema_version: 1
+generated:
+  branch: research/per-experiment-model-selection
+  timestamp_utc: "2026-05-17"
+  source:
+    - docs/experiments/per_experiment_model_selection_plan.md
+    - docs/experiments/per_experiment_model_selection_results.md
+    - docs/experiments/per_experiment_final_evaluation_results.md
+  note: >
+    Metadata registry only. Checkpoints, token tensors, generated paths, processed data,
+    W&B artefacts, and output summaries are local or external and are not committed.
+path_policy:
+  weights_committed: false
+  checkpoint_placeholder: local_outputs_only
+  allowed_committed_paths:
+    - configs/experiments
+    - trained_models
+  local_output_root: outputs
+selection_policy:
+  default_profile: balanced_market
+  lower_is_better: true
+  do_not_select_from_mmd_alone: true
+  public_defaults_change_requires_explicit_metadata: true
 
-  public_baseline:
-    description: Public discrete baseline with standard VQ tokenizer and additive causal AR prior.
-    tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
-    prior_config: configs/experiments/sp500_vix_causal_token_prior_additive.yaml
-    expected_output_paths:
-      tokenizer: outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_codebook64dim16_seed0/
-      tokens: outputs/sp500_vix_discrete/token_prior/tokens_codebook64_codebookdim16/
-      prior: outputs/sp500_vix_discrete/token_prior/additive/
-      paper_style: outputs/sp500_vix_discrete/paper_style/
-      latent_geometry: outputs/latent_geometry/sp500_vix_standard_vq/
-    sampling:
-      temperature: 1.0
-      top_k: null
-      condition_policy: observed_vix_context
-    weights: local_outputs_only
+experiments:
+  black_scholes:
+    display_name: Black-Scholes
+    continuous:
+      selected: beta_cvae
+      candidates:
+        beta_cvae:
+          description: Selected continuous TC-VAE baseline from the cloned optimal TC-VAE run.
+          config: configs/experiments/black_scholes_beta_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/black_scholes_continuous/beta_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: supplemental_cloned_time_causal_vae_evaluation
+          metrics:
+            mmd: 0.089052
+            swd: 0.056371
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - notebook_reproduction
+          caveats:
+            - Supplemental continuous evaluator produced only legacy MMD and SWD.
+            - Cloned checkpoint path is intentionally not committed because it is machine-local.
+    discrete:
+      selected: hidden128_conv_transformer_k3
+      candidates:
+        hidden128_conv_transformer_k3:
+          description: Provisional best approved Black-Scholes discrete candidate.
+          tokenizer_config: configs/experiments/black_scholes_causal_vq_tokenizer_hidden128.yaml
+          prior_config: configs/experiments/black_scholes_causal_token_prior_hidden128_conv_transformer.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/black_scholes/hidden128_conv_transformer_k3/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: unconditioned_discrete_prior
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.085255
+            swd: 0.056371
+            terminal_wasserstein: 0.067674
+            volatility_wasserstein: 0.004042
+            balanced_score: 0.053335
+            prior_eval_cross_entropy: 2.419572
+            prior_eval_perplexity: 11.241549
+            prior_eval_accuracy: 0.181267
+            tokenizer_perplexity: 54.278244
+            tokenizer_active_codes: 64
+            token_dataset_perplexity: 53.104866
+            token_dataset_active_codes: 64
+          missing_metrics:
+            - returns_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - trained_unconditioned_tokenizer_no_leakage
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: not_available
+          caveats:
+            - Public standard discrete artefacts were unavailable in the final evaluation pass.
 
-  best_discrete_research:
-    description: Optional hidden128 VQ tokenizer with conv-transformer k3 prior.
-    config_source_branch: research/stronger-hidden128-prior
-    tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer_hidden128.yaml
-    prior_config: configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
-    expected_output_paths:
-      tokenizer: outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_hidden128_seed0/
-      tokens: outputs/sp500_vix_discrete/token_prior/tokens_hidden128/
-      prior: outputs/sp500_vix_discrete/token_prior/hidden128_conv_transformer/
-      paper_style: outputs/sp500_vix_discrete/paper_style_hidden128_conv_transformer_sampling_temp10_topknone/
-      latent_geometry: outputs/latent_geometry/sp500_vix_hidden128_vq/
-    sampling:
-      temperature: 1.0
-      top_k: null
-      condition_policy: observed_vix_context
-    weights: local_outputs_only
+  heston:
+    display_name: Heston
+    continuous:
+      selected: info_cvae
+      candidates:
+        info_cvae:
+          description: Selected continuous TC-VAE baseline from the cloned optimal TC-VAE run.
+          config: configs/experiments/heston_info_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/heston_continuous/info_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: supplemental_cloned_time_causal_vae_evaluation
+          metrics:
+            mmd: 0.071840
+            swd: 0.066884
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - notebook_reproduction
+          caveats:
+            - Supplemental continuous evaluator produced only legacy MMD and SWD.
+    discrete:
+      selected: standard_vq_additive_ar
+      candidates:
+        standard_vq_additive_ar:
+          description: Standard VQ plus additive AR comparison candidate.
+          tokenizer_config: configs/experiments/heston_causal_vq_tokenizer.yaml
+          prior_config: configs/experiments/heston_causal_token_prior_additive.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/heston/standard_vq_additive_ar/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: unconditioned_discrete_prior
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.049702
+            swd: 0.074397
+            terminal_wasserstein: 0.051078
+            volatility_wasserstein: 0.019140
+            balanced_score: 0.048579
+            prior_eval_cross_entropy: 2.652545
+            prior_eval_perplexity: 14.195220
+            prior_eval_accuracy: 0.167333
+            tokenizer_perplexity: 50.723011
+            tokenizer_active_codes: 64
+            token_dataset_perplexity: 51.004353
+            token_dataset_active_codes: 64
+          missing_metrics:
+            - returns_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - trained_unconditioned_tokenizer_no_leakage
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: not_available
+
+  pdv:
+    display_name: PDV4
+    continuous:
+      selected: info_cvae
+      candidates:
+        info_cvae:
+          description: Conditional continuous TC-VAE baseline with r2 volatility feature.
+          config: configs/experiments/pdv_info_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/pdv_continuous/info_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: supplemental_cloned_time_causal_vae_evaluation
+          metrics:
+            mmd: 0.165295
+            swd: 0.010630
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - condition_bucket_path_metrics
+            - notebook_reproduction
+          caveats:
+            - Supplemental continuous evaluator produced only legacy MMD and SWD.
+    discrete:
+      selected: conditional_standard_vq_additive_ar
+      candidates:
+        conditional_standard_vq_additive_ar:
+          description: Conditional standard VQ plus additive AR candidate.
+          tokenizer_config: configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml
+          prior_config: configs/experiments/pdv_causal_token_prior_additive_seed1.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/pdv/conditional_standard_vq_additive_ar/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: r2_volatility_feature_additive
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 1.170725
+            swd: 0.051673
+            terminal_wasserstein: 0.057260
+            volatility_wasserstein: 0.006154
+            balanced_score: 0.321453
+            prior_eval_cross_entropy: 1.104750
+            prior_eval_perplexity: 3.019962
+            prior_eval_accuracy: 0.566133
+            tokenizer_perplexity: 51.275726
+            tokenizer_active_codes: 57
+            token_dataset_perplexity: 50.671955
+            token_dataset_active_codes: 57
+          missing_metrics:
+            - returns_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - full_condition_bucket_path_metrics
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: passed
+
+  sp500_vix:
+    display_name: S&P500/VIX
+    continuous:
+      selected: beta_cvae
+      candidates:
+        beta_cvae:
+          description: Selected continuous TC-VAE reference baseline.
+          config: configs/experiments/sp500_vix_beta_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/sp500_vix_continuous/beta_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.154422
+            swd: 0.008785
+            supplemental_cloned_mmd: 0.131414
+            supplemental_cloned_swd: 0.008367
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - notebook_reproduction
+          caveats:
+            - Local timestamped checkpoint and cloned optimal checkpoint both evaluated for MMD/SWD.
+    discrete:
+      selected: conditional_standard_vq_additive_ar
+      candidates:
+        conditional_standard_vq_additive_ar:
+          description: Public discrete baseline selected by the balanced-market path profile.
+          tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
+          prior_config: configs/experiments/sp500_vix_causal_token_prior_additive.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/sp500_vix_discrete/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: observed_vix_additive
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.254177
+            swd: 0.013836
+            returns_wasserstein: 0.001012
+            terminal_wasserstein: 0.010252
+            volatility_wasserstein: 0.001504
+            drawdown_wasserstein: 0.010957
+            return_ac_l1: 0.055395
+            squared_return_ac_l1: 0.039584
+            balanced_score: 0.048340
+            prior_eval_cross_entropy: 0.914807
+            prior_eval_perplexity: 2.507927
+            prior_eval_accuracy: 0.647449
+            tokenizer_perplexity: 29.406109
+            tokenizer_active_codes: 62
+            token_dataset_perplexity: 39.055717
+            token_dataset_active_codes: 63
+          missing_metrics:
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: passed
+        conditional_hidden128_conv_transformer_k3:
+          description: Optional research candidate retained for metric-sensitive dynamic selection.
+          tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer_hidden128.yaml
+          prior_config: configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/sp500_vix/conditional_hidden128_conv_transformer_k3/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: observed_vix_additive
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.501580
+            swd: 0.013060
+            returns_wasserstein: 0.000976
+            terminal_wasserstein: 0.018768
+            volatility_wasserstein: 0.001151
+            drawdown_wasserstein: 0.003914
+            return_ac_l1: 0.051504
+            squared_return_ac_l1: 0.040645
+            balanced_score: 0.078950
+            prior_eval_cross_entropy: 0.883431
+            prior_eval_perplexity: 2.426584
+            prior_eval_accuracy: 0.659917
+            tokenizer_perplexity: 51.726196
+            tokenizer_active_codes: 64
+            token_dataset_perplexity: 43.194336
+            token_dataset_active_codes: 60
+          missing_metrics:
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: passed
+          caveats:
+            - Wins several component metrics and token CE, but loses the balanced-market profile.

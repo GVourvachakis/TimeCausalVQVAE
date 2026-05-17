@@ -113,6 +113,30 @@ Small curated public images may be committed under `assets/figures/` when they a
 selected for the README or a demo. Trained model directories should contain only lightweight
 metadata such as `trained_models/README.md` or `trained_models/model_registry.yaml`, not weights.
 
+## Model Registry Contributions
+
+The trained-model registry is metadata only. To add or promote a new candidate:
+
+1. Train the candidate locally and keep checkpoints under ignored `outputs/` paths.
+2. Evaluate it with the relevant path metrics, token metrics, no-leakage checks, and notebook or
+   reproduction workflow.
+3. Add or update metadata under `trained_models/model_registry.yaml` and the relevant
+   `trained_models/<experiment>/model_card.md`.
+4. Record config paths, local checkpoint conventions, selection profile, visible metrics, missing
+   metrics, sampling policy, and caveats. Use `local_outputs_only` or relative `outputs/...`
+   conventions rather than absolute paths.
+5. Do not commit weights, token tensors, processed data, generated summaries, figures, or W&B
+   exports.
+6. Run the selector before committing, for example:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete --metric mmd
+```
+
+Do not change public defaults unless the registry contains explicit metadata justifying the
+selection and the corresponding documentation explains the trade-off.
+
 ## Code Quality
 
 Prefer narrow, local changes. Preserve public commands and notebook workflows when refactoring.

@@ -2,6 +2,14 @@
 
 The notebooks are organised by demonstration role.
 
+Notebooks should prefer the metadata registry over hard-coded optimal model identifiers. Use
+`trained_models/model_registry.yaml`, or the helper CLI below, to discover selected config paths,
+local checkpoint conventions, sampling policy, visible metrics, and missing metrics:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+```
+
 ## `continuous/`
 
 Refactored continuous TC-VAE baseline demos. These notebooks show the selected continuous config,

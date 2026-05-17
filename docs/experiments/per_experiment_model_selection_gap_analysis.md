@@ -92,12 +92,14 @@ The current selections are provisional token-run selections only. They are suita
 which discrete candidates should enter the final evaluation pass. They are not sufficient for
 final registry promotion.
 
-Do not update `trained_models/model_registry.yaml` yet. The supplemental continuous run removes
-the earlier blocker that the Black-Scholes, Heston, and PDV4 continuous baselines could not be run
-at all, but it does not satisfy the full registry gate. The registry should only be updated after
-the final evaluation shows, per experiment, that the selected candidate has an acceptable
-path-level profile, passes no-leakage checks, and can be reproduced from the documented notebook
-or wrapper workflow.
+The metadata-only `trained_models/model_registry.yaml` may record the current selected configs,
+local checkpoint conventions, visible metrics, and missing metrics so notebooks can avoid
+hard-coded optimal model ids. The supplemental continuous run removes the earlier blocker that
+the Black-Scholes, Heston, and PDV4 continuous baselines could not be run at all, but it does not
+satisfy the full public promotion gate. The registry should not imply committed weights or final
+public promotion until the final evaluation shows, per experiment, that the selected candidate has
+an acceptable path-level profile, passes no-leakage checks, and can be reproduced from the
+documented notebook or wrapper workflow.
 
 Path-level evaluation is required because the selection plan explicitly rejects decisions based on
 a single metric or token-prior likelihood alone. Prior validation CE can improve while generated
@@ -121,8 +123,8 @@ justification.
 
 ## Registry Promotion Gate
 
-Only after the final evaluation passes should `trained_models/model_registry.yaml` be updated.
-The update should contain selected metadata only, not weights or generated artefacts.
+Only metadata should be recorded in `trained_models/model_registry.yaml`, not weights or generated
+artefacts. A later public-promotion update must keep the same restrictions.
 
 The registry promotion gate is:
 
