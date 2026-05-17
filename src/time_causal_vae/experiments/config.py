@@ -15,6 +15,7 @@ from time_causal_vae.typing import PathLike
 DATASET_NAME_MAP = {
     "black_scholes": "BSprice",
     "heston": "Hestonprice",
+    "hawkes_jump": "HawkesJump",
     "path_dependent_volatility": "PDVPriceConFeature",
     "sp500_vix": "SP500VIX",
 }
@@ -47,6 +48,33 @@ OPTIMIZER_NAME_MAP = {
 SUPPORTED_DATA_PARAMS = {
     "black_scholes": frozenset({"mu", "sigma", "dt"}),
     "heston": frozenset({"r", "kappa", "theta", "v_0", "rho", "xi", "dt"}),
+    "hawkes_jump": frozenset(
+        {
+            "baseline_intensity",
+            "brownian_volatility",
+            "data_output",
+            "decay",
+            "drift",
+            "dt",
+            "excitation",
+            "mark_excitation",
+            "max_intensity",
+            "max_jumps_per_step",
+            "max_volatility",
+            "negative_jump_mean",
+            "negative_jump_probability",
+            "negative_jump_std",
+            "positive_jump_mean",
+            "positive_jump_std",
+            "seed",
+            "severe_jump_mean",
+            "severe_jump_probability",
+            "severe_jump_std",
+            "volatility_decay",
+            "volatility_excitation",
+            "volatility_excitation_scale",
+        }
+    ),
 }
 
 
@@ -312,7 +340,7 @@ def _validated_data_params(data: Mapping[str, Any], dataset_name: str) -> dict[s
         raise ValueError(
             f"Unsupported custom data.params for dataset '{dataset_name}'. "
             "Custom synthetic parameters are currently supported only for "
-            "black_scholes and heston."
+            "black_scholes, heston, and hawkes_jump."
         )
 
     unsupported = sorted(set(params_dict) - supported)

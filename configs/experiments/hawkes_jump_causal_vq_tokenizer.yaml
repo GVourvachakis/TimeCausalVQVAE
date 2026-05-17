@@ -1,0 +1,46 @@
+experiment:
+  name: hawkes_jump_causal_vq_tokenizer
+  dataset: hawkes_jump
+  seed: 0
+data:
+  n_samples: 512
+  n_timesteps: 60
+  data_dim: 1
+  condition_dim: 1
+  condition_feature: constant
+  data_params:
+    seed: 0
+    data_output: price
+    dt: 0.0166666667
+    drift: 0.0
+    brownian_volatility: 0.18
+    baseline_intensity: 3.0
+    excitation: 2.0
+    decay: 12.0
+    mark_excitation: 20.0
+    negative_jump_probability: 0.7
+    severe_jump_probability: 0.08
+    volatility_excitation: true
+model:
+  family: causal_vq_tokenizer
+  data_dim: 1
+  data_length: 60
+  embedding_dim: 64
+  codebook_size: 64
+  commitment_weight: 0.1
+  encoder_hidden_dim: 64
+  decoder_hidden_dim: 64
+  num_layers: 4
+  dilations: [1, 2, 4, 8]
+  dropout: 0.0
+  condition_dim: 1
+  kmeans_init: true
+  kmeans_iters: 10
+  use_cosine_sim: false
+  codebook_dim: 16
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 64
+  eval_batch_size: 64
+  epochs: 2
