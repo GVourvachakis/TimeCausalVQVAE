@@ -19,8 +19,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
-from time_causal_vae.models.base import BaseModel
-from time_causal_vae.models.distances import GaussianMMD2
+from time_causal_vae.models.continuous.base import BaseModel
+from time_causal_vae.models.continuous.distances import GaussianMMD2
 from time_causal_vae.training.callbacks import (
     CallbackHandler,
     MetricConsolePrinterCallback,

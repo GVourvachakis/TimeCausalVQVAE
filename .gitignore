@@ -13,6 +13,9 @@ htmlcov/
 venv/
 env/
 
+# Dependency management
+poetry.lock # Excluded to prevent version locking conflicts in this environment
+
 # Build artifacts
 dist/
 build/
@@ -28,6 +31,8 @@ trained_models/*
 !trained_models/
 !trained_models/README.md
 !trained_models/model_registry.yaml
+!trained_models/*/
+!trained_models/*/model_card.md
 wandb/
 *.pt
 *.pth

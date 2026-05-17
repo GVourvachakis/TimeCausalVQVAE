@@ -5,8 +5,8 @@ from typing import List, Optional, Union
 import numpy as np
 import torch
 
-from time_causal_vae.models.config import BasePipeline
-from time_causal_vae.models.objectives.vae import VAE
+from time_causal_vae.models.continuous.config import BasePipeline
+from time_causal_vae.models.continuous.objectives.vae import VAE
 from time_causal_vae.training.config import BaseTrainerConfig
 from time_causal_vae.training.trainer import BaseTrainer
 from time_causal_vae.utils.logging import get_console_logger

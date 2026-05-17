@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from time_causal_vae.token_prior.data import (
+from time_causal_vae.models.discrete.priors.data import (
     build_tokenizer_datasets,
     extract_dataset_tokens,
     load_frozen_tokenizer,
@@ -97,7 +97,7 @@ def main() -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that token-prior artifacts stay below ignored outputs/."""
+    """Validate that token-prior artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -105,7 +105,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 

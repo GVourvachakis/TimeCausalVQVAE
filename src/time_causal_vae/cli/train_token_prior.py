@@ -16,7 +16,7 @@ import yaml
 from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 
-from time_causal_vae.token_prior import CausalTokenPriorConfig, build_token_prior_model
+from time_causal_vae.models.discrete.priors import CausalTokenPriorConfig, build_token_prior_model
 from time_causal_vae.utils.random import set_seed
 
 
@@ -188,7 +188,7 @@ def validate_positive_int(name: str, value: int) -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that token-prior artifacts stay below ignored outputs/."""
+    """Validate that token-prior artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -196,7 +196,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 
@@ -270,6 +270,10 @@ def build_prior_config(run_config: Mapping[str, Any]) -> CausalTokenPriorConfig:
         num_quantizers=int(model_config.get("num_quantizers", 1)),
         groups=int(model_config.get("groups", 1)),
         component_loss_weights=optional_float_list(model_config.get("component_loss_weights")),
+        conv_num_layers=int(model_config.get("conv_num_layers", 0)),
+        conv_kernel_size=int(model_config.get("conv_kernel_size", 3)),
+        conv_dilations=optional_int_list(model_config.get("conv_dilations")),
+        conv_dropout=float(model_config.get("conv_dropout", 0.0)),
     )
 
 
@@ -300,14 +304,33 @@ def optional_float_list(value: Any) -> list[float] | None:
 
 def parse_prior_type(
     value: Any,
-) -> Literal["single_code", "factorised_multi_code", "hierarchical_rvq_q2"]:
+) -> Literal[
+    "single_code",
+    "causal_conv_transformer",
+    "factorised_multi_code",
+    "hierarchical_rvq_q2",
+]:
     """Parse the supported token-prior type."""
     parsed = str(value)
-    if parsed not in {"single_code", "factorised_multi_code", "hierarchical_rvq_q2"}:
+    if parsed not in {
+        "single_code",
+        "causal_conv_transformer",
+        "factorised_multi_code",
+        "hierarchical_rvq_q2",
+    }:
         raise SystemExit(
-            "prior_type must be 'single_code', 'factorised_multi_code', or 'hierarchical_rvq_q2'."
+            "prior_type must be 'single_code', 'causal_conv_transformer', "
+            "'factorised_multi_code', or 'hierarchical_rvq_q2'."
         )
-    return cast(Literal["single_code", "factorised_multi_code", "hierarchical_rvq_q2"], parsed)
+    return cast(
+        Literal[
+            "single_code",
+            "causal_conv_transformer",
+            "factorised_multi_code",
+            "hierarchical_rvq_q2",
+        ],
+        parsed,
+    )
 
 
 def parse_condition_injection(value: Any) -> Literal["none", "additive", "adaln_lite"]:
@@ -689,12 +712,10 @@ class MetricTotals:
             "accuracy": self.accuracy_total / self.n_samples,
             "perplexity": self.perplexity_total / self.n_samples,
         }
-        metrics.update(
-            {
-                key: value / self.n_samples
-                for key, value in sorted(self.extra_totals.items(), key=lambda item: item[0])
-            }
-        )
+        metrics.update({
+            key: value / self.n_samples
+            for key, value in sorted(self.extra_totals.items(), key=lambda item: item[0])
+        })
         return metrics
 
 

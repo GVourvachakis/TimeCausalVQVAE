@@ -113,6 +113,30 @@ Small curated public images may be committed under `assets/figures/` when they a
 selected for the README or a demo. Trained model directories should contain only lightweight
 metadata such as `trained_models/README.md` or `trained_models/model_registry.yaml`, not weights.
 
+## Model Registry Contributions
+
+The trained-model registry is metadata only. To add or promote a new candidate:
+
+1. Train the candidate locally and keep checkpoints under local `outputs/` paths.
+2. Evaluate it with the relevant path metrics, token metrics, no-leakage checks, and notebook or
+   reproduction workflow.
+3. Add or update metadata under `trained_models/model_registry.yaml` and the relevant
+   `trained_models/<experiment>/model_card.md`.
+4. Record config paths, local checkpoint conventions, selection profile, visible metrics, missing
+   metrics, sampling policy, and caveats. Use `local_outputs_only` or relative `outputs/...`
+   conventions rather than absolute paths.
+5. Do not commit weights, token tensors, processed data, generated summaries, figures, or W&B
+   exports.
+6. Run the selector before committing, for example:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete --metric mmd
+```
+
+Do not change public defaults unless the registry contains explicit metadata justifying the
+selection and the corresponding documentation explains the trade-off.
+
 ## Code Quality
 
 Prefer narrow, local changes. Preserve public commands and notebook workflows when refactoring.
@@ -176,7 +200,14 @@ unless they are deliberately promoted.
 
 ## Future Directions
 
-Potential future work includes stronger causal token priors, carefully documented signature-based
-diagnostics, optional diffusion-style token generation, richer latent-geometry reports, and curated
-small public figures under `assets/figures/`. Each direction should arrive with clear configs,
-guarded demos, and evidence that can stay separate from the public-minimal branch until promoted.
+Future work should remain staged, evidence-backed, and separate from public defaults until it is
+ready for review. Useful directions include:
+
+- Per-experiment model selection and periodic registry refreshes, with clear metrics, caveats, and model cards.
+- Stronger causal priors for hidden128 tokens, including more robust conv-transformer variants. Mamba or selective-SSM priors should wait for CUDA/package compatibility and strict stepwise-causality checks.
+- Continuous-latent prior extensions such as LSGM, score-based, or flow-based alternatives to RealNVP, kept separate from the discrete branch.
+- VQ-family tokenizer experiments such as GroupedResidualVQ and MGVQ, only after prior-calibration bottlenecks are controlled.
+- Causal low/high-frequency decomposition inspired by TimeVQVAE, without introducing bidirectional priors.
+- Optional signature and path-space diagnostics, including log-signature conditioning and signature-kernel metrics, without making them public defaults.
+- Causal/adapted distances and downstream finance evaluations, including adapted Wasserstein, Deep Hedging, VaR/Expected Shortfall, and multistage portfolio or hedging stress tests.
+- Public model releases where registry metadata stays in Git and weights or checkpoints are distributed through external release assets, not committed.

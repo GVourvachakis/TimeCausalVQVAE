@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
 from time_causal_vae.data.pipeline import DataPipeline
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.random import set_seed
 
 
@@ -186,7 +186,7 @@ def validate_positive_int(name: str, value: int) -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that tokenizer artifacts stay below ignored outputs/."""
+    """Validate that tokenizer artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -194,7 +194,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 

@@ -12,8 +12,8 @@ from typing import Any
 import ml_collections
 
 from time_causal_vae.data.pipeline import DataPipeline as TargetDataPipeline
-from time_causal_vae.experiments.legacy_config_adapter import load_legacy_config
-from time_causal_vae.models.factory import ModelFactory
+from time_causal_vae.experiments.config import load_continuous_backend_config
+from time_causal_vae.models.continuous.factory import ModelFactory
 from time_causal_vae.training.config import BaseTrainerConfig as TargetBaseTrainerConfig
 from time_causal_vae.training.pipeline import TrainingPipeline as TargetTrainingPipeline
 from time_causal_vae.utils.random import set_seed
@@ -134,7 +134,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     if "trained_models" in resolved.parts:
         raise SystemExit("--output-dir must not point into trained_models/")
@@ -274,7 +274,7 @@ def main() -> None:
 
     output_dir = validate_output_dir(args.output_dir)
     wandb_enabled = args.wandb and not args.no_wandb and args.wandb_mode != "disabled"
-    exp_config = load_legacy_config(
+    exp_config = load_continuous_backend_config(
         args.config,
         output_dir=output_dir,
         device=args.device,

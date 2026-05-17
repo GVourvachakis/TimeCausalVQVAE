@@ -111,8 +111,7 @@ def return_autocorrelation_within_path(
             values[str(lag)] = 0.0
             continue
         autocovariance = (centred[:, :-lag] * centred[:, lag:]).mean(dim=1)
-        values[str(lag)] = float(
-            (autocovariance / variance).mean().detach().cpu())
+        values[str(lag)] = float((autocovariance / variance).mean().detach().cpu())
     return values
 
 
@@ -193,8 +192,7 @@ def outlier_path_metadata(
     """Summarise extreme paths by return and rolling-volatility criteria."""
     paths_2d = squeeze_paths(paths)
     max_abs_returns = max_abs_return_per_path(paths)
-    max_volatility = max_rolling_volatility_per_path(
-        paths, window=rolling_window)
+    max_volatility = max_rolling_volatility_per_path(paths, window=rolling_window)
     terminal = terminal_returns(paths)
     realised_volatility = volatility_per_path(paths)
     k = min(top_k, paths_2d.shape[0])
@@ -237,17 +235,15 @@ def _top_path_records(
     for rank, index_tensor in enumerate(indices):
         index = int(index_tensor.item())
         path = paths_2d[index]
-        records.append(
-            {
-                "rank": rank + 1,
-                "path_index": index,
-                score_name: float(scores[index].detach().cpu()),
-                "terminal_return": float(terminal[index].detach().cpu()),
-                "volatility": float(volatility[index].detach().cpu()),
-                "path_min": float(path.min().detach().cpu()),
-                "path_max": float(path.max().detach().cpu()),
-            }
-        )
+        records.append({
+            "rank": rank + 1,
+            "path_index": index,
+            score_name: float(scores[index].detach().cpu()),
+            "terminal_return": float(terminal[index].detach().cpu()),
+            "volatility": float(volatility[index].detach().cpu()),
+            "path_min": float(path.min().detach().cpu()),
+            "path_max": float(path.max().detach().cpu()),
+        })
     return records
 
 
@@ -287,8 +283,7 @@ def wasserstein_1d(first: Tensor, second: Tensor) -> float:
         return 0.0
     n_values = min(first_flat.numel(), second_flat.numel())
     return float(
-        (first_flat.sort().values[:n_values] -
-         second_flat.sort().values[:n_values])
+        (first_flat.sort().values[:n_values] - second_flat.sort().values[:n_values])
         .abs()
         .mean()
         .detach()
@@ -313,8 +308,7 @@ def distribution_summary(values: Tensor) -> dict[str, float]:
         }
     quantiles = torch.quantile(
         flattened,
-        torch.tensor([0.001, 0.01, 0.05, 0.50, 0.95,
-                     0.99, 0.999], dtype=flattened.dtype),
+        torch.tensor([0.001, 0.01, 0.05, 0.50, 0.95, 0.99, 0.999], dtype=flattened.dtype),
     )
     return {
         "mean": float(flattened.mean().detach().cpu()),
@@ -342,8 +336,7 @@ def market_style_summary(
     volatility = volatility_per_path(paths)
     drawdowns = maximum_drawdown(paths)
     autocorr = return_autocorrelation_within_path(paths, lags=lags)
-    squared_autocorr = return_autocorrelation_within_path(
-        paths, lags=lags, squared=True)
+    squared_autocorr = return_autocorrelation_within_path(paths, lags=lags, squared=True)
     flattened_autocorr = return_autocorrelation_flattened(paths, lags=lags)
     flattened_squared_autocorr = return_autocorrelation_flattened(
         paths,
@@ -387,17 +380,14 @@ def compare_market_summaries(
     real_drawdown = maximum_drawdown(real_paths)
     generated_drawdown = maximum_drawdown(generated_paths)
     real_autocorr = return_autocorrelation_within_path(real_paths, lags=lags)
-    generated_autocorr = return_autocorrelation_within_path(
-        generated_paths, lags=lags)
-    real_squared_autocorr = return_autocorrelation_within_path(
-        real_paths, lags=lags, squared=True)
+    generated_autocorr = return_autocorrelation_within_path(generated_paths, lags=lags)
+    real_squared_autocorr = return_autocorrelation_within_path(real_paths, lags=lags, squared=True)
     generated_squared_autocorr = return_autocorrelation_within_path(
         generated_paths,
         lags=lags,
         squared=True,
     )
-    real_flattened_autocorr = return_autocorrelation_flattened(
-        real_paths, lags=lags)
+    real_flattened_autocorr = return_autocorrelation_flattened(real_paths, lags=lags)
     generated_flattened_autocorr = return_autocorrelation_flattened(
         generated_paths,
         lags=lags,

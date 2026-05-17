@@ -323,7 +323,7 @@ def require_real_args(args: argparse.Namespace) -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that artifacts stay below ignored outputs/."""
+    """Validate that artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -331,7 +331,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 
@@ -355,13 +355,11 @@ def log_to_wandb(
             "Install the tracking dependency group or omit --wandb."
         ) from exc
     run = wandb.init(project=project, entity=entity, name=run_name, config=dict(metadata))
-    wandb.log(
-        {
-            "active_code_count": usage["active_code_count"],
-            "codebook_perplexity": usage["codebook_perplexity"],
-            "index_entropy": usage["index_entropy"],
-        }
-    )
+    wandb.log({
+        "active_code_count": usage["active_code_count"],
+        "codebook_perplexity": usage["codebook_perplexity"],
+        "index_entropy": usage["index_entropy"],
+    })
     image_payload = {
         Path(plot_name).stem: wandb.Image(str(output_dir / plot_name))
         for plot_name in generated_plots

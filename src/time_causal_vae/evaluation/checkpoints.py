@@ -18,7 +18,7 @@ from time_causal_vae.evaluation.checkpoint_compatibility import (
     load_legacy_exp_config,
 )
 from time_causal_vae.evaluation.metrics import SWD, GaussianMMD
-from time_causal_vae.models.factory import ModelFactory
+from time_causal_vae.models.continuous.factory import ModelFactory
 from time_causal_vae.utils.random import set_seed
 from time_causal_vae.utils.serialization import load_obj, save_obj
 

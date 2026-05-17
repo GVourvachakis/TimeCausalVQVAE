@@ -2,12 +2,23 @@
 
 The notebooks are organised by demonstration role.
 
+Notebooks should prefer the metadata registry over hard-coded optimal model identifiers. Continuous
+and discrete notebooks now call the same registry selector before constructing commands, so each
+notebook can pick the registered best candidate for its experiment and family. Use
+`trained_models/model_registry.yaml`, or the helper CLI below, to discover selected config paths,
+local checkpoint conventions, sampling policy, visible metrics, and missing metrics:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+```
+
 ## `continuous/`
 
-Refactored continuous TC-VAE baseline demos. These notebooks show the selected continuous config,
-print dry-run training and evaluation commands, and avoid released-checkpoint requirements by
-default. For S&P500/VIX, the continuous notebook is the TC-VAE baseline and the continuous
-BetaCVAE remains the strongest overall reference in the current report evidence.
+Refactored continuous TC-VAE baseline demos. These notebooks select the registered continuous
+candidate for their own experiment, show the selected continuous config, print dry-run training
+and evaluation commands, and avoid released-checkpoint requirements by default. For S&P500/VIX,
+the continuous notebook is the TC-VAE baseline and the continuous BetaCVAE remains the strongest
+overall reference in the current report evidence.
 
 - `black_scholes.ipynb`
 - `heston.ipynb`

@@ -1,12 +1,14 @@
-# TimeCausalVQVAE
+# TimeCausalVAE
 
-[![starline](https://starlines.qoo.monster/assets/GVourvachakis/TimeCausalVQVAE)](https://github.com/qoomon/starline)
+`time-causal-vae` is a compact research package, imported as `time_causal_vae`, for
+no-anticipation financial time-series generation with continuous and discrete latent models. It
+keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline: a causal VQ
+tokenizer followed by a causal autoregressive token prior.
 
-`time-causal-vae` is a research package for no-anticipation financial time-series generation. It keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline:
-a causal VQ tokenizer followed by a causal autoregressive token prior.
-
-The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and
-path-dependent-volatility configs retained as small baseline and smoke workflows. Generated
+The GitHub repository may remain `TimeCausalVQVAE` because it hosts the VQ-discrete extension of
+the TimeCausalVAE package. The Python distribution remains `time-causal-vae`, and the import path
+remains `time_causal_vae`. The public branch focuses on S&P500/VIX, with Black-Scholes, Heston,
+and path-dependent-volatility configs retained as small baseline and smoke workflows. Generated
 outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not
 committed.
 
@@ -52,6 +54,19 @@ Inspect the public configs without importing model code:
 ```bash
 poetry run python scripts/inspect_selected_configs.py
 ```
+
+Inspect the registered selected-model metadata used by notebooks and scripts:
+
+```bash
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete --metric mmd
+```
+
+The registry is `trained_models/model_registry.yaml`. It records selected continuous and discrete
+config paths, local checkpoint conventions, selection profiles, visible metrics, and missing
+metrics. These entries are the current registry selections for public workflows, not universal
+mathematical optima. The registry does not contain weights. Commands that train or evaluate models
+create local `outputs/` directories for checkpoints and artefacts.
 
 Run a minimal continuous S&P500/VIX smoke command:
 
@@ -143,13 +158,15 @@ transition-constrained sampling were also evaluated during development, but they
 
 - `time_causal_vae.data`: synthetic and market dataset loaders, transforms, and data-pipeline
   helpers.
-- `time_causal_vae.models`: continuous TC-VAE modules, encoders, decoders, conditioners,
-  objectives, priors, and causal layers.
-- `time_causal_vae.tokenization`: causal VQ tokenizer configs and VQ-family quantizer adapters.
-- `time_causal_vae.token_prior`: causal token-prior configs, masks, transformer priors, and
-  sampling utilities.
+- `time_causal_vae.models.continuous`: continuous TC-VAE encoders, decoders, conditioners,
+  objectives, priors, factory helpers, losses, transforms, and distance helpers.
+- `time_causal_vae.models.discrete`: causal VQ tokenizer encoders and decoders, VQ-family
+  quantizer adapters, token-prior configs, masks, autoregressive priors, and sampling utilities.
+- `time_causal_vae.models.layers`: shared causal layers used across model families.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
   compatibility, token diagnostics, and latent-geometry helpers.
+- `time_causal_vae.experiments`: portable experiment config loading, continuous-config
+  adaptation, selection profiles, and trained-model registry selection.
 - `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
 - `scripts`: config inspection, reproduction wrappers, token extraction, evaluation, latent geometry, and no-leakage checks.
 
@@ -190,7 +207,10 @@ TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
 ![S&P500/VIX hidden128 VIX-bucket code usage](assets/figures/sp500_vix_vix_bucket_code_usage.png)
 
-Trained-model metadata is documented in `trained_models/model_registry.yaml`.
+Trained-model metadata is documented in `trained_models/model_registry.yaml` and summarised by
+the model cards under `trained_models/<experiment>/model_card.md`. Notebooks can use the registry
+to auto-select the registered metadata instead of hard-coding an optimal checkpoint or config.
+Weights remain local or external and are not committed.
 
 ## 📚 References
 

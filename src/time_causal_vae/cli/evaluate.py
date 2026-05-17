@@ -11,7 +11,7 @@ import torch
 import yaml
 
 from time_causal_vae.evaluation.checkpoints import TargetModelEvaluator
-from time_causal_vae.experiments.legacy_config_adapter import (
+from time_causal_vae.experiments.config import (
     adapt_selected_config,
     load_selected_config,
 )
@@ -62,7 +62,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 

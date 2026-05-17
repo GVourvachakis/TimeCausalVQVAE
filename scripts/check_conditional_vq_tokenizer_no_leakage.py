@@ -14,8 +14,10 @@ from torch import Tensor
 
 from time_causal_vae.data.pipeline import DataPipeline
 from time_causal_vae.evaluation.tokenizer import load_trained_tokenizer
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
-from time_causal_vae.tokenization.causal_vq_tokenizer import assert_tokenizer_no_future_leakage
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers.causal_vq_tokenizer import (
+    assert_tokenizer_no_future_leakage,
+)
 from time_causal_vae.utils.random import set_seed
 
 
