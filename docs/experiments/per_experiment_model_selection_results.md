@@ -61,6 +61,13 @@ Path metrics from the model-selection plan, including MMD, SWD, terminal W1, vol
 drawdown W1, return AC L1, and squared-return AC L1, were not produced by this runner and are
 therefore unavailable in this result file.
 
+Later final-evaluation work adds generated-path evidence and supplemental continuous-baseline
+MMD/SWD in `docs/experiments/per_experiment_final_evaluation_results.md`. In particular, the
+S&P500/VIX path-level balanced-market result favours the public standard additive discrete
+baseline over the hidden128 conv-transformer despite the hidden128 model's better token CE. Treat
+the selections in this document as token-run shortlisting decisions, not final registry
+promotions.
+
 ## Selected Candidates
 
 The primary available selection metric is prior validation cross-entropy, with token usage kept
@@ -116,9 +123,12 @@ candidate trained tokenizer, token extraction, and prior stages under
 
 ## Registry Metadata
 
-Copy the following metadata into `trained_models/model_registry.yaml` only after the missing
-no-leakage and reproduction checks pass. Do not copy weight paths into the registry and do not
-commit generated outputs.
+Copy metadata into `trained_models/model_registry.yaml` only after the missing no-leakage,
+path-metric, and reproduction checks pass. Do not copy weight paths into the registry and do not
+commit generated outputs. The YAML below is retained as the token-run shortlist snapshot; use the
+later final-evaluation results before promoting any final S&P500/VIX discrete candidate, because
+the balanced path profile currently favours `conditional_standard_vq_additive_ar` rather than the
+token-run `conditional_hidden128_conv_transformer_k3` candidate.
 
 ```yaml
 per_experiment_selection:

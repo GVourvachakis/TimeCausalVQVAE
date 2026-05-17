@@ -11,6 +11,13 @@ The current trained-model registry is present and records S&P500/VIX continuous,
 and optional hidden128 research metadata. It has not been updated with the per-experiment
 token-run selections from this branch.
 
+Update after final-evaluation setup: the continuous selected baselines were evaluated
+supplementally from the cloned `~/Desktop/TimeCausalVAE` repository using their optimal
+`final_model` directories. Those runs produced continuous MMD and SWD for all four experiments,
+but they did not produce the full path-metric profile required for registry promotion. The
+aggregate final-evaluation runner still records Black-Scholes, Heston, and PDV4 continuous rows as
+`not_available` unless the cloned checkpoint paths are supplied explicitly.
+
 ## Provisional Token-Run Selections
 
 The current selections are provisional because they are based on tokenizer and token-prior
@@ -70,13 +77,24 @@ Some token dataset summaries may include token-usage breakdowns by condition buc
 not substitutes for path-level condition-bucket diagnostics. They do not assess generated-path
 calibration, volatility behaviour, drawdown behaviour, or autocorrelation profiles.
 
+A later supplemental continuous run measured only the legacy continuous evaluator's MMD and SWD:
+
+| Experiment | Continuous config | MMD | SWD | Still missing for continuous baseline |
+| --- | --- | ---: | ---: | --- |
+| Black-Scholes | `configs/experiments/black_scholes_beta_cvae.yaml` | 0.089052 | 0.056371 | Terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, notebook reproduction. |
+| Heston | `configs/experiments/heston_info_cvae.yaml` | 0.071840 | 0.066884 | Terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, notebook reproduction. |
+| PDV4 | `configs/experiments/pdv_info_cvae.yaml` | 0.165295 | 0.010630 | Terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, condition-bucket path metrics, notebook reproduction. |
+| S&P500/VIX | `configs/experiments/sp500_vix_beta_cvae.yaml` | 0.131414 | 0.008367 | Paper-style continuous-only diagnostics beyond MMD/SWD and notebook reproduction. |
+
 ## Decision
 
 The current selections are provisional token-run selections only. They are suitable for deciding
 which discrete candidates should enter the final evaluation pass. They are not sufficient for
 final registry promotion.
 
-Do not update `trained_models/model_registry.yaml` yet. The registry should only be updated after
+Do not update `trained_models/model_registry.yaml` yet. The supplemental continuous run removes
+the earlier blocker that the Black-Scholes, Heston, and PDV4 continuous baselines could not be run
+at all, but it does not satisfy the full registry gate. The registry should only be updated after
 the final evaluation shows, per experiment, that the selected candidate has an acceptable
 path-level profile, passes no-leakage checks, and can be reproduced from the documented notebook
 or wrapper workflow.
@@ -92,9 +110,9 @@ discrete baseline where available, and provisional best discrete candidate visib
 
 | Experiment | Continuous selected baseline | Public discrete baseline if available | Provisional best discrete candidate | Required path metrics | Required checks |
 | --- | --- | --- | --- | --- | --- |
-| Black-Scholes | `configs/experiments/black_scholes_beta_cvae.yaml` | Local/smoke standard VQ baseline: `configs/experiments/black_scholes_causal_vq_tokenizer.yaml` plus `configs/experiments/black_scholes_causal_token_prior.yaml`, if regenerated for comparison. | `hidden128_conv_transformer_k3` | MMD, SWD, terminal W1, volatility W1, drawdown W1 where available, return AC L1, squared-return AC L1. | Tokenizer and prior no-leakage check; continuous and discrete notebook or reproduction check. |
-| Heston | `configs/experiments/heston_info_cvae.yaml` | No registry public discrete baseline is currently promoted; use `standard_vq_additive_ar` as the standard discrete comparison candidate. | `standard_vq_additive_ar` | MMD, SWD, terminal W1, volatility W1, drawdown W1 where available, return AC L1, squared-return AC L1. | Tokenizer and prior no-leakage check; continuous and discrete notebook or reproduction check. |
-| PDV4 | `configs/experiments/pdv_info_cvae.yaml` | Conditional standard VQ plus additive prior: `configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml` plus `configs/experiments/pdv_causal_token_prior_additive_seed1.yaml`. | `conditional_standard_vq_additive_ar` | MMD, SWD, terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, PDV4 condition-feature bucket diagnostics. | Conditional tokenizer no-leakage check; conditional prior no-leakage check; notebook or reproduction check. |
+| Black-Scholes | `configs/experiments/black_scholes_beta_cvae.yaml`; cloned optimal checkpoint now evaluated for MMD/SWD. | Local/smoke standard VQ baseline: `configs/experiments/black_scholes_causal_vq_tokenizer.yaml` plus `configs/experiments/black_scholes_causal_token_prior.yaml`, if regenerated for comparison. | `hidden128_conv_transformer_k3` | MMD, SWD, terminal W1, volatility W1, drawdown W1 where available, return AC L1, squared-return AC L1. | Tokenizer and prior no-leakage check; continuous and discrete notebook or reproduction check. |
+| Heston | `configs/experiments/heston_info_cvae.yaml`; cloned optimal checkpoint now evaluated for MMD/SWD. | No registry public discrete baseline is currently promoted; use `standard_vq_additive_ar` as the standard discrete comparison candidate. | `standard_vq_additive_ar` | MMD, SWD, terminal W1, volatility W1, drawdown W1 where available, return AC L1, squared-return AC L1. | Tokenizer and prior no-leakage check; continuous and discrete notebook or reproduction check. |
+| PDV4 | `configs/experiments/pdv_info_cvae.yaml`; cloned optimal checkpoint now evaluated for MMD/SWD. | Conditional standard VQ plus additive prior: `configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml` plus `configs/experiments/pdv_causal_token_prior_additive_seed1.yaml`. | `conditional_standard_vq_additive_ar` | MMD, SWD, terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, PDV4 condition-feature bucket diagnostics. | Conditional tokenizer no-leakage check; conditional prior no-leakage check; notebook or reproduction check. |
 | S&P500/VIX | `configs/experiments/sp500_vix_beta_cvae.yaml` | Public discrete baseline: `configs/experiments/sp500_vix_causal_vq_tokenizer.yaml` plus `configs/experiments/sp500_vix_causal_token_prior_additive.yaml`. | `conditional_hidden128_conv_transformer_k3` | MMD, SWD, terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, VIX-bucket path diagnostics. | Conditional tokenizer and prior no-leakage checks; `scripts/evaluate_sp500_vix_paper_style.py`; discrete/report notebook reproduction check. |
 
 The final evaluation should keep regressions visible. A candidate that wins prior CE but regresses

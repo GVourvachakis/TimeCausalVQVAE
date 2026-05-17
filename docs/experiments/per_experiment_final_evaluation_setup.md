@@ -51,14 +51,28 @@ policy, and no-leakage status.
 Continuous baseline evaluation is planned through the existing `tcvae-evaluate` CLI. A non-smoke
 run must provide local `final_model` directories with
 `--continuous-model-dir EXPERIMENT=PATH` unless the runner can discover them under `outputs/`.
+After this setup was written, the selected continuous baselines were also evaluated directly from
+the cloned `~/Desktop/TimeCausalVAE` repository. That run confirmed that the portable continuous
+configs in this repository match the optimal cloned-repository settings and that the cloned
+`final_model` directories can be evaluated with `tcvae-evaluate`. The results are documented in
+`docs/experiments/per_experiment_final_evaluation_results.md`.
+
+The raw cloned legacy `exp_config.yaml` files were not copied into this repository. They contain
+legacy experiment-run state and live beside the cloned checkpoints, while this branch keeps the
+clean portable selected configs under `configs/experiments/`.
+
+`src/time_causal_vae/experiments/legacy_config_adapter.py` should remain in the branch for now. It
+is used by both `tcvae-train` and `tcvae-evaluate` to adapt the portable selected continuous
+configs into the legacy continuous TC-VAE config shape. Removing it before merge would break the
+current continuous CLI path unless those CLIs are migrated to a native config interface first.
 
 ## Metrics Supported Per Experiment
 
 | Experiment | Continuous baseline support | Discrete support | Full path metrics supported now | Missing metrics in generic path evaluator |
 | --- | --- | --- | --- | --- |
-| Black-Scholes | Planned through `tcvae-evaluate` when a local `final_model` path is supplied. | `tcvae-evaluate-token-prior` for the provisional hidden128 conv-transformer candidate. | MMD, SWD, terminal W1, volatility W1. | Returns W1, drawdown W1, return AC L1, squared-return AC L1. |
-| Heston | Planned through `tcvae-evaluate` when a local `final_model` path is supplied. | `tcvae-evaluate-token-prior` for the standard additive candidate. | MMD, SWD, terminal W1, volatility W1. | Returns W1, drawdown W1, return AC L1, squared-return AC L1. |
-| PDV4 | Planned through `tcvae-evaluate` when a local `final_model` path is supplied. | `tcvae-evaluate-token-prior` for the conditional standard additive candidate. | MMD, SWD, terminal W1, volatility W1. | Returns W1, drawdown W1, return AC L1, squared-return AC L1, and PDV4 path-level condition-bucket diagnostics. |
+| Black-Scholes | Confirmed through supplemental `tcvae-evaluate` using the cloned optimal `final_model`; aggregate runner still needs an explicit `--continuous-model-dir` path for integrated runs. | `tcvae-evaluate-token-prior` for the provisional hidden128 conv-transformer candidate. | Continuous: MMD and SWD. Discrete generic evaluator: MMD, SWD, terminal W1, volatility W1. | Continuous terminal W1, continuous volatility W1, returns W1, drawdown W1, return AC L1, squared-return AC L1. |
+| Heston | Confirmed through supplemental `tcvae-evaluate` using the cloned optimal `final_model`; aggregate runner still needs an explicit `--continuous-model-dir` path for integrated runs. | `tcvae-evaluate-token-prior` for the standard additive candidate. | Continuous: MMD and SWD. Discrete generic evaluator: MMD, SWD, terminal W1, volatility W1. | Continuous terminal W1, continuous volatility W1, returns W1, drawdown W1, return AC L1, squared-return AC L1. |
+| PDV4 | Confirmed through supplemental `tcvae-evaluate` using the cloned optimal `final_model`; aggregate runner still needs an explicit `--continuous-model-dir` path for integrated runs. | `tcvae-evaluate-token-prior` for the conditional standard additive candidate. | Continuous: MMD and SWD. Discrete generic evaluator: MMD, SWD, terminal W1, volatility W1. | Continuous terminal W1, continuous volatility W1, returns W1, drawdown W1, return AC L1, squared-return AC L1, and full PDV4 path-level condition-bucket diagnostics. |
 | S&P500/VIX | Required by `scripts/evaluate_sp500_vix_paper_style.py` for paired paper-style comparison. | Public standard additive and provisional hidden128 conv-transformer candidates. | MMD, SWD, returns W1, terminal W1, volatility W1, drawdown W1, return AC L1, squared-return AC L1, and VIX-bucket path diagnostics. | None in the paper-style evaluator, provided the continuous checkpoint path is available. |
 
 The generic evaluator intentionally records missing metrics rather than inferring them from token
@@ -127,3 +141,13 @@ The non-smoke run should remain under ignored `outputs/per_experiment_final_eval
 promotion should wait until the resulting JSON and CSV contain path metrics, no-leakage statuses,
 and any notebook or reproduction evidence required by
 `docs/experiments/per_experiment_model_selection_gap_analysis.md`.
+
+For a machine with the cloned continuous repository available, the known optimal continuous
+checkpoint paths are:
+
+```bash
+--continuous-model-dir black_scholes=~/Desktop/TimeCausalVAE/trained_models/BSprice_timestep_60/model_BetaCVAE_De_CLSTMRes_En_CLSTMRes_Prior_RealNVP_Con_Id_Dis_None_comment_None/BetaCVAE_training_2024-08-14_14-58-49/final_model
+--continuous-model-dir heston=~/Desktop/TimeCausalVAE/trained_models/Hestonprice_timestep_60/model_InfoCVAE_De_CLSTMRes_En_CLSTMRes_Prior_RealNVP_Con_Id_Dis_None_comment_None/InfoCVAE_training_2024-09-16_18-19-18/final_model
+--continuous-model-dir pdv=~/Desktop/TimeCausalVAE/trained_models/PDVPriceConFeature_timestep_60/model_InfoCVAE_De_CLSTMRes_En_CLSTMRes_Prior_RealNVP_Con_Id_Dis_None_comment_None/InfoCVAE_training_2024-08-21_16-06-50/final_model
+--continuous-model-dir sp500_vix=~/Desktop/TimeCausalVAE/trained_models/SP500VIX_timestep_60/model_BetaCVAE_De_CLSTMRes_En_CLSTMRes_Prior_RealNVP_Con_Id_Dis_None_comment_None/BetaCVAE_training_2024-08-22_17-23-52/final_model
+```

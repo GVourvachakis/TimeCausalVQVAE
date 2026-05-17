@@ -7,10 +7,16 @@ Black-Scholes, Heston, PDV4, and S&P500/VIX. It is a documentation plan only. It
 models, add generated outputs, modify `main`, change objectives, or introduce MGVQ, GroupedRVQ,
 diffusion, signatures, or other new model families.
 
-The current branch contains selected continuous configs for all four experiments, public or smoke
-discrete configs for Black-Scholes, PDV4, and S&P500/VIX, and no committed Heston discrete
-experiment config. The S&P500/VIX public discrete baseline remains the promoted public baseline in
-`README.md` and `trained_models/model_registry.yaml`.
+The current branch contains selected continuous configs and approved discrete candidate configs
+for all four experiments. The S&P500/VIX public discrete baseline remains the promoted public
+baseline in `README.md` and `trained_models/model_registry.yaml` until the final registry
+promotion gate is explicitly satisfied.
+
+After the final-evaluation setup, the selected continuous baselines were also evaluated from the
+cloned `~/Desktop/TimeCausalVAE` repository using its optimal `final_model` directories. Those
+supplemental runs confirm that the continuous configs in this repository are portable mirrors of
+the optimal cloned-repository settings, but they produce only legacy MMD and SWD for the continuous
+baselines.
 
 ## Experiments
 
@@ -37,7 +43,7 @@ experiment config. The S&P500/VIX public discrete baseline remains the promoted 
 | Experiment | Public discrete baseline status | Configs |
 | --- | --- | --- |
 | Black-Scholes | Available as a small discrete smoke workflow. Treat it as a local baseline, not as a promoted public result. | `configs/experiments/black_scholes_causal_vq_tokenizer.yaml`; `configs/experiments/black_scholes_causal_token_prior.yaml`. |
-| Heston | Not present on this branch. A future Heston discrete baseline must first add a standard VQ plus causal AR config in a separate experiment branch. | None committed. |
+| Heston | Available on this branch as a standard VQ plus additive causal AR comparison candidate, but not promoted in the public registry. | `configs/experiments/heston_causal_vq_tokenizer.yaml`; `configs/experiments/heston_causal_token_prior_additive.yaml`. |
 | PDV4 | Available as a conditional standard-VQ plus additive causal AR workflow. Treat it as the PDV4 public discrete baseline for selection once trained locally. | `configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml`; `configs/experiments/pdv_causal_token_prior_additive_seed1.yaml`. |
 | S&P500/VIX | Promoted public discrete baseline: standard causal VQ tokenizer plus scalar VIX additive causal AR prior. | `configs/experiments/sp500_vix_causal_vq_tokenizer.yaml`; `configs/experiments/sp500_vix_causal_token_prior_additive.yaml`. |
 
@@ -50,7 +56,7 @@ is available at the relevant time step.
 
 | Candidate | Applies to | Purpose | Required comparison |
 | --- | --- | --- | --- |
-| Standard VQ plus additive AR | Black-Scholes, PDV4, S&P500/VIX; Heston after a future config exists. | Public or smoke discrete baseline with the simplest causal discrete interface. | Compare against the selected continuous TC-VAE config and all stronger discrete candidates for the same experiment. |
+| Standard VQ plus additive AR | Black-Scholes, Heston, PDV4, S&P500/VIX. | Public or smoke discrete baseline with the simplest causal discrete interface. | Compare against the selected continuous TC-VAE config and all stronger discrete candidates for the same experiment. |
 | Hidden128 plus additive AR | All experiments after local configs exist; S&P500/VIX is documented on `research/vq-tokenizer-tuning`. | Wider standard-VQ tokenizer capacity while preserving the additive AR prior. | Compare against standard VQ plus additive AR, keeping token likelihood and path metrics visible. |
 | Hidden128 plus conv-transformer k3 | All experiments after hidden128 additive is stable; S&P500/VIX is documented on `research/stronger-hidden128-prior`. | Test whether a causal convolutional front end improves token-prior calibration and path dynamics without changing objectives. | Compare against hidden128 additive and the public discrete baseline. |
 | Conditional standard VQ plus additive AR | PDV4 and S&P500/VIX. | Use the committed causal scalar condition: `r2_volatility_feature` for PDV4 and VIX for S&P500/VIX. | Compare condition-bucket metrics against unconditional or weaker conditional variants where available. |
@@ -189,5 +195,6 @@ W&B initialisation, so the fallback is acceptable when it is documented.
 
 ## Documentation Stop Point
 
-This branch stops after this documentation plan. It should not add configs, run training, update
-the registry, commit weights, or generate new outputs.
+This file records the original selection plan plus the later setup status. The branch has since
+added candidate configs and local ignored evaluation outputs, but it should still not update the
+registry, commit weights, or commit generated outputs until the documented promotion gate is met.
