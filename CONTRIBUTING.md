@@ -203,20 +203,11 @@ unless they are deliberately promoted.
 Future work should remain staged, evidence-backed, and separate from public defaults until it is
 ready for review. Useful directions include:
 
-- Per-experiment model selection and periodic registry refreshes, with clear metrics, caveats,
-  and model cards.
-- Stronger causal priors for hidden128 tokens, including more robust conv-transformer variants.
-  Mamba or selective-SSM priors should wait for CUDA/package compatibility and strict
-  stepwise-causality checks.
-- Continuous-latent prior extensions such as LSGM, score-based, or flow-based alternatives to
-  RealNVP, kept separate from the discrete branch.
-- VQ-family tokenizer experiments such as GroupedResidualVQ and MGVQ, only after
-  prior-calibration bottlenecks are controlled.
-- Causal low/high-frequency decomposition inspired by TimeVQVAE, without introducing
-  bidirectional priors.
-- Optional signature and path-space diagnostics, including log-signature conditioning and
-  signature-kernel metrics, without making them public defaults.
-- Causal/adapted distances and downstream finance evaluations, including adapted Wasserstein,
-  Deep Hedging, VaR/Expected Shortfall, and multistage portfolio or hedging stress tests.
-- Public model releases where registry metadata stays in Git and weights or checkpoints are
-  distributed through external release assets, not committed.
+- Per-experiment model selection and periodic registry refreshes, with clear metrics, caveats, and model cards.
+- Stronger causal priors for hidden128 tokens, including more robust conv-transformer variants. Mamba or selective-SSM priors should wait for CUDA/package compatibility and strict stepwise-causality checks.
+- Continuous-latent prior extensions such as LSGM, score-based, or flow-based alternatives to RealNVP, kept separate from the discrete branch.
+- VQ-family tokenizer experiments such as GroupedResidualVQ and MGVQ, only after prior-calibration bottlenecks are controlled.
+- Causal low/high-frequency decomposition inspired by TimeVQVAE, without introducing bidirectional priors.
+- Optional signature and path-space diagnostics, including log-signature conditioning and signature-kernel metrics, without making them public defaults.
+- Causal/adapted distances and downstream finance evaluations, including adapted Wasserstein, Deep Hedging, VaR/Expected Shortfall, and multistage portfolio or hedging stress tests.
+- Public model releases where registry metadata stays in Git and weights or checkpoints are distributed through external release assets, not committed.
