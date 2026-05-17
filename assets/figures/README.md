@@ -1,7 +1,7 @@
 # Figure Assets
 
 This directory contains a small curated set of locally generated TimeCausalVQVAE
-figures for the public README. The source runs remain under ignored `outputs/`
+figures for the public README. The source runs remain in local `outputs/`
 directories and are not required to use the package.
 
 Current assets:

@@ -24,7 +24,7 @@ The package is organised around five steps:
 5. **Discrete latent geometry**: inspect codebook usage, codebook projections, VIX-bucket usage,
    and example token trajectories.
 
-## Installation
+## 📦 Installation
 
 The project uses [Poetry](https://python-poetry.org/). For the full development environment:
 
@@ -44,7 +44,7 @@ Dependency groups are defined for development, notebooks, and tracking:
 - `notebooks`: Jupyter, seaborn, torchview, and graphviz.
 - `tracking`: optional W&B logging support.
 
-## Usage
+## 🔩 Usage
 
 Inspect the public configs without importing model code:
 
@@ -101,7 +101,7 @@ poetry run python scripts/evaluate_sp500_vix_paper_style.py \
   --output-dir outputs/sp500_vix_discrete/paper_style \
   --base-data-dir data/processed \
   --n-sample 1000 \
-  --temperature 1.0 \
+  --temperature 0.8 \
   --top-k 40
 ```
 
@@ -111,14 +111,15 @@ The S&P500/VIX data file is expected at:
 data/processed/sp500vix/sp500vix_normalized.npy
 ```
 
-This file is local and is not committed.
+This file is local and is not committed. Training and evaluation commands create local `outputs/`
+directories.
 
 The current best discrete research model pairs a hidden128 VQ tokenizer with a causal
 conv-transformer k3 prior. It is documented for comparison on research branches only. It is not
 the public default, and its configs, checkpoints, and evidence outputs are not part of this
 minimal public branch.
 
-## Model Architecture
+## 🧠 Model Architecture
 
 All modelling paths preserve **no anticipation**: at time `t`, encoders, tokenizers, priors, and
 diagnostics should only use observations and conditions available up to that point. The causal
@@ -138,7 +139,7 @@ as context for an autoregressive discrete-token prior, not as a forecasting mode
 evaluated on research branches and is not part of the public baseline. Diffusion and
 transition-constrained sampling were also evaluated during development, but they remain deferred.
 
-## Package Components
+## 🧱 Package Components
 
 - `time_causal_vae.data`: synthetic and market dataset loaders, transforms, and data-pipeline
   helpers.
@@ -152,19 +153,31 @@ transition-constrained sampling were also evaluated during development, but they
 - `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
 - `scripts`: config inspection, reproduction wrappers, token extraction, evaluation, latent geometry, and no-leakage checks.
 
-## Demos
+### Upstream TC-VAE Components
+
+This project refactors and preserves selected parts of the original Time-Causal VAE implementation
+for public reproducibility. In particular, it keeps the continuous TC-VAE baseline structure and
+selected configs, the dataset conventions for Black-Scholes, Heston, PDV, and S&P500/VIX, and a
+subset of the financial diagnostics used for generated-vs-real path comparison.
+
+Some optional or external evaluation helpers are retained under
+`src/time_causal_vae/evaluation/external/` and `src/time_causal_vae/evaluation/finance/`. These
+helpers are included for compatibility and comparison; they should not be read as entirely new
+work in this repository.
+
+## 📓 Demos
 
 Notebook demos are grouped by role:
 
 - `notebooks/continuous/`: continuous TC-VAE demos for Black-Scholes, Heston, PDV, and S&P500/VIX.
 - `notebooks/discrete/`: public discrete tokenizer and token-prior demos, including latent
   geometry.
-- `notebooks/report/`: figure-manifest notebooks that read from ignored `outputs/` paths.
+- `notebooks/report/`: figure-manifest notebooks that read from local `outputs/` paths.
 
 Committed notebooks should stay output-stripped. The notebooks print guarded commands by default
 and should not train or evaluate unless their run flags are deliberately enabled.
 
-## Summary Figures
+## 📊 Summary Figures
 
 Small public demo figures are committed under `assets/figures/`. They are curated from local
 TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
@@ -179,7 +192,9 @@ TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
 Trained-model metadata is documented in `trained_models/model_registry.yaml`.
 
-## References
+## 📚 References
+
+This README is the public reference source for the minimal branch.
 
 - **Time-Causal VAE: Robust Financial Time Series Generator** - Beatrice Acciaio, Stephan
   Eckstein, and Songyan Hou. arXiv DOI:

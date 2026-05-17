@@ -30,7 +30,7 @@ on research branches and is not part of the public baseline.
 
 ## `report/`
 
-Report-specific figure notebooks. These read figures from ignored `outputs/` paths and do not
+Report-specific figure notebooks. These read figures from local `outputs/` paths and do not
 train models by default. The S&P500/VIX report notebook can compare the public discrete baseline,
 the best discrete research model, and the continuous BetaCVAE reference when the corresponding
 local paper-style output directories are available.
@@ -40,8 +40,8 @@ local paper-style output directories are available.
 ## Output Policy
 
 Committed notebooks should remain output-stripped. Generated figures, executed notebooks,
-checkpoints, tensors, JSON summaries, logs, and local data belong under ignored `outputs/` or
-`data/processed/` paths.
+checkpoints, tensors, JSON summaries, logs, and local data belong under local `outputs/` or
+`data/processed/` paths and should not be committed.
 
 The S&P500/VIX data file is local and is not committed:
 

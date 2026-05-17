@@ -2,7 +2,8 @@
 
 Thank you for working on `time-causal-vae`. This repository is intentionally kept small on public
 branches: package source, configs, notebooks, and lightweight scripts belong here; generated
-artefacts and detailed research evidence belong in local ignored paths or research branches.
+artefacts and detailed research evidence belong in local training/evaluation directories or
+research branches.
 
 ## Development Setup
 
@@ -91,7 +92,7 @@ Notebook examples may print commands, inspect configs, or display existing local
 they should not train models, evaluate checkpoints, or write report figures merely by being
 opened.
 
-When a notebook needs generated figures, read them from ignored `outputs/` paths. Do not commit
+When a notebook needs generated figures, read them from local `outputs/` paths. Do not commit
 executed notebooks or generated notebook-check artefacts.
 
 ## Generated Artefact Policy
@@ -105,6 +106,8 @@ Do not commit:
 - `.pt`, `.npy`, `.npz`, `.pkl`, `.pyc`, or cache files
 - executed notebooks
 - local logs and paper-style JSON summaries
+
+The `outputs/` directory is for local training and evaluation results. It should stay out of Git.
 
 Small curated public images may be committed under `assets/figures/` when they are intentionally
 selected for the README or a demo. Trained model directories should contain only lightweight
