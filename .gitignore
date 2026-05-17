@@ -24,7 +24,10 @@ build/
 # Generated experiment artifacts
 outputs/
 results/
-trained_models/
+trained_models/*
+!trained_models/
+!trained_models/README.md
+!trained_models/model_registry.yaml
 wandb/
 *.pt
 *.pth
