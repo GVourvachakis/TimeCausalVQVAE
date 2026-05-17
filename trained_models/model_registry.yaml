@@ -1,0 +1,44 @@
+sp500_vix:
+  continuous_beta_cvae:
+    description: Continuous TC-VAE reference baseline.
+    config: configs/experiments/sp500_vix_beta_cvae.yaml
+    expected_output_paths:
+      training: outputs/sp500_vix_continuous/beta_cvae/
+      evaluation: outputs/sp500_vix_continuous/beta_cvae/evaluation_final/
+    sampling:
+      policy: latent_gaussian_decoder
+      checkpoint_selection: local_best_or_final
+    weights: local_outputs_only
+
+  public_baseline:
+    description: Public discrete baseline with standard VQ tokenizer and additive causal AR prior.
+    tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
+    prior_config: configs/experiments/sp500_vix_causal_token_prior_additive.yaml
+    expected_output_paths:
+      tokenizer: outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_codebook64dim16_seed0/
+      tokens: outputs/sp500_vix_discrete/token_prior/tokens_codebook64_codebookdim16/
+      prior: outputs/sp500_vix_discrete/token_prior/additive/
+      paper_style: outputs/sp500_vix_discrete/paper_style/
+      latent_geometry: outputs/latent_geometry/sp500_vix_standard_vq/
+    sampling:
+      temperature: 1.0
+      top_k: null
+      condition_policy: observed_vix_context
+    weights: local_outputs_only
+
+  best_discrete_research:
+    description: Optional hidden128 VQ tokenizer with conv-transformer k3 prior.
+    config_source_branch: research/stronger-hidden128-prior
+    tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer_hidden128.yaml
+    prior_config: configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
+    expected_output_paths:
+      tokenizer: outputs/sp500_vix_discrete/tokenizer/sp500_vix_causal_vq_tokenizer_hidden128_seed0/
+      tokens: outputs/sp500_vix_discrete/token_prior/tokens_hidden128/
+      prior: outputs/sp500_vix_discrete/token_prior/hidden128_conv_transformer/
+      paper_style: outputs/sp500_vix_discrete/paper_style_hidden128_conv_transformer_sampling_temp10_topknone/
+      latent_geometry: outputs/latent_geometry/sp500_vix_hidden128_vq/
+    sampling:
+      temperature: 1.0
+      top_k: null
+      condition_policy: observed_vix_context
+    weights: local_outputs_only

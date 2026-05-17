@@ -8,6 +8,7 @@ __all__ = [
     "GaussianMMD2",
     "ModelEvaluator",
     "TargetModelEvaluator",
+    "select_model",
 ]
 
 
@@ -23,4 +24,8 @@ def __getattr__(name: str) -> Any:
         from time_causal_vae.evaluation.metrics import SWD, GaussianMMD, GaussianMMD2
 
         return {"SWD": SWD, "GaussianMMD": GaussianMMD, "GaussianMMD2": GaussianMMD2}[name]
+    if name == "select_model":
+        from time_causal_vae.evaluation.model_selection import select_model
+
+        return select_model
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
