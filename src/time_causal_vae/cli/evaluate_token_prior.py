@@ -223,13 +223,11 @@ def main() -> None:
             codebook_size=prior_config.codebook_size,
             title="Sampled token-prior transition matrix",
         )
-        generated_figures.extend(
-            [
-                "real_vs_sampled_code_usage.png",
-                "transition_matrix_real.png",
-                "transition_matrix_sampled.png",
-            ]
-        )
+        generated_figures.extend([
+            "real_vs_sampled_code_usage.png",
+            "transition_matrix_real.png",
+            "transition_matrix_sampled.png",
+        ])
 
     print("Token-prior evaluation complete.")
     print(f"prior_dir: {prior_dir}")

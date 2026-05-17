@@ -1,11 +1,13 @@
 schema_version: 1
 generated:
-  branch: research/per-experiment-model-selection
+  branch: cleanup/public-final-registry-namespaces
   timestamp_utc: "2026-05-17"
   source:
-    - docs/experiments/per_experiment_model_selection_plan.md
-    - docs/experiments/per_experiment_model_selection_results.md
-    - docs/experiments/per_experiment_final_evaluation_results.md
+    - trained_models/README.md
+    - trained_models/black_scholes/model_card.md
+    - trained_models/heston/model_card.md
+    - trained_models/pdv/model_card.md
+    - trained_models/sp500_vix/model_card.md
   note: >
     Metadata registry only. Checkpoints, token tensors, generated paths, processed data,
     W&B artefacts, and output summaries are local or external and are not committed.

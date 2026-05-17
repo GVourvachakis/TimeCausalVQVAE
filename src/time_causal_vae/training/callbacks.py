@@ -373,21 +373,17 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         if model_config is not None:
             model_config_dict = model_config.to_dict()
 
-            self._wandb.config.update(
-                {
-                    "exp_config": exp_config.to_dict(),
-                    "training_config": training_config_dict,
-                    "model_config": model_config_dict,
-                }
-            )
+            self._wandb.config.update({
+                "exp_config": exp_config.to_dict(),
+                "training_config": training_config_dict,
+                "model_config": model_config_dict,
+            })
 
         else:
-            self._wandb.config.update(
-                {
-                    "exp_config": exp_config.to_dict(),
-                    "training_config": training_config_dict,
-                }
-            )
+            self._wandb.config.update({
+                "exp_config": exp_config.to_dict(),
+                "training_config": training_config_dict,
+            })
 
         self._wandb.define_metric("train/global_step")
         self._wandb.define_metric("*", step_metric="train/global_step", step_sync=True)

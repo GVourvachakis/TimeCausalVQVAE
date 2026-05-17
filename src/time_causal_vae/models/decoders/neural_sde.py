@@ -67,9 +67,9 @@ class NeuralSDEDecoder(BaseDecoder):
         Linear readout layers for the reservoir
         """
 
-        self.readouts = nn.ModuleList(
-            [nn.Linear(self.reservoir_dim, self.output_dim, device=device) for i in range(n_lag)]
-        )
+        self.readouts = nn.ModuleList([
+            nn.Linear(self.reservoir_dim, self.output_dim, device=device) for i in range(n_lag)
+        ])
 
     def solve_neural_sde(self, V: torch.tensor, W: torch.tensor) -> torch.tensor:
         """
