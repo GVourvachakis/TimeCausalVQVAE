@@ -270,6 +270,10 @@ def build_prior_config(run_config: Mapping[str, Any]) -> CausalTokenPriorConfig:
         num_quantizers=int(model_config.get("num_quantizers", 1)),
         groups=int(model_config.get("groups", 1)),
         component_loss_weights=optional_float_list(model_config.get("component_loss_weights")),
+        conv_num_layers=int(model_config.get("conv_num_layers", 0)),
+        conv_kernel_size=int(model_config.get("conv_kernel_size", 3)),
+        conv_dilations=optional_int_list(model_config.get("conv_dilations")),
+        conv_dropout=float(model_config.get("conv_dropout", 0.0)),
     )
 
 
@@ -300,14 +304,33 @@ def optional_float_list(value: Any) -> list[float] | None:
 
 def parse_prior_type(
     value: Any,
-) -> Literal["single_code", "factorised_multi_code", "hierarchical_rvq_q2"]:
+) -> Literal[
+    "single_code",
+    "causal_conv_transformer",
+    "factorised_multi_code",
+    "hierarchical_rvq_q2",
+]:
     """Parse the supported token-prior type."""
     parsed = str(value)
-    if parsed not in {"single_code", "factorised_multi_code", "hierarchical_rvq_q2"}:
+    if parsed not in {
+        "single_code",
+        "causal_conv_transformer",
+        "factorised_multi_code",
+        "hierarchical_rvq_q2",
+    }:
         raise SystemExit(
-            "prior_type must be 'single_code', 'factorised_multi_code', or 'hierarchical_rvq_q2'."
+            "prior_type must be 'single_code', 'causal_conv_transformer', "
+            "'factorised_multi_code', or 'hierarchical_rvq_q2'."
         )
-    return cast(Literal["single_code", "factorised_multi_code", "hierarchical_rvq_q2"], parsed)
+    return cast(
+        Literal[
+            "single_code",
+            "causal_conv_transformer",
+            "factorised_multi_code",
+            "hierarchical_rvq_q2",
+        ],
+        parsed,
+    )
 
 
 def parse_condition_injection(value: Any) -> Literal["none", "additive", "adaln_lite"]:
