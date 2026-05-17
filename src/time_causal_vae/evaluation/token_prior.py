@@ -164,25 +164,27 @@ def compute_condition_bucket_sample_metrics(
         code_metrics = summarise_code_usage(code_counts)
         component_metrics = component_token_metrics(token_bucket, codebook_size)
         bucket_condition_values = condition_values.index_select(0, bucket_positions)
-        buckets.append({
-            "bucket_index": bucket_index,
-            "bucket_label": condition_bucket_label(bucket_index, bucket_count),
-            "n_samples": int(bucket_positions.numel()),
-            "condition_min": float(bucket_condition_values.min().item()),
-            "condition_max": float(bucket_condition_values.max().item()),
-            "condition_mean": float(bucket_condition_values.mean().item()),
-            "mmd": path_metrics["mmd"],
-            "swd": path_metrics["swd"],
-            "terminal_return_mean_error": path_metrics["terminal_return_mean_error"],
-            "terminal_return_wasserstein": path_metrics["terminal_return_wasserstein"],
-            "volatility_mean_error": path_metrics["volatility_mean_error"],
-            "volatility_wasserstein": path_metrics["volatility_wasserstein"],
-            "sampled_active_code_count": code_metrics["active_code_count"],
-            "sampled_active_code_ratio": code_metrics["active_code_ratio"],
-            "sampled_token_perplexity": code_metrics["codebook_perplexity"],
-            "sampled_index_entropy": code_metrics["index_entropy"],
-            **prefix_keys("sampled_token", component_metrics),
-        })
+        buckets.append(
+            {
+                "bucket_index": bucket_index,
+                "bucket_label": condition_bucket_label(bucket_index, bucket_count),
+                "n_samples": int(bucket_positions.numel()),
+                "condition_min": float(bucket_condition_values.min().item()),
+                "condition_max": float(bucket_condition_values.max().item()),
+                "condition_mean": float(bucket_condition_values.mean().item()),
+                "mmd": path_metrics["mmd"],
+                "swd": path_metrics["swd"],
+                "terminal_return_mean_error": path_metrics["terminal_return_mean_error"],
+                "terminal_return_wasserstein": path_metrics["terminal_return_wasserstein"],
+                "volatility_mean_error": path_metrics["volatility_mean_error"],
+                "volatility_wasserstein": path_metrics["volatility_wasserstein"],
+                "sampled_active_code_count": code_metrics["active_code_count"],
+                "sampled_active_code_ratio": code_metrics["active_code_ratio"],
+                "sampled_token_perplexity": code_metrics["codebook_perplexity"],
+                "sampled_index_entropy": code_metrics["index_entropy"],
+                **prefix_keys("sampled_token", component_metrics),
+            }
+        )
     return buckets
 
 
@@ -213,11 +215,13 @@ def component_token_metrics(tokens: Tensor, codebook_size: int) -> dict[str, Any
                     tokens[:, :, group_index, quantizer_index].reshape(-1),
                     minlength=codebook_size,
                 )[:codebook_size]
-                per_group_quantizer.append({
-                    "group_index": group_index,
-                    "quantizer_index": quantizer_index,
-                    **summarise_code_usage(code_counts),
-                })
+                per_group_quantizer.append(
+                    {
+                        "group_index": group_index,
+                        "quantizer_index": quantizer_index,
+                        **summarise_code_usage(code_counts),
+                    }
+                )
         return {"per_group_quantizer": per_group_quantizer}
     return {
         "component_usage_note": (

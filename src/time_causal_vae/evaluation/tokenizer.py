@@ -74,14 +74,16 @@ def evaluate_tokenizer_batch(
             conditions=conditions,
             codebook_size=codebook_size,
         )
-    metrics.update({
-        "model_recon_loss": float(cast(Tensor, output.recon_loss).detach().cpu()),
-        "model_commitment_loss": float(cast(Tensor, output.commitment_loss).detach().cpu()),
-        "model_codebook_loss": float(cast(Tensor, output.codebook_loss).detach().cpu()),
-        "model_usage_loss": float(cast(Tensor, output.usage_loss).detach().cpu()),
-        "model_usage_regularization_applied": bool(output.usage_regularization_applied),
-        "model_total_loss": float(cast(Tensor, output.loss).detach().cpu()),
-    })
+    metrics.update(
+        {
+            "model_recon_loss": float(cast(Tensor, output.recon_loss).detach().cpu()),
+            "model_commitment_loss": float(cast(Tensor, output.commitment_loss).detach().cpu()),
+            "model_codebook_loss": float(cast(Tensor, output.codebook_loss).detach().cpu()),
+            "model_usage_loss": float(cast(Tensor, output.usage_loss).detach().cpu()),
+            "model_usage_regularization_applied": bool(output.usage_regularization_applied),
+            "model_total_loss": float(cast(Tensor, output.loss).detach().cpu()),
+        }
+    )
     return output, metrics
 
 
@@ -273,24 +275,28 @@ def compute_condition_bucket_metrics(
         else:
             top_codes = []
         bucket_condition_values = condition_values.index_select(0, bucket_positions)
-        buckets.append({
-            "bucket_index": bucket_index,
-            "bucket_label": condition_bucket_label(bucket_index, bucket_count),
-            "n_samples": int(bucket_positions.numel()),
-            "condition_min": float(bucket_condition_values.min().item()),
-            "condition_max": float(bucket_condition_values.max().item()),
-            "condition_mean": float(bucket_condition_values.mean().item()),
-            "reconstruction_l1": bucket_metrics["reconstruction_l1"],
-            "reconstruction_l2": bucket_metrics["reconstruction_l2"],
-            "terminal_return_error": bucket_metrics["terminal_return_error"],
-            "volatility_reconstruction_error": bucket_metrics["volatility_reconstruction_error"],
-            "active_code_count": bucket_metrics["active_code_count"],
-            "active_code_ratio": bucket_metrics["active_code_ratio"],
-            "codebook_perplexity": bucket_metrics["codebook_perplexity"],
-            "index_entropy": bucket_metrics["index_entropy"],
-            "active_code_indices": bucket_metrics["active_code_indices"],
-            "top_codes": top_codes,
-        })
+        buckets.append(
+            {
+                "bucket_index": bucket_index,
+                "bucket_label": condition_bucket_label(bucket_index, bucket_count),
+                "n_samples": int(bucket_positions.numel()),
+                "condition_min": float(bucket_condition_values.min().item()),
+                "condition_max": float(bucket_condition_values.max().item()),
+                "condition_mean": float(bucket_condition_values.mean().item()),
+                "reconstruction_l1": bucket_metrics["reconstruction_l1"],
+                "reconstruction_l2": bucket_metrics["reconstruction_l2"],
+                "terminal_return_error": bucket_metrics["terminal_return_error"],
+                "volatility_reconstruction_error": bucket_metrics[
+                    "volatility_reconstruction_error"
+                ],
+                "active_code_count": bucket_metrics["active_code_count"],
+                "active_code_ratio": bucket_metrics["active_code_ratio"],
+                "codebook_perplexity": bucket_metrics["codebook_perplexity"],
+                "index_entropy": bucket_metrics["index_entropy"],
+                "active_code_indices": bucket_metrics["active_code_indices"],
+                "top_codes": top_codes,
+            }
+        )
     return buckets
 
 

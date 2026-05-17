@@ -193,12 +193,14 @@ def top_component_differences(
     for value, index in zip(values.tolist(), indices.tolist(), strict=True):
         if value <= 0.0:
             continue
-        rows.append({
-            "code": int(index),
-            "difference": float(value),
-            "real_probability": float(real_prob[index].item()),
-            "sampled_probability": float(sampled_prob[index].item()),
-        })
+        rows.append(
+            {
+                "code": int(index),
+                "difference": float(value),
+                "real_probability": float(real_prob[index].item()),
+                "sampled_probability": float(sampled_prob[index].item()),
+            }
+        )
     return rows
 
 
@@ -259,17 +261,19 @@ def condition_bucket_pair_comparisons(
         comparison = pair_comparison(real_pair_counts, sampled_pair_counts, top_k=top_k)
         bucket_real_values = real_values.index_select(0, real_positions)
         bucket_sampled_values = sampled_values.index_select(0, sampled_positions)
-        buckets.append({
-            "bucket_index": bucket_index,
-            "bucket_label": condition_bucket_label(bucket_index, bucket_count),
-            "real_n": int(real_positions.numel()),
-            "sampled_n": int(sampled_positions.numel()),
-            "real_condition_min": float(bucket_real_values.min().item()),
-            "real_condition_max": float(bucket_real_values.max().item()),
-            "sampled_condition_min": float(bucket_sampled_values.min().item()),
-            "sampled_condition_max": float(bucket_sampled_values.max().item()),
-            **comparison,
-        })
+        buckets.append(
+            {
+                "bucket_index": bucket_index,
+                "bucket_label": condition_bucket_label(bucket_index, bucket_count),
+                "real_n": int(real_positions.numel()),
+                "sampled_n": int(sampled_positions.numel()),
+                "real_condition_min": float(bucket_real_values.min().item()),
+                "real_condition_max": float(bucket_real_values.max().item()),
+                "sampled_condition_min": float(bucket_sampled_values.min().item()),
+                "sampled_condition_max": float(bucket_sampled_values.max().item()),
+                **comparison,
+            }
+        )
     return buckets
 
 

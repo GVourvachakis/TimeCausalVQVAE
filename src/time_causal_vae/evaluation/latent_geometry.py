@@ -233,10 +233,12 @@ def project_embeddings(embeddings: np.ndarray, *, method: str = "pca") -> tuple[
         _u, _singular, vh = np.linalg.svd(centred, full_matrices=False)
         components = vh[:2].T
         if components.shape[1] == 1:
-            projection = np.column_stack([
-                centred @ components[:, 0],
-                np.zeros(embeddings.shape[0]),
-            ])
+            projection = np.column_stack(
+                [
+                    centred @ components[:, 0],
+                    np.zeros(embeddings.shape[0]),
+                ]
+            )
         else:
             projection = centred @ components
         return projection.astype(np.float64, copy=False), "numpy_svd_pca"
@@ -267,16 +269,18 @@ def code_usage_summary(indices: Tensor, codebook_size: int) -> dict[str, Any]:
         per_group_quantizer = []
         for group in range(indices.shape[2]):
             for quantizer in range(indices.shape[3]):
-                per_group_quantizer.append({
-                    "group_index": group,
-                    "quantizer_index": quantizer,
-                    **summarise_counts(
-                        torch.bincount(
-                            indices[:, :, group, quantizer].detach().cpu().reshape(-1),
-                            minlength=codebook_size,
-                        )[:codebook_size]
-                    ),
-                })
+                per_group_quantizer.append(
+                    {
+                        "group_index": group,
+                        "quantizer_index": quantizer,
+                        **summarise_counts(
+                            torch.bincount(
+                                indices[:, :, group, quantizer].detach().cpu().reshape(-1),
+                                minlength=codebook_size,
+                            )[:codebook_size]
+                        ),
+                    }
+                )
         summary["per_group_quantizer"] = per_group_quantizer
     else:
         summary["component_usage_note"] = (
@@ -348,22 +352,24 @@ def condition_bucket_usage(
         bucket_indices = indices.index_select(0, positions)
         bucket_values = values.index_select(0, positions)
         usage = code_usage_summary(bucket_indices, codebook_size)
-        buckets.append({
-            "bucket_index": bucket_index,
-            "bucket_label": bucket_names[bucket_index]
-            if bucket_index < len(bucket_names)
-            else f"bucket_{bucket_index}",
-            "n_samples": int(positions.numel()),
-            "condition_min": float(bucket_values.min().item()),
-            "condition_max": float(bucket_values.max().item()),
-            "condition_mean": float(bucket_values.mean().item()),
-            "active_code_count": usage["active_code_count"],
-            "active_code_ratio": usage["active_code_ratio"],
-            "codebook_perplexity": usage["codebook_perplexity"],
-            "index_entropy": usage["index_entropy"],
-            "code_usage_counts": usage["code_usage_counts"],
-            "code_usage_probability": usage["code_usage_probability"],
-        })
+        buckets.append(
+            {
+                "bucket_index": bucket_index,
+                "bucket_label": bucket_names[bucket_index]
+                if bucket_index < len(bucket_names)
+                else f"bucket_{bucket_index}",
+                "n_samples": int(positions.numel()),
+                "condition_min": float(bucket_values.min().item()),
+                "condition_max": float(bucket_values.max().item()),
+                "condition_mean": float(bucket_values.mean().item()),
+                "active_code_count": usage["active_code_count"],
+                "active_code_ratio": usage["active_code_ratio"],
+                "codebook_perplexity": usage["codebook_perplexity"],
+                "index_entropy": usage["index_entropy"],
+                "code_usage_counts": usage["code_usage_counts"],
+                "code_usage_probability": usage["code_usage_probability"],
+            }
+        )
     return buckets
 
 
@@ -449,12 +455,14 @@ def synthetic_token_artifacts(
     """Create deterministic synthetic codebooks and tokens for public smoke tests."""
     rng = np.random.default_rng(seed)
     angles = np.linspace(0.0, 2.0 * np.pi, codebook_size, endpoint=False)
-    base = np.column_stack([
-        np.cos(angles),
-        np.sin(angles),
-        np.cos(2.0 * angles),
-        np.sin(2.0 * angles),
-    ])
+    base = np.column_stack(
+        [
+            np.cos(angles),
+            np.sin(angles),
+            np.cos(2.0 * angles),
+            np.sin(2.0 * angles),
+        ]
+    )
     noise = rng.normal(scale=0.08, size=(codebook_size, 12))
     vector_codebook = np.concatenate([base, noise], axis=1)
     labels = torch.linspace(10.0, 40.0, batch_size).reshape(batch_size, 1)
@@ -591,15 +599,17 @@ def write_projection_csv(
         writer = csv.writer(handle)
         writer.writerow(["entry", "label", "code", "quantizer", "group", "x", "y"])
         for row, (x_value, y_value) in enumerate(projection):
-            writer.writerow([
-                row,
-                geometry.labels[row],
-                geometry.code_indices[row],
-                none_to_empty(geometry.quantizer_indices[row]),
-                none_to_empty(geometry.group_indices[row]),
-                f"{float(x_value):.12g}",
-                f"{float(y_value):.12g}",
-            ])
+            writer.writerow(
+                [
+                    row,
+                    geometry.labels[row],
+                    geometry.code_indices[row],
+                    none_to_empty(geometry.quantizer_indices[row]),
+                    none_to_empty(geometry.group_indices[row]),
+                    f"{float(x_value):.12g}",
+                    f"{float(y_value):.12g}",
+                ]
+            )
 
 
 def plot_codebook_projection(
@@ -1135,10 +1145,12 @@ def _grouped_residual_state_codebook(state: Mapping[str, Tensor]) -> np.ndarray 
     quantizer_count = max(quantizer for _group, quantizer in entries) + 1
     if len(entries) != group_count * quantizer_count:
         return None
-    stacked: np.ndarray = np.stack([
-        np.stack([entries[(group, quantizer)] for quantizer in range(quantizer_count)])
-        for group in range(group_count)
-    ])
+    stacked: np.ndarray = np.stack(
+        [
+            np.stack([entries[(group, quantizer)] for quantizer in range(quantizer_count)])
+            for group in range(group_count)
+        ]
+    )
     return stacked
 
 

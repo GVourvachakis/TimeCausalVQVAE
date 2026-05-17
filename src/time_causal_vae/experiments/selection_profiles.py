@@ -182,9 +182,9 @@ def rank_candidates(
         name: visible_components(metrics, component_names)[0]
         for name, metrics in candidates.items()
     }
-    usable_components = sorted({
-        component for components in candidate_components.values() for component in components
-    })
+    usable_components = sorted(
+        {component for components in candidate_components.values() for component in components}
+    )
     if usable_components == ["mmd"] and not allow_mmd_only:
         return [
             CandidateProfileScore(
@@ -203,11 +203,13 @@ def rank_candidates(
         ]
 
     ranks_by_component = {
-        component: lower_is_better_ranks({
-            candidate: components[component]
-            for candidate, components in candidate_components.items()
-            if component in components
-        })
+        component: lower_is_better_ranks(
+            {
+                candidate: components[component]
+                for candidate, components in candidate_components.items()
+                if component in components
+            }
+        )
         for component in usable_components
     }
     scored: list[CandidateProfileScore] = []

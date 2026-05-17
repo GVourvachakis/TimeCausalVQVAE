@@ -75,9 +75,9 @@ class CausalTokenTransformerPrior(nn.Module):
         self.transformer: nn.TransformerEncoder | None = None
         self.adaln_blocks = nn.ModuleList()
         if config.condition_injection == "adaln_lite":
-            self.adaln_blocks = nn.ModuleList([
-                AdaLNCausalTransformerBlock(config) for _ in range(config.num_layers)
-            ])
+            self.adaln_blocks = nn.ModuleList(
+                [AdaLNCausalTransformerBlock(config) for _ in range(config.num_layers)]
+            )
         else:
             encoder_layer = nn.TransformerEncoderLayer(
                 d_model=config.token_embedding_dim,
@@ -331,15 +331,17 @@ class CausalResidualConvStack(nn.Module):
         dilations = config.conv_dilations
         if dilations is None:
             dilations = [1] * config.conv_num_layers
-        self.blocks = nn.ModuleList([
-            CausalResidualConvBlock(
-                channels=config.token_embedding_dim,
-                kernel_size=config.conv_kernel_size,
-                dilation=dilation,
-                dropout=config.conv_dropout,
-            )
-            for dilation in dilations
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                CausalResidualConvBlock(
+                    channels=config.token_embedding_dim,
+                    kernel_size=config.conv_kernel_size,
+                    dilation=dilation,
+                    dropout=config.conv_dropout,
+                )
+                for dilation in dilations
+            ]
+        )
 
     def forward(self, hidden: Tensor) -> Tensor:
         """Return causally filtered hidden states with sequence length preserved."""
@@ -405,10 +407,12 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
             raise ValueError("factorised_multi_code requires at least two components.")
         self.config = config
         self.input_vocab_size = config.codebook_size + 1
-        self.component_embeddings = nn.ModuleList([
-            nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
-            for _ in range(config.component_count)
-        ])
+        self.component_embeddings = nn.ModuleList(
+            [
+                nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
+                for _ in range(config.component_count)
+            ]
+        )
         self.position_embedding = nn.Embedding(config.sequence_length, config.token_embedding_dim)
         self.condition_projection = build_condition_projection(config)
         encoder_layer = nn.TransformerEncoderLayer(
@@ -425,10 +429,12 @@ class FactorisedMultiCodeTokenPrior(nn.Module):
             num_layers=config.num_layers,
         )
         self.component_names = component_names(config)
-        self.output_heads = nn.ModuleList([
-            nn.Linear(config.token_embedding_dim, config.codebook_size)
-            for _component_name in self.component_names
-        ])
+        self.output_heads = nn.ModuleList(
+            [
+                nn.Linear(config.token_embedding_dim, config.codebook_size)
+                for _component_name in self.component_names
+            ]
+        )
         weights = component_loss_weights(config)
         self.register_buffer("component_loss_weights", weights, persistent=False)
 
@@ -628,10 +634,12 @@ class HierarchicalRVQ2TokenPrior(nn.Module):
             raise ValueError("hierarchical_rvq_q2 requires groups=1 and num_quantizers=2.")
         self.config = config
         self.input_vocab_size = config.codebook_size + 1
-        self.component_embeddings = nn.ModuleList([
-            nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
-            for _component_index in range(2)
-        ])
+        self.component_embeddings = nn.ModuleList(
+            [
+                nn.Embedding(self.input_vocab_size, config.token_embedding_dim)
+                for _component_index in range(2)
+            ]
+        )
         self.position_embedding = nn.Embedding(config.sequence_length, config.token_embedding_dim)
         self.condition_projection = build_condition_projection(config)
         encoder_layer = nn.TransformerEncoderLayer(

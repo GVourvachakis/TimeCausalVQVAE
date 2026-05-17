@@ -235,15 +235,17 @@ def _top_path_records(
     for rank, index_tensor in enumerate(indices):
         index = int(index_tensor.item())
         path = paths_2d[index]
-        records.append({
-            "rank": rank + 1,
-            "path_index": index,
-            score_name: float(scores[index].detach().cpu()),
-            "terminal_return": float(terminal[index].detach().cpu()),
-            "volatility": float(volatility[index].detach().cpu()),
-            "path_min": float(path.min().detach().cpu()),
-            "path_max": float(path.max().detach().cpu()),
-        })
+        records.append(
+            {
+                "rank": rank + 1,
+                "path_index": index,
+                score_name: float(scores[index].detach().cpu()),
+                "terminal_return": float(terminal[index].detach().cpu()),
+                "volatility": float(volatility[index].detach().cpu()),
+                "path_min": float(path.min().detach().cpu()),
+                "path_max": float(path.max().detach().cpu()),
+            }
+        )
     return records
 
 
