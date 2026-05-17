@@ -1,5 +1,7 @@
 # TimeCausalVAE
 
+[![starline](https://starlines.qoo.monster/assets/GVourvachakis/TimeCausalVQVAE)](https://github.com/qoomon/starline)
+
 `time-causal-vae` is a compact research package, imported as `time_causal_vae`, for
 no-anticipation financial time-series generation. It keeps the continuous Time-Causal VAE baseline
 and adds a public discrete pipeline: a causal VQ tokenizer followed by a causal autoregressive
