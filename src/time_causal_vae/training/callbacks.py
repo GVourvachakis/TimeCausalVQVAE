@@ -4,7 +4,8 @@
 Training Callbacks modified from `pythae`
 "https://github.com/clementchadebec/benchmark_VAE"
 Training Callbacks for training monitoring integrated in `pythae` (inspired from
-https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py)"""
+https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py)
+"""
 
 import importlib
 import logging
@@ -34,10 +35,12 @@ def rename_logs(logs):
 
     for metric_name in logs.keys():
         if metric_name.startswith(train_prefix):
-            clean_logs[metric_name.replace(train_prefix, "train/")] = logs[metric_name]
+            clean_logs[metric_name.replace(
+                train_prefix, "train/")] = logs[metric_name]
 
         if metric_name.startswith(eval_prefix):
-            clean_logs[metric_name.replace(eval_prefix, "eval/")] = logs[metric_name]
+            clean_logs[metric_name.replace(
+                eval_prefix, "eval/")] = logs[metric_name]
 
     return clean_logs
 
@@ -129,7 +132,8 @@ class CallbackHandler:
 
     def add_callback(self, callback):
         cb = callback() if isinstance(callback, type) else callback
-        cb_class = callback if isinstance(callback, type) else callback.__class__
+        cb_class = callback if isinstance(
+            callback, type) else callback.__class__
         if cb_class in [c.__class__ for c in self.callbacks]:
             logger.warning(
                 f"You are adding a {cb_class} to the callbacks but there one is already used."
@@ -317,7 +321,8 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
 
     def __init__(self):
         if not wandb_is_available():
-            raise ModuleNotFoundError("`wandb` package must be installed. Run `pip install wandb`")
+            raise ModuleNotFoundError(
+                "`wandb` package must be installed. Run `pip install wandb`")
 
         else:
             import wandb
@@ -386,7 +391,8 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
             })
 
         self._wandb.define_metric("train/global_step")
-        self._wandb.define_metric("*", step_metric="train/global_step", step_sync=True)
+        self._wandb.define_metric(
+            "*", step_metric="train/global_step", step_sync=True)
 
     def on_train_begin(self, training_config: BaseTrainerConfig, **kwargs):
         model_config = kwargs.pop("model_config", None)

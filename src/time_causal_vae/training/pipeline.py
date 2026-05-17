@@ -1,6 +1,6 @@
 # mypy: ignore-errors
 # ruff: noqa
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -22,7 +22,8 @@ class TrainingPipeline(BasePipeline):
         exp_config=None,
     ):
         if not isinstance(training_config, BaseTrainerConfig):
-            raise AssertionError("A 'BaseTrainerConfig' is expected for the pipeline")
+            raise AssertionError(
+                "A 'BaseTrainerConfig' is expected for the pipeline")
 
         self.model = model
         self.training_config = training_config
@@ -31,7 +32,8 @@ class TrainingPipeline(BasePipeline):
     def __call__(
         self,
         train_dataset: Union[np.ndarray, torch.Tensor, torch.utils.data.Dataset],
-        eval_dataset: Union[np.ndarray, torch.Tensor, torch.utils.data.Dataset] = None,
+        eval_dataset: Union[np.ndarray, torch.Tensor,
+                            torch.utils.data.Dataset] = None,
         device_name=None,
     ):
         if self.training_config.wandb_callback:
@@ -43,8 +45,10 @@ class TrainingPipeline(BasePipeline):
                 exp_config=self.exp_config,
                 training_config=self.training_config,  # training config
                 model_config=self.model.model_config,  # model config
-                project_name=getattr(self.training_config, "wandb_project", "time-causal-vae"),
-                entity_name=getattr(self.training_config, "wandb_entity", None),
+                project_name=getattr(self.training_config,
+                                     "wandb_project", "time-causal-vae"),
+                entity_name=getattr(self.training_config,
+                                    "wandb_entity", None),
                 run_name=getattr(self.training_config, "wandb_run_name", None),
                 wandb_mode=getattr(self.training_config, "wandb_mode", None),
             )
