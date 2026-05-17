@@ -13,6 +13,9 @@ htmlcov/
 venv/
 env/
 
+# Dependency management
+poetry.lock # Excluded to prevent version locking conflicts in this environment
+
 # Build artifacts
 dist/
 build/
