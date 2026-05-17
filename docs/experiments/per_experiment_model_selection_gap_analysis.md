@@ -121,4 +121,3 @@ The registry promotion gate is:
 
 Until those gates are satisfied, the branch should keep the registry unchanged and treat
 `docs/experiments/per_experiment_model_selection_results.md` as a provisional token-run report.
-
