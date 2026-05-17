@@ -18,14 +18,9 @@ Lower is better except accuracy and active-code counts.
 
 ## Local Checkpoint Convention
 
-The registry stores metadata only. Continuous checkpoints should remain under a local path such
-as `outputs/black_scholes_continuous/beta_cvae/<training-run>/final_model`. Discrete tokenizer,
-token data, and prior artefacts should remain under
-`outputs/per_experiment_selection/black_scholes/hidden128_conv_transformer_k3/`.
+The registry stores metadata only. Continuous checkpoints should remain under a local path such as `outputs/black_scholes_continuous/beta_cvae/<training-run>/final_model`. Discrete tokenizer, token data, and prior artefacts should remain under `outputs/per_experiment_selection/black_scholes/hidden128_conv_transformer_k3/`.
 
 ## Caveats
 
-The continuous baseline has only legacy MMD/SWD from the supplemental cloned-repository
-evaluation. The Black-Scholes public standard discrete artefacts were unavailable in the final
-evaluation pass. Drawdown W1, returns W1, return AC L1, squared-return AC L1, trained
-unconditioned tokenizer no-leakage, and notebook reproduction remain missing.
+The continuous baseline has only legacy MMD/SWD from the supplemental cloned-repository evaluation. The Black-Scholes public standard discrete artefacts were unavailable in the final
+evaluation pass. Drawdown W1, returns W1, return AC L1, squared-return AC L1, trained unconditioned tokenizer no-leakage, and notebook reproduction remain missing.

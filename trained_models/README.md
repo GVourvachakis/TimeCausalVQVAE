@@ -1,7 +1,6 @@
 # Trained Model Metadata
 
-This directory stores lightweight metadata for selected continuous and discrete latent-variable
-models. It does not store trained checkpoints or weights.
+This directory stores lightweight metadata for selected continuous and discrete latent-variable models. It does not store trained checkpoints or weights.
 
 `model_registry.yaml` is the notebook-facing registry. It records, per experiment:
 
@@ -11,8 +10,7 @@ models. It does not store trained checkpoints or weights.
 - selection profiles, visible metrics, missing metrics, no-leakage status, and caveats;
 - optional comparison candidates needed for dynamic selection.
 
-Selected entries are current registry selections for public workflows, not universal mathematical
-optima. They reflect the metrics and caveats recorded in the registry and model cards.
+Selected entries are current registry selections for public workflows, not universal mathematical optima. They reflect the metrics and caveats recorded in the registry and model cards.
 
 The per-experiment model cards provide a compact human-readable summary:
 
@@ -21,9 +19,7 @@ The per-experiment model cards provide a compact human-readable summary:
 - `pdv/model_card.md`;
 - `sp500_vix/model_card.md`.
 
-Expected checkpoints, token arrays, generated samples, CSV/JSON summaries, W&B artefacts, and
-processed data live under local `outputs/` or `data/processed/` paths after a user runs training
-or evaluation commands. Do not commit those artefacts.
+Expected checkpoints, token arrays, generated samples, CSV/JSON summaries, W&B artefacts, and processed data live under local `outputs/` or `data/processed/` paths after a user runs training or evaluation commands. Do not commit those artefacts.
 
 Use the selector to inspect registered metadata by experiment family, profile, or metric:
 

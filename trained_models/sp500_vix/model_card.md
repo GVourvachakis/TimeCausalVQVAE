@@ -26,7 +26,4 @@ token data, prior, paper-style outputs, and latent-geometry artefacts should rem
 
 ## Caveats
 
-The public standard additive discrete baseline is selected by the balanced-market path profile.
-The hidden128 conv-transformer candidate wins several component metrics and token CE, but loses
-MMD, terminal W1, squared-return AC L1, and the balanced score. Notebook reproduction remains
-missing before final public registry promotion.
+The public standard additive discrete baseline is selected by the balanced-market path profile. The hidden128 conv-transformer candidate wins several component metrics and token CE, but loses MMD, terminal W1, squared-return AC L1, and the balanced score. Notebook reproduction remains missing before final public registry promotion.

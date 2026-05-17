@@ -18,14 +18,9 @@ Lower is better except accuracy and active-code counts.
 
 ## Local Checkpoint Convention
 
-The registry stores metadata only. Continuous checkpoints should remain under a local path such
-as `outputs/heston_continuous/info_cvae/<training-run>/final_model`. Discrete tokenizer, token
-data, and prior artefacts should remain under
+The registry stores metadata only. Continuous checkpoints should remain under a local path such as `outputs/heston_continuous/info_cvae/<training-run>/final_model`. Discrete tokenizer, token data, and prior artefacts should remain under
 `outputs/per_experiment_selection/heston/standard_vq_additive_ar/`.
 
 ## Caveats
 
-The continuous baseline has only legacy MMD/SWD from the supplemental cloned-repository
-evaluation. The generic discrete evaluator did not compute returns W1, drawdown W1, return AC L1,
-or squared-return AC L1. Trained unconditioned tokenizer no-leakage and notebook reproduction
-remain missing.
+The continuous baseline has only legacy MMD/SWD from the supplemental cloned-repository evaluation. The generic discrete evaluator did not compute returns W1, drawdown W1, return AC L1, or squared-return AC L1. Trained unconditioned tokenizer no-leakage and notebook reproduction remain missing.

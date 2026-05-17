@@ -1,7 +1,7 @@
 """Dilated causal convolution layers for time-series tokenizers.
 
-The public convention in this module is ``[batch, length, channels]``. The
-layer classes transpose internally to PyTorch's ``[batch, channels, length]``
+The public convention in this module is ``[batch, length, channels]``. 
+The layer classes transpose internally to PyTorch's ``[batch, channels, length]``
 layout only around ``torch.nn.Conv1d`` calls.
 """
 
@@ -94,10 +94,12 @@ class CausalConv1d(nn.Module):
 
     def forward(self, inputs: Tensor) -> Tensor:
         """Apply the causal convolution."""
-        _validate_sequence_input(inputs, self.in_channels, self.__class__.__name__)
+        _validate_sequence_input(
+            inputs, self.in_channels, self.__class__.__name__)
         channels_first = inputs.transpose(1, 2)
         if self.left_padding > 0:
-            channels_first = functional.pad(channels_first, (self.left_padding, 0))
+            channels_first = functional.pad(
+                channels_first, (self.left_padding, 0))
         outputs = cast(Tensor, self.conv(channels_first))
         return outputs.transpose(1, 2)
 
@@ -190,11 +192,13 @@ class CausalConvStack(nn.Module):
         if self.out_channels == hidden_channels:
             self.output_projection = nn.Identity()
         else:
-            self.output_projection = CausalConv1d(hidden_channels, self.out_channels, kernel_size=1)
+            self.output_projection = CausalConv1d(
+                hidden_channels, self.out_channels, kernel_size=1)
 
     def forward(self, inputs: Tensor) -> Tensor:
         """Apply the stack and return ``[batch, length, channels_out]`` outputs."""
-        _validate_sequence_input(inputs, self.in_channels, self.__class__.__name__)
+        _validate_sequence_input(
+            inputs, self.in_channels, self.__class__.__name__)
         outputs = inputs
         for block in self.blocks:
             outputs = cast(Tensor, block(outputs))
@@ -230,7 +234,8 @@ def assert_no_future_leakage(
         )
     length = reference_inputs.shape[1]
     if not 0 <= cutoff < length:
-        raise ValueError(f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
+        raise ValueError(
+            f"cutoff must satisfy 0 <= cutoff < {length}; got {cutoff}.")
 
     prefix = slice(None, cutoff + 1)
     if not torch.allclose(reference_inputs[:, prefix], changed_future_inputs[:, prefix]):
@@ -246,7 +251,8 @@ def assert_no_future_leakage(
         module.train(was_training)
 
     if reference_outputs.ndim < 2 or changed_future_outputs.ndim < 2:
-        raise AssertionError("Module outputs must include a sequence-length dimension.")
+        raise AssertionError(
+            "Module outputs must include a sequence-length dimension.")
     if reference_outputs.shape != changed_future_outputs.shape:
         raise AssertionError(
             "Module output shapes differ: "
@@ -260,7 +266,8 @@ def assert_no_future_leakage(
     reference_prefix = reference_outputs[:, prefix]
     changed_future_prefix = changed_future_outputs[:, prefix]
     if not torch.allclose(reference_prefix, changed_future_prefix, atol=atol, rtol=rtol):
-        max_diff = (reference_prefix - changed_future_prefix).abs().max().item()
+        max_diff = (reference_prefix -
+                    changed_future_prefix).abs().max().item()
         raise AssertionError(
             "Future leakage detected before or at the cutoff: "
             f"max absolute difference is {max_diff:.6g}."

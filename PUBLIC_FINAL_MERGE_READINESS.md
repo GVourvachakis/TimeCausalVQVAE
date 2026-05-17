@@ -46,4 +46,3 @@ and removed after validation.
 ## Merge Readiness
 
 Ready to merge to `main`: **yes**.
-

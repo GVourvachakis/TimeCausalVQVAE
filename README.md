@@ -7,11 +7,7 @@ no-anticipation financial time-series generation. It keeps the continuous Time-C
 and adds a public discrete pipeline: a causal VQ tokenizer followed by a causal autoregressive
 token prior.
 
-The repository may remain `TimeCausalVQVAE` because it hosts the VQ-discrete extension of the
-TimeCausalVAE package. The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and
-path-dependent-volatility configs retained as small baseline and smoke workflows. Generated
-outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not
-committed.
+The repository may remain `TimeCausalVQVAE` because it hosts the VQ-discrete extension of the TimeCausalVAE package. The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and path-dependent-volatility configs retained as small baseline and smoke workflows. Generated outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not committed.
 
 ## Pipeline Overview
 

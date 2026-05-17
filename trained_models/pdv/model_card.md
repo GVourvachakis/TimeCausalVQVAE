@@ -25,7 +25,4 @@ and prior artefacts should remain under
 
 ## Caveats
 
-The continuous baseline has only legacy MMD/SWD from the supplemental cloned-repository
-evaluation. The generic discrete evaluator did not compute returns W1, drawdown W1, return AC L1,
-squared-return AC L1, or the full PDV4 condition-bucket path profile. Notebook reproduction
-remains missing.
+The continuous baseline has only legacy MMD/SWD from the supplemental cloned-repository evaluation. The generic discrete evaluator did not compute returns W1, drawdown W1, return AC L1, squared-return AC L1, or the full PDV4 condition-bucket path profile. Notebook reproduction remains missing.
