@@ -13,5 +13,3 @@ Current assets:
 - `sp500_vix_hidden128_codebook_voronoi.png`: hidden128 VQ projected Voronoi diagram
   of the discrete latent space.
 - `sp500_vix_vix_bucket_code_usage.png`: hidden128 VQ VIX-bucket code usage.
-
-Do not copy figures from the original TC-VAE repository into this directory.
