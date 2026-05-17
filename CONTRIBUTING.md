@@ -200,7 +200,7 @@ unless they are deliberately promoted.
 
 ## Future Directions
 
-Potential future work includes stronger causal token priors, carefully documented signature-based
+Potential future work includes score-based diffusion priors in continuous latent space (e.g., [LSGMs](https://doi.org/10.48550/arXiv.2106.05931)), stronger causal token priors, carefully documented signature-based
 diagnostics, optional diffusion-style token generation, richer latent-geometry reports, and curated
 small public figures under `assets/figures/`. Each direction should arrive with clear configs,
 guarded demos, and evidence that can stay separate from the public-minimal branch until promoted.
