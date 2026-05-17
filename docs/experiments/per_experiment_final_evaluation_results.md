@@ -184,6 +184,14 @@ needed for metric-sensitive dynamic selection. The registry records config paths
 conventions, sampling policy, metrics, missing metrics, no-leakage status, and caveats only.
 Weights and generated outputs remain local and are not committed.
 
+The notebook-facing route is now unified through
+`src/time_causal_vae/experiments/model_registry.py`. Continuous notebooks select the registered
+best continuous candidate for their experiment before building commands, while discrete notebooks
+select the registered tokenizer/prior pair. The former `legacy_config_adapter.py` module has been
+removed; the remaining continuous backend adaptation is an implementation detail in
+`src/time_causal_vae/experiments/config.py`, after registry selection has already chosen the
+experiment and candidate metadata.
+
 Full public promotion remains blocked by:
 
 - missing full-profile continuous baseline metrics for Black-Scholes, Heston, and PDV4 beyond

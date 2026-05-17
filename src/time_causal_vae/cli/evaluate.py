@@ -11,7 +11,7 @@ import torch
 import yaml
 
 from time_causal_vae.evaluation.checkpoints import TargetModelEvaluator
-from time_causal_vae.experiments.legacy_config_adapter import (
+from time_causal_vae.experiments.config import (
     adapt_selected_config,
     load_selected_config,
 )

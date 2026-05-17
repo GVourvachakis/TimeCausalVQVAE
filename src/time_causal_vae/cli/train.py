@@ -12,7 +12,7 @@ from typing import Any
 import ml_collections
 
 from time_causal_vae.data.pipeline import DataPipeline as TargetDataPipeline
-from time_causal_vae.experiments.legacy_config_adapter import load_legacy_config
+from time_causal_vae.experiments.config import load_continuous_backend_config
 from time_causal_vae.models.factory import ModelFactory
 from time_causal_vae.training.config import BaseTrainerConfig as TargetBaseTrainerConfig
 from time_causal_vae.training.pipeline import TrainingPipeline as TargetTrainingPipeline
@@ -274,7 +274,7 @@ def main() -> None:
 
     output_dir = validate_output_dir(args.output_dir)
     wandb_enabled = args.wandb and not args.no_wandb and args.wandb_mode != "disabled"
-    exp_config = load_legacy_config(
+    exp_config = load_continuous_backend_config(
         args.config,
         output_dir=output_dir,
         device=args.device,

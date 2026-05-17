@@ -61,10 +61,13 @@ The raw cloned legacy `exp_config.yaml` files were not copied into this reposito
 legacy experiment-run state and live beside the cloned checkpoints, while this branch keeps the
 clean portable selected configs under `configs/experiments/`.
 
-`src/time_causal_vae/experiments/legacy_config_adapter.py` should remain in the branch for now. It
-is used by both `tcvae-train` and `tcvae-evaluate` to adapt the portable selected continuous
-configs into the legacy continuous TC-VAE config shape. Removing it before merge would break the
-current continuous CLI path unless those CLIs are migrated to a native config interface first.
+The old `src/time_causal_vae/experiments/legacy_config_adapter.py` module has since been removed.
+Its continuous-backend adaptation logic now lives in `src/time_causal_vae/experiments/config.py`,
+while `src/time_causal_vae/experiments/model_registry.py` remains the single selector for both
+continuous and discrete latent-model metadata. `tcvae-train`, `tcvae-evaluate`, and the
+continuous notebooks therefore resolve selected continuous configs through the same registry
+metadata used by the discrete notebooks, then adapt only the selected continuous YAML into the
+existing backend field shape.
 
 ## Metrics Supported Per Experiment
 
