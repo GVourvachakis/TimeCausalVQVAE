@@ -31,7 +31,7 @@ from time_causal_vae.evaluation.token_prior import (
     save_token_prior_summary,
 )
 from time_causal_vae.evaluation.tokenizer import load_trained_tokenizer
-from time_causal_vae.tokenization import CausalVQTokenizer
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer
 from time_causal_vae.utils.random import set_seed
 
 

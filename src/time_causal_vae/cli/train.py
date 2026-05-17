@@ -13,7 +13,7 @@ import ml_collections
 
 from time_causal_vae.data.pipeline import DataPipeline as TargetDataPipeline
 from time_causal_vae.experiments.config import load_continuous_backend_config
-from time_causal_vae.models.factory import ModelFactory
+from time_causal_vae.models.continuous.factory import ModelFactory
 from time_causal_vae.training.config import BaseTrainerConfig as TargetBaseTrainerConfig
 from time_causal_vae.training.pipeline import TrainingPipeline as TargetTrainingPipeline
 from time_causal_vae.utils.random import set_seed

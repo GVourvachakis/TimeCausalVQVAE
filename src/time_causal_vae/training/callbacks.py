@@ -12,7 +12,7 @@ import logging
 import numpy as np
 from tqdm import tqdm
 
-from time_causal_vae.models.config import BaseConfig
+from time_causal_vae.models.continuous.config import BaseConfig
 from time_causal_vae.training.config import BaseTrainerConfig
 
 import matplotlib.pyplot as plt

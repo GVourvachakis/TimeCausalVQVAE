@@ -16,7 +16,7 @@ import yaml
 from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 
-from time_causal_vae.token_prior import CausalTokenPriorConfig, build_token_prior_model
+from time_causal_vae.models.discrete.priors import CausalTokenPriorConfig, build_token_prior_model
 from time_causal_vae.utils.random import set_seed
 
 

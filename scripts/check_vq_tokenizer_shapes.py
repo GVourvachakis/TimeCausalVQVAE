@@ -6,11 +6,13 @@ import torch
 from ml_collections import ConfigDict
 
 from time_causal_vae.data.pipeline import DataPipeline
-from time_causal_vae.tokenization import (
+from time_causal_vae.models.discrete.tokenizers import (
     CausalVQTokenizer,
     VQTokenizerConfig,
 )
-from time_causal_vae.tokenization.causal_vq_tokenizer import assert_tokenizer_no_future_leakage
+from time_causal_vae.models.discrete.tokenizers.causal_vq_tokenizer import (
+    assert_tokenizer_no_future_leakage,
+)
 
 
 def main() -> int:
@@ -19,14 +21,12 @@ def main() -> int:
 
     batch_size = 8
     cutoff = 29
-    data_config = ConfigDict(
-        {
-            "dataset": "black_scholes",
-            "n_sample": 64,
-            "n_timestep": 60,
-            "data_params": {},
-        }
-    )
+    data_config = ConfigDict({
+        "dataset": "black_scholes",
+        "n_sample": 64,
+        "n_timestep": 60,
+        "data_params": {},
+    })
     train_dataset, _ = DataPipeline()(data_config)
     inputs = train_dataset.data[:batch_size].to(dtype=torch.float32)
 

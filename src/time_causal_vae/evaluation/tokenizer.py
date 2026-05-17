@@ -13,7 +13,7 @@ import torch
 from torch import Tensor
 
 from time_causal_vae.evaluation.style import apply_clean_style, apply_source_style
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.output import ModelOutput
 
 

@@ -1,8 +1,3 @@
-# mypy: ignore-errors
-# ruff: noqa
-"""Conditioner modules."""
+"""Compatibility wrapper for the continuous/discrete namespace refactor."""
 
-from time_causal_vae.models.conditioners.base import BaseConditioner
-from time_causal_vae.models.conditioners.identity import IdentityConditioner
-
-__all__ = ["BaseConditioner", "IdentityConditioner"]
+from time_causal_vae.models.continuous.conditioners import *  # noqa: F403

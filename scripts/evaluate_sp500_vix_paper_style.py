@@ -456,17 +456,15 @@ def compute_vix_bucket_comparisons(
                 **compare_market_summaries(real_paths=real_bucket, generated_paths=paths),
             }
         condition_bucket_values = condition_values.index_select(0, positions)
-        buckets.append(
-            {
-                "bucket_index": bucket_index,
-                "bucket_label": bucket_label(bucket_index, n_buckets),
-                "n_samples": int(positions.numel()),
-                "vix_min": float(condition_bucket_values.min().item()),
-                "vix_max": float(condition_bucket_values.max().item()),
-                "vix_mean": float(condition_bucket_values.mean().item()),
-                "comparisons": comparisons,
-            }
-        )
+        buckets.append({
+            "bucket_index": bucket_index,
+            "bucket_label": bucket_label(bucket_index, n_buckets),
+            "n_samples": int(positions.numel()),
+            "vix_min": float(condition_bucket_values.min().item()),
+            "vix_max": float(condition_bucket_values.max().item()),
+            "vix_mean": float(condition_bucket_values.mean().item()),
+            "comparisons": comparisons,
+        })
     return buckets
 
 
@@ -734,18 +732,16 @@ def write_markdown_summary(path: Path, summary: Mapping[str, Any]) -> None:
             f"{float(metrics['returns_wasserstein']):.8f} | "
             f"{float(metrics['maximum_drawdown_wasserstein']):.8f} |"
         )
-    lines.extend(
-        [
-            "",
-            "## Within-Path Autocorrelation",
-            "",
-            (
-                "| Source | Return AC L1 | Squared-return AC L1 | "
-                "Flattened return AC L1 | Flattened squared-return AC L1 |"
-            ),
-            "| --- | ---: | ---: | ---: | ---: |",
-        ]
-    )
+    lines.extend([
+        "",
+        "## Within-Path Autocorrelation",
+        "",
+        (
+            "| Source | Return AC L1 | Squared-return AC L1 | "
+            "Flattened return AC L1 | Flattened squared-return AC L1 |"
+        ),
+        "| --- | ---: | ---: | ---: | ---: |",
+    ])
     for name, metrics in comparisons.items():
         lines.append(
             "| "
@@ -755,15 +751,13 @@ def write_markdown_summary(path: Path, summary: Mapping[str, Any]) -> None:
             f"{float(metrics['return_autocorrelation_flattened_l1']):.8f} | "
             f"{float(metrics['squared_return_autocorrelation_flattened_l1']):.8f} |"
         )
-    lines.extend(
-        [
-            "",
-            "## Tail Exceedance Rates",
-            "",
-            "| Source | < real q001 | < real q01 | > real q99 | > real q999 |",
-            "| --- | ---: | ---: | ---: | ---: |",
-        ]
-    )
+    lines.extend([
+        "",
+        "## Tail Exceedance Rates",
+        "",
+        "| Source | < real q001 | < real q01 | > real q99 | > real q999 |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ])
     for name, metrics in comparisons.items():
         rates = cast(Mapping[str, Any], metrics["tail_exceedance_rates"])
         lines.append(
@@ -774,15 +768,13 @@ def write_markdown_summary(path: Path, summary: Mapping[str, Any]) -> None:
             f"{float(rates['above_real_q99_fraction']):.8f} | "
             f"{float(rates['above_real_q999_fraction']):.8f} |"
         )
-    lines.extend(
-        [
-            "",
-            "## Decision Note",
-            "",
-            str(summary["decision_note"]),
-            "",
-        ]
-    )
+    lines.extend([
+        "",
+        "## Decision Note",
+        "",
+        str(summary["decision_note"]),
+        "",
+    ])
     path.write_text("\n".join(lines), encoding="utf-8")
 
 

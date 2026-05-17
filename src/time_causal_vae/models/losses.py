@@ -1,20 +1,3 @@
-# mypy: ignore-errors
-# ruff: noqa
-import torch
+"""Compatibility wrapper for the continuous/discrete namespace refactor."""
 
-
-def get_loss(loss_name):
-    if loss_name == "l1":
-        return l1_loss
-    if loss_name == "l2":
-        return l2_loss
-
-
-def l1_loss(x, recon_x):
-    recon_loss = torch.abs(recon_x - x).mean(dim=0).sum()
-    return recon_loss
-
-
-def l2_loss(x, recon_x):
-    recon_loss = torch.square(recon_x - x).mean(dim=0).sum()
-    return recon_loss
+from time_causal_vae.models.continuous.losses import *  # noqa: F403

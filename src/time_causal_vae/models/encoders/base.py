@@ -1,15 +1,3 @@
-# mypy: ignore-errors
-# ruff: noqa
-import torch.nn as nn
+"""Compatibility wrapper for the continuous/discrete namespace refactor."""
 
-
-class BaseEncoder(nn.Module):
-    """Base class for encoder neural networks."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialise the encoder module."""
-        super().__init__(*args, **kwargs)
-
-    def forward(self, x):
-        """Encode observations into latent distribution parameters."""
-        raise NotImplementedError()
+from time_causal_vae.models.continuous.encoders.base import *  # noqa: F403

@@ -154,11 +154,11 @@ transition-constrained sampling were also evaluated during development, but they
 
 - `time_causal_vae.data`: synthetic and market dataset loaders, transforms, and data-pipeline
   helpers.
-- `time_causal_vae.models`: continuous TC-VAE modules, encoders, decoders, conditioners,
-  objectives, priors, and causal layers.
-- `time_causal_vae.tokenization`: causal VQ tokenizer configs and VQ-family quantizer adapters.
-- `time_causal_vae.token_prior`: causal token-prior configs, masks, transformer priors, and
-  sampling utilities.
+- `time_causal_vae.models.continuous`: continuous TC-VAE encoders, decoders, conditioners,
+  objectives, priors, factory helpers, losses, transforms, and distance helpers.
+- `time_causal_vae.models.discrete`: causal VQ tokenizers, VQ-family quantizer adapters,
+  token-prior configs, masks, autoregressive priors, and sampling utilities.
+- `time_causal_vae.models.layers`: shared causal layers used across model families.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
   compatibility, token diagnostics, and latent-geometry helpers.
 - `time_causal_vae.experiments`: portable experiment config loading, legacy continuous-config

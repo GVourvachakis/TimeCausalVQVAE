@@ -15,7 +15,7 @@ from matplotlib import cm
 from scipy import stats
 from tqdm import tqdm
 
-from time_causal_vae.models.distances import GaussianMMD
+from time_causal_vae.models.continuous.distances import GaussianMMD
 from time_causal_vae.evaluation.metrics import SAWD, SWD, SignatureMMD
 from time_causal_vae.data.black_scholes import simulate_BS
 from time_causal_vae.data.path_dependent_volatility import PDV4, load_feature

@@ -25,15 +25,15 @@ from time_causal_vae.evaluation.tokenizer import (
     summarise_code_usage,
     terminal_return,
 )
-from time_causal_vae.models.distances import GaussianMMD
-from time_causal_vae.token_prior import (
+from time_causal_vae.models.continuous.distances import GaussianMMD
+from time_causal_vae.models.discrete.priors import (
     CausalTokenPriorConfig,
     CausalTokenTransformerPrior,
     FactorisedMultiCodeTokenPrior,
     HierarchicalRVQ2TokenPrior,
     build_token_prior_model,
 )
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer, VQTokenizerConfig
 
 
 def load_trained_token_prior(

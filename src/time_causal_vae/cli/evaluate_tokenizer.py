@@ -21,7 +21,7 @@ from time_causal_vae.evaluation.tokenizer import (
     save_tokenizer_batch,
     save_tokenizer_summary,
 )
-from time_causal_vae.tokenization import CausalVQTokenizer
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer
 from time_causal_vae.utils.random import set_seed
 
 

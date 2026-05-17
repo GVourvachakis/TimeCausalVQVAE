@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from time_causal_vae.token_prior.data import (
+from time_causal_vae.models.discrete.priors.data import (
     build_tokenizer_datasets,
     extract_dataset_tokens,
     load_frozen_tokenizer,

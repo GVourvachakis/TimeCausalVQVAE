@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
 from time_causal_vae.data.pipeline import DataPipeline
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.random import set_seed
 
 

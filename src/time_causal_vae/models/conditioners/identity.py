@@ -1,18 +1,3 @@
-# mypy: ignore-errors
-# ruff: noqa
-import torch
+"""Compatibility wrapper for the continuous/discrete namespace refactor."""
 
-from time_causal_vae.models.conditioners.base import BaseConditioner
-
-
-class IdentityConditioner(BaseConditioner):
-    """No-op conditioner used by the selected paper configurations."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        """Initialise an identity condition transform."""
-        super().__init__(*args, **kwargs)
-        self.net = torch.nn.Identity()
-
-    def forward(self, x):
-        """Return condition values unchanged."""
-        return self.net(x)
+from time_causal_vae.models.continuous.conditioners.identity import *  # noqa: F403
