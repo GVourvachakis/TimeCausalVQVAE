@@ -132,6 +132,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--top-k", default="none")
     parser.add_argument(
+        "--no-wandb",
+        action="store_true",
+        help="Accepted for parity with training runners; this evaluator does not initialise W&B.",
+    )
+    parser.add_argument(
         "--continuous-model-dir",
         action="append",
         default=[],
@@ -317,15 +322,18 @@ def continuous_target(
 
 def discover_continuous_model_dir(experiment: ExperimentName) -> str | None:
     """Return the newest local reproduction final_model directory when present."""
+    search_roots = [
+        OUTPUTS_ROOT / "reproduction" / experiment,
+        OUTPUTS_ROOT / f"{experiment}_continuous",
+    ]
+    if experiment == "sp500_vix":
+        search_roots.append(OUTPUTS_ROOT / "sp500_vix_continuous")
     candidates = sorted(
-        (OUTPUTS_ROOT / "reproduction" / experiment).glob("*/final_model"),
+        {path for root in search_roots if root.exists() for path in root.glob("**/final_model")},
         key=lambda path: path.stat().st_mtime if path.exists() else 0.0,
     )
     if candidates:
         return str(candidates[-1])
-    sp500_default = OUTPUTS_ROOT / "sp500_vix_continuous" / "beta_cvae" / "final_model"
-    if experiment == "sp500_vix" and sp500_default.is_dir():
-        return str(sp500_default)
     return None
 
 
@@ -334,19 +342,20 @@ def unique_discrete_targets(
     candidates: Mapping[tuple[ExperimentName, str], SelectionCandidate],
 ) -> list[tuple[SelectionCandidate, list[str]]]:
     """Return public and provisional discrete targets without duplicates."""
+    target_candidates: dict[str, SelectionCandidate] = {}
     target_roles: dict[str, list[str]] = {}
     public = public_candidate(experiment, candidates)
     if public is not None:
+        target_candidates[public.candidate] = public
         target_roles.setdefault(public.candidate, []).append("public_discrete_baseline")
     provisional_name = provisional_selection(experiment, candidates)
     provisional = candidates.get((experiment, provisional_name))
     if provisional is not None:
+        target_candidates[provisional.candidate] = provisional
         target_roles.setdefault(provisional.candidate, []).append("provisional_best_discrete")
     targets: list[tuple[SelectionCandidate, list[str]]] = []
     for candidate_name, roles in target_roles.items():
-        candidate = candidates.get((experiment, candidate_name))
-        if candidate is not None:
-            targets.append((candidate, roles))
+        targets.append((target_candidates[candidate_name], roles))
     return targets
 
 
@@ -436,6 +445,16 @@ def discrete_target(
     command = generic_token_prior_command(candidate, output_dir=target_output, args=args)
     warnings: list[str] = []
     status = "dry_run" if bool(args.dry_run) else "pending"
+    missing_paths = missing_required_paths(
+        {
+            "prior_dir": candidate.prior_dir,
+            "tokenizer_dir": candidate.tokenizer_dir,
+        }
+    )
+    if missing_paths and not bool(args.dry_run):
+        status = "not_available"
+        command = []
+        warnings.extend(missing_paths)
     if candidate.experiment == "sp500_vix":
         supported = list(SP500_PAPER_STYLE_METRICS)
         missing = []
@@ -448,6 +467,7 @@ def discrete_target(
         )
         if continuous_model_dir is None and not bool(args.dry_run):
             status = "not_available"
+            command = []
             warnings.append("S&P500/VIX paper-style evaluation requires a continuous model dir.")
     return EvaluationTarget(
         experiment=candidate.experiment,
@@ -551,44 +571,39 @@ def no_leakage_targets(
             output_dir=output_dir / candidate.experiment / candidate.candidate / "no_leakage",
             args=args,
             warnings=["source-level causal convolution check, not a checkpoint-specific test."],
-        ),
-        no_leakage_target(
-            experiment=candidate.experiment,
-            target=f"{candidate.candidate}_token_prior",
-            command=[
-                "poetry",
-                "run",
-                "python",
-                "scripts/check_conditional_token_prior_no_leakage.py",
-                "--config",
-                candidate.prior_config,
-                "--prior-dir",
-                candidate.prior_dir,
-                "--token-data-dir",
-                candidate.token_data_dir,
-                "--device",
-                "cpu",
-            ],
-            output_dir=output_dir / candidate.experiment / candidate.candidate / "no_leakage",
-            args=args,
-        ),
+        )
     ]
-    if candidate.conditional:
+    token_prior_missing_paths = missing_required_paths(
+        {
+            "prior_dir": candidate.prior_dir,
+            "token_data_dir": candidate.token_data_dir,
+        }
+    )
+    if token_prior_missing_paths and not bool(args.dry_run):
+        targets.append(
+            unavailable_no_leakage_target(
+                candidate=candidate,
+                target=f"{candidate.candidate}_token_prior",
+                output_dir=output_dir,
+                warnings=token_prior_missing_paths,
+            )
+        )
+    else:
         targets.append(
             no_leakage_target(
                 experiment=candidate.experiment,
-                target=f"{candidate.candidate}_tokenizer",
+                target=f"{candidate.candidate}_token_prior",
                 command=[
                     "poetry",
                     "run",
                     "python",
-                    "scripts/check_conditional_vq_tokenizer_no_leakage.py",
+                    "scripts/check_conditional_token_prior_no_leakage.py",
                     "--config",
-                    candidate.tokenizer_config,
-                    "--tokenizer-dir",
-                    candidate.tokenizer_dir,
-                    "--base-data-dir",
-                    str(args.base_data_dir),
+                    candidate.prior_config,
+                    "--prior-dir",
+                    candidate.prior_dir,
+                    "--token-data-dir",
+                    candidate.token_data_dir,
                     "--device",
                     "cpu",
                 ],
@@ -596,6 +611,43 @@ def no_leakage_targets(
                 args=args,
             )
         )
+    if candidate.conditional:
+        tokenizer_missing_paths = missing_required_paths({"tokenizer_dir": candidate.tokenizer_dir})
+        if tokenizer_missing_paths and not bool(args.dry_run):
+            targets.append(
+                unavailable_no_leakage_target(
+                    candidate=candidate,
+                    target=f"{candidate.candidate}_tokenizer",
+                    output_dir=output_dir,
+                    warnings=tokenizer_missing_paths,
+                )
+            )
+        else:
+            targets.append(
+                no_leakage_target(
+                    experiment=candidate.experiment,
+                    target=f"{candidate.candidate}_tokenizer",
+                    command=[
+                        "poetry",
+                        "run",
+                        "python",
+                        "scripts/check_conditional_vq_tokenizer_no_leakage.py",
+                        "--config",
+                        candidate.tokenizer_config,
+                        "--tokenizer-dir",
+                        candidate.tokenizer_dir,
+                        "--base-data-dir",
+                        str(args.base_data_dir),
+                        "--device",
+                        "cpu",
+                    ],
+                    output_dir=output_dir
+                    / candidate.experiment
+                    / candidate.candidate
+                    / "no_leakage",
+                    args=args,
+                )
+            )
     else:
         targets.append(
             EvaluationTarget(
@@ -617,6 +669,37 @@ def no_leakage_targets(
             )
         )
     return targets
+
+
+def missing_required_paths(paths: Mapping[str, str]) -> list[str]:
+    """Return warnings for required local checkpoint or artefact paths that are absent."""
+    warnings: list[str] = []
+    for label, raw_path in paths.items():
+        if not Path(raw_path).exists():
+            warnings.append(f"{label} not found: {raw_path}")
+    return warnings
+
+
+def unavailable_no_leakage_target(
+    *,
+    candidate: SelectionCandidate,
+    target: str,
+    output_dir: Path,
+    warnings: list[str],
+) -> EvaluationTarget:
+    """Build a not-available no-leakage target for missing local artefacts."""
+    return EvaluationTarget(
+        experiment=candidate.experiment,
+        target=target,
+        kind="no_leakage",
+        roles=["no_leakage"],
+        command=[],
+        output_dir=str(output_dir / candidate.experiment / candidate.candidate / "no_leakage"),
+        status="not_available",
+        supported_metrics=[],
+        missing_metrics=[],
+        warnings=warnings,
+    )
 
 
 def no_leakage_target(
