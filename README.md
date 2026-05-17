@@ -1,7 +1,8 @@
 # TimeCausalVQVAE
 
-`time-causal-vae` is a compact research package for no-anticipation financial time-series
-generation. It keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline:
+[![starline](https://starlines.qoo.monster/assets/GVourvachakis/TimeCausalVQVAE)](https://github.com/qoomon/starline)
+
+`time-causal-vae` is a research package for no-anticipation financial time-series generation. It keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline:
 a causal VQ tokenizer followed by a causal autoregressive token prior.
 
 The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and
