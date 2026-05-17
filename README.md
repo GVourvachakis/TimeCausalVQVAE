@@ -1,10 +1,12 @@
-# TimeCausalVQVAE
+# TimeCausalVAE
 
-`time-causal-vae` is a compact research package for no-anticipation financial time-series
-generation. It keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline:
-a causal VQ tokenizer followed by a causal autoregressive token prior.
+`time-causal-vae` is a compact research package, imported as `time_causal_vae`, for
+no-anticipation financial time-series generation. It keeps the continuous Time-Causal VAE baseline
+and adds a public discrete pipeline: a causal VQ tokenizer followed by a causal autoregressive
+token prior.
 
-The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and
+The repository may remain `TimeCausalVQVAE` because it hosts the VQ-discrete extension of the
+TimeCausalVAE package. The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and
 path-dependent-volatility configs retained as small baseline and smoke workflows. Generated
 outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not
 committed.
@@ -61,8 +63,9 @@ poetry run python scripts/select_registered_model.py --experiment sp500_vix --fa
 
 The registry is `trained_models/model_registry.yaml`. It records selected continuous and discrete
 config paths, local checkpoint conventions, selection profiles, visible metrics, and missing
-metrics. It does not contain weights. Checkpoints are local or external and should remain under
-ignored `outputs/` paths.
+metrics. These entries are the current registry selections for public workflows, not universal
+mathematical optima. The registry does not contain weights. Commands that train or evaluate models
+create local `outputs/` directories for checkpoints and artefacts.
 
 Run a minimal continuous S&P500/VIX smoke command:
 
@@ -161,7 +164,7 @@ transition-constrained sampling were also evaluated during development, but they
 - `time_causal_vae.models.layers`: shared causal layers used across model families.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
   compatibility, token diagnostics, and latent-geometry helpers.
-- `time_causal_vae.experiments`: portable experiment config loading, legacy continuous-config
+- `time_causal_vae.experiments`: portable experiment config loading, continuous-config
   adaptation, selection profiles, and trained-model registry selection.
 - `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
 - `scripts`: config inspection, reproduction wrappers, token extraction, evaluation, latent geometry, and no-leakage checks.

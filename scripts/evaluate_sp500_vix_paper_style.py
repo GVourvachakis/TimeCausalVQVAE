@@ -834,7 +834,7 @@ def save_tensor_artifacts(
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate output path below ignored outputs."""
+    """Validate output path below local outputs."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()

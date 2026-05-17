@@ -11,6 +11,8 @@ generated:
   note: >
     Metadata registry only. Checkpoints, token tensors, generated paths, processed data,
     W&B artefacts, and output summaries are local or external and are not committed.
+    Selected entries are current registry selections for public workflows, not universal
+    mathematical optima.
 path_policy:
   weights_committed: false
   checkpoint_placeholder: local_outputs_only
@@ -23,6 +25,10 @@ selection_policy:
   lower_is_better: true
   do_not_select_from_mmd_alone: true
   public_defaults_change_requires_explicit_metadata: true
+  selector_supports:
+    - family
+    - profile
+    - metric
 
 experiments:
   black_scholes:

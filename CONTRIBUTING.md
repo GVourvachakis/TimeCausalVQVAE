@@ -117,7 +117,7 @@ metadata such as `trained_models/README.md` or `trained_models/model_registry.ya
 
 The trained-model registry is metadata only. To add or promote a new candidate:
 
-1. Train the candidate locally and keep checkpoints under ignored `outputs/` paths.
+1. Train the candidate locally and keep checkpoints under local `outputs/` paths.
 2. Evaluate it with the relevant path metrics, token metrics, no-leakage checks, and notebook or
    reproduction workflow.
 3. Add or update metadata under `trained_models/model_registry.yaml` and the relevant
