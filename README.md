@@ -166,23 +166,18 @@ and should not train or evaluate unless their run flags are deliberately enabled
 
 ## Summary Figures
 
-No summary figures are committed on this public branch. After running the public diagnostics,
-representative generated-vs-real figures are written under ignored paths such as:
+Small public demo figures are committed under `assets/figures/`. They are curated from local
+TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
-```text
-outputs/sp500_vix_discrete/paper_style/
-outputs/latent_geometry/sp500_vix_standard_vq/
-```
+![S&P500/VIX hidden128 conv-transformer paths by VIX regime](assets/figures/sp500_vix_best_research_paths.png)
 
-For a public release with figures, place small curated images under `assets/figures/` and link
-them here, for example:
+![S&P500/VIX hidden128 conv-transformer generated paths](assets/figures/sp500_vix_best_generated_paths.png)
 
-```markdown
-![Returns distribution](assets/figures/returns_distribution.png)
-![Codebook usage projection](assets/figures/codebook_usage_projection.png)
-```
+![S&P500/VIX hidden128 VQ codebook Voronoi diagram](assets/figures/sp500_vix_hidden128_codebook_voronoi.png)
 
-Do not link directly to local `outputs/` paths in committed documentation.
+![S&P500/VIX hidden128 VIX-bucket code usage](assets/figures/sp500_vix_vix_bucket_code_usage.png)
+
+Trained-model metadata is documented in `trained_models/model_registry.yaml`.
 
 ## References
 
