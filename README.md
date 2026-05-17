@@ -161,8 +161,8 @@ transition-constrained sampling were also evaluated during development, but they
   helpers.
 - `time_causal_vae.models.continuous`: continuous TC-VAE encoders, decoders, conditioners,
   objectives, priors, factory helpers, losses, transforms, and distance helpers.
-- `time_causal_vae.models.discrete`: causal VQ tokenizers, VQ-family quantizer adapters,
-  token-prior configs, masks, autoregressive priors, and sampling utilities.
+- `time_causal_vae.models.discrete`: causal VQ tokenizer encoders and decoders, VQ-family
+  quantizer adapters, token-prior configs, masks, autoregressive priors, and sampling utilities.
 - `time_causal_vae.models.layers`: shared causal layers used across model families.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
   compatibility, token diagnostics, and latent-geometry helpers.

@@ -2,13 +2,13 @@
 
 ## Scope
 
-This document plans a public-safe namespace refactor only. It does not move files, change imports,
-train models, change checkpoint layouts, change model behaviour, change config schemas, or merge
-into `main`.
+This document records the public-safe namespace refactor plan and the follow-up cleanup decisions.
+The refactor does not train models, change checkpoint layouts, change model behaviour, change
+config schemas, or merge into `main`.
 
 The goal is to place continuous and discrete latent model families in parallel under
 `time_causal_vae.models`, while keeping all current public imports available through lightweight
-compatibility wrappers.
+compatibility modules or aliases.
 
 ## Naming Note
 
@@ -217,12 +217,14 @@ change is explanatory text only.
 
 ## Compatibility Shims To Keep
 
-Keep the old import paths as small wrappers during the public transition. Wrappers should import
-symbols from the new location and define `__all__` consistently. They should not implement logic.
+Keep the old import paths during the public transition. The first implementation used physical
+wrapper files. The follow-up cleanup removes those duplicate files under `models/` and registers
+module aliases from `time_causal_vae.models.__init__`, so old imports still resolve to the
+canonical continuous modules without maintaining parallel wrapper trees.
 
-### Continuous Wrappers
+### Continuous Compatibility Aliases
 
-Retain wrappers for:
+Retain compatibility aliases for:
 
 - `time_causal_vae.models.base`
 - `time_causal_vae.models.config`
@@ -252,7 +254,7 @@ Retain wrappers for:
 - `time_causal_vae.models.objectives.info_cvae`
 - `time_causal_vae.models.objectives.vae`
 
-### Discrete Wrappers
+### Discrete Compatibility Wrappers
 
 Retain wrappers for:
 
@@ -266,9 +268,18 @@ Retain wrappers for:
 - `time_causal_vae.token_prior.data`
 - `time_causal_vae.token_prior.masks`
 
-These compatibility modules should be documented as transitional. Do not add deprecation warnings
-in the first migration commit because warnings could make notebooks or tests noisy. A later public
-release can add warnings if the compatibility period has an agreed end date.
+The top-level `tokenization` and `token_prior` compatibility modules remain physical wrappers
+because they are outside `models/` and preserve public transition imports. Do not add deprecation
+warnings in the first migration period because warnings could make notebooks or tests noisy. A
+later public release can add warnings if the compatibility period has an agreed end date.
+
+### Discrete Encoder And Decoder Layout
+
+The discrete family now has explicit `models.discrete.encoders` and `models.discrete.decoders`
+namespaces for tokenizer-side neural networks. The current public architecture uses causal
+convolutional VQ encoder and decoder modules only. Additional dilated CNN, residual, or other
+encoder-decoder architectures should be added only when a real discrete tokenizer variant needs
+them; the cleanup does not introduce unused placeholder architectures.
 
 ## Behaviour And Schema Constraints
 
@@ -280,16 +291,16 @@ release can add warnings if the compatibility period has an agreed end date.
 - Do not change YAML config schemas or registry schemas.
 - Do not change public command-line flags.
 - If future metadata contains import paths, update only those import-path metadata strings and keep
-  old-path loading through compatibility wrappers.
+  old-path loading through compatibility modules or aliases.
 
 ## Risks
 
-- Wrapper drift: wrapper `__all__` values can fall out of sync with the moved modules.
+- Compatibility alias drift: old-path aliases can fall out of sync with the canonical modules.
 - Cyclic imports: moving `factory.py`, objective modules, and base classes together can expose
   cycles hidden by the current flat namespace.
 - Checkpoint loading expectations: current continuous checkpoints store state dicts, but any
   external user who pickled whole modules could depend on old module paths.
-- Type-checking surface: mypy may follow wrappers and moved modules differently, especially for
+- Type-checking surface: mypy may follow aliases and moved modules differently, especially for
   modules that already use `# mypy: ignore-errors`.
 - Documentation ambiguity: keeping old imports working while recommending new imports can confuse
   users unless README and notebooks are clear.
@@ -336,11 +347,12 @@ training.
 
 ## Rollback Plan
 
-Because the implementation should use `git mv` plus wrappers, rollback should be straightforward:
+Because the implementation moved code into canonical namespaces and keeps old import paths
+available through aliases or wrappers, rollback should be straightforward:
 
 1. Revert the implementation commit with `git revert <commit>`.
 2. If partial changes are present before commit, restore the working tree with targeted
-   `git restore` commands for moved paths and wrappers.
+   `git restore` commands for moved paths and compatibility modules or aliases.
 3. Rerun the old-path import checks for `models.encoders`, `models.decoders`, `models.priors`,
    `models.objectives`, `tokenization`, and `token_prior`.
 4. Rerun `poetry check`, Ruff, mypy, and the registry selector commands.

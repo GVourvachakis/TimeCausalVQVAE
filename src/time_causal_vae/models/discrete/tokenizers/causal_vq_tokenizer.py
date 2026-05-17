@@ -25,71 +25,15 @@ import torch
 from torch import Tensor, nn
 from torch.nn import functional
 
+from time_causal_vae.models.discrete.decoders import CausalVQDecoder
+from time_causal_vae.models.discrete.encoders import CausalVQEncoder
 from time_causal_vae.models.discrete.tokenizers.config import VQTokenizerConfig
 from time_causal_vae.models.discrete.tokenizers.quantizers import (
     QuantizerAdapter,
     build_quantizer_adapter,
 )
-from time_causal_vae.models.layers import CausalConvStack, assert_no_future_leakage
+from time_causal_vae.models.layers import assert_no_future_leakage
 from time_causal_vae.utils.output import ModelOutput
-
-
-class CausalVQEncoder(nn.Module):
-    """Causal convolutional encoder for tokenizer latents."""
-
-    def __init__(self, config: VQTokenizerConfig) -> None:
-        """Initialise the encoder from tokenizer config."""
-        super().__init__()
-        self.config = config
-        self.input_channels = config.data_dim + config.condition_dim
-        self.stack = CausalConvStack(
-            in_channels=self.input_channels,
-            hidden_channels=config.encoder_hidden_dim,
-            out_channels=config.embedding_dim,
-            kernel_size=3,
-            dilations=config.layer_dilations,
-            dropout=config.dropout,
-        )
-
-    def forward(self, inputs: Tensor, conditions: Tensor | None = None) -> Tensor:
-        """Encode ``[batch, length, data_dim]`` inputs into ``z_e``."""
-        encoder_inputs = prepare_conditioned_sequence(
-            inputs,
-            conditions,
-            data_dim=self.config.data_dim,
-            condition_dim=self.config.condition_dim,
-            module_name=self.__class__.__name__,
-        )
-        return cast(Tensor, self.stack(encoder_inputs))
-
-
-class CausalVQDecoder(nn.Module):
-    """Causal convolutional decoder for quantized latent paths."""
-
-    def __init__(self, config: VQTokenizerConfig) -> None:
-        """Initialise the decoder from tokenizer config."""
-        super().__init__()
-        self.config = config
-        self.input_channels = config.embedding_dim + config.condition_dim
-        self.stack = CausalConvStack(
-            in_channels=self.input_channels,
-            hidden_channels=config.decoder_hidden_dim,
-            out_channels=config.data_dim,
-            kernel_size=3,
-            dilations=config.layer_dilations,
-            dropout=config.dropout,
-        )
-
-    def forward(self, quantized: Tensor, conditions: Tensor | None = None) -> Tensor:
-        """Decode ``[batch, length, embedding_dim]`` quantized latents."""
-        decoder_inputs = prepare_conditioned_sequence(
-            quantized,
-            conditions,
-            data_dim=self.config.embedding_dim,
-            condition_dim=self.config.condition_dim,
-            module_name=self.__class__.__name__,
-        )
-        return cast(Tensor, self.stack(decoder_inputs))
 
 
 class CausalVQTokenizer(nn.Module):
@@ -209,52 +153,6 @@ def code_usage_entropy_loss(
             entropy = -(active_probabilities * active_probabilities.log()).sum()
             value = -float(entropy.item())
     return reference.detach().new_tensor(value)
-
-
-def prepare_conditioned_sequence(
-    inputs: Tensor,
-    conditions: Tensor | None,
-    *,
-    data_dim: int,
-    condition_dim: int,
-    module_name: str,
-) -> Tensor:
-    """Concatenate optional scalar or temporal conditions to a sequence."""
-    if inputs.ndim != 3:
-        raise ValueError(
-            f"{module_name} expects [batch, length, channels] inputs; got shape "
-            f"{tuple(inputs.shape)}."
-        )
-    if inputs.shape[-1] != data_dim:
-        raise ValueError(f"{module_name} expected {data_dim} channels; got {inputs.shape[-1]}.")
-    if condition_dim == 0:
-        return inputs
-    if conditions is None:
-        raise ValueError(f"{module_name} requires conditions with condition_dim={condition_dim}.")
-
-    batch_size, length, _ = inputs.shape
-    if conditions.ndim == 2:
-        if conditions.shape != (batch_size, condition_dim):
-            raise ValueError(
-                f"{module_name} expected scalar conditions of shape "
-                f"{(batch_size, condition_dim)}; got {tuple(conditions.shape)}."
-            )
-        prepared_conditions = conditions[:, None, :].expand(batch_size, length, condition_dim)
-    elif conditions.ndim == 3:
-        if conditions.shape != (batch_size, length, condition_dim):
-            raise ValueError(
-                f"{module_name} expected temporal conditions of shape "
-                f"{(batch_size, length, condition_dim)}; got {tuple(conditions.shape)}."
-            )
-        prepared_conditions = conditions
-    else:
-        raise ValueError(
-            f"{module_name} conditions must be [batch, condition_dim] or "
-            f"[batch, length, condition_dim]; got {tuple(conditions.shape)}."
-        )
-    return torch.cat(
-        [inputs, prepared_conditions.to(device=inputs.device, dtype=inputs.dtype)], dim=-1
-    )
 
 
 def assert_tokenizer_no_future_leakage(
