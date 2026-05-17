@@ -1,13 +1,16 @@
 # TimeCausalVAE
 
-[![starline](https://starlines.qoo.monster/assets/GVourvachakis/TimeCausalVQVAE)](https://github.com/qoomon/starline)
-
 `time-causal-vae` is a compact research package, imported as `time_causal_vae`, for
-no-anticipation financial time-series generation. It keeps the continuous Time-Causal VAE baseline
-and adds a public discrete pipeline: a causal VQ tokenizer followed by a causal autoregressive
-token prior.
+no-anticipation financial time-series generation with continuous and discrete latent models. It
+keeps the continuous Time-Causal VAE baseline and adds a public discrete pipeline: a causal VQ
+tokenizer followed by a causal autoregressive token prior.
 
-The repository may remain `TimeCausalVQVAE` because it hosts the VQ-discrete extension of the TimeCausalVAE package. The public branch focuses on S&P500/VIX, with Black-Scholes, Heston, and path-dependent-volatility configs retained as small baseline and smoke workflows. Generated outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not committed.
+The GitHub repository may remain `TimeCausalVQVAE` because it hosts the VQ-discrete extension of
+the TimeCausalVAE package. The Python distribution remains `time-causal-vae`, and the import path
+remains `time_causal_vae`. The public branch focuses on S&P500/VIX, with Black-Scholes, Heston,
+and path-dependent-volatility configs retained as small baseline and smoke workflows. Generated
+outputs, local data, checkpoints, W&B runs, arrays, pickles, and notebooks with outputs are not
+committed.
 
 ## Pipeline Overview
 
