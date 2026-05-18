@@ -16,6 +16,39 @@ from time_causal_vae.evaluation.market_diagnostics import (
 )
 
 
+def log_returns_to_normalized_prices(
+    log_returns: Tensor,
+    *,
+    initial_price: float = 1.0,
+) -> Tensor:
+    """Convert decoded log-return paths to positive normalised price paths.
+
+    Parameters
+    ----------
+    log_returns:
+        Tensor with shape ``[batch, time, 1]``. The first index may be zero or
+        any other model-decoded return value.
+    initial_price:
+        Positive starting price multiplier.
+    """
+    if log_returns.ndim != 3 or log_returns.shape[-1] != 1:
+        raise ValueError(
+            f"Expected log_returns with shape [batch, time, 1]; got {log_returns.shape}."
+        )
+    if initial_price <= 0.0:
+        raise ValueError("initial_price must be positive.")
+    if not bool(torch.isfinite(log_returns).all()):
+        raise ValueError("log_returns must be finite.")
+
+    cumulative_log_returns = torch.cumsum(log_returns.float(), dim=1)
+    prices = float(initial_price) * torch.exp(cumulative_log_returns)
+    if not bool(torch.isfinite(prices).all()):
+        raise ValueError("Converted prices must be finite.")
+    if not bool((prices > 0.0).all()):
+        raise ValueError("Converted prices must be strictly positive.")
+    return prices
+
+
 def detect_jumps_from_returns(
     paths: Tensor,
     *,
