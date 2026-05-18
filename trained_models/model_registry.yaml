@@ -168,6 +168,213 @@ experiments:
             token_prior: passed
             tokenizer: not_available
 
+  hawkes_jump:
+    display_name: Hawkes/SVMHJD
+    status: research_candidate
+    public_default: false
+    benchmark_role: scenario_data
+    source_branches:
+      - research/hawkes-jump-discrete-benchmark
+      - research/hawkes-continuous-ablation
+    sampling_policy:
+      temperature: 1.0
+      top_k: null
+      applies_to: discrete_token_prior
+    no_leakage:
+      dataset: passed
+      causal_conv: passed
+      tokenizer: passed
+      token_prior: passed
+      model_visible_fields: data_and_constant_labels_only
+    caveats:
+      - No Hawkes weights, token tensors, generated paths, or output summaries are committed.
+      - No LSGM or score-prior continuous comparator has been run yet.
+      - This is a scenario-data benchmark, not an arbitrage-free pricing model.
+      - Hawkes/SVMHJD is not a public default experiment.
+    continuous:
+      selected: beta_cvae_logreturn_identity
+      candidates:
+        beta_cvae_logreturn_identity:
+          description: Repaired signed-log-return continuous comparator with identity transform.
+          config: configs/experiments/hawkes_jump_beta_cvae_logreturn_identity.yaml
+          seed_configs:
+            - configs/experiments/hawkes_jump_beta_cvae_logreturn_identity.yaml
+            - configs/experiments/hawkes_jump_beta_cvae_logreturn_identity_seed1.yaml
+            - configs/experiments/hawkes_jump_beta_cvae_logreturn_identity_seed2.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_continuous_logreturn_identity/seed<seed>/<training-run>/final_model
+          selection_profile: research_candidate
+          status: research_candidate
+          public_default: false
+          source: hawkes_jump_continuous_ablation
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+            transform: id
+            inverse_transform: id
+          metrics:
+            mmd: 1.3153
+            mmd_std: 0.1405
+            swd: 0.1320
+            swd_std: 0.0231
+            terminal_wasserstein: 0.1682
+            terminal_wasserstein_std: 0.0316
+            volatility_wasserstein: 0.0243
+            volatility_wasserstein_std: 0.0003
+            drawdown_wasserstein: 0.1486
+            drawdown_wasserstein_std: 0.0754
+            jump_count_wasserstein: 0.2236
+            jump_count_wasserstein_std: 0.0144
+            inter_arrival_wasserstein: 15.6138
+            inter_arrival_wasserstein_std: 2.9303
+            jump_size_wasserstein: 0.0844
+            jump_size_wasserstein_std: 0.0775
+            negative_jump_fraction: 0.6667
+            negative_jump_fraction_std: 0.5774
+            generated_jump_count_mean: 0.0026
+            generated_jump_count_mean_std: 0.0030
+            var_01: -0.0061
+            var_01_std: 0.0020
+            es_01: -0.0113
+            es_01_std: 0.0018
+          missing_metrics:
+            - token_diagnostics
+            - lsgm_or_score_prior_comparator
+          caveats:
+            - Continuous comparator is valid but weak on jump and lower-tail diagnostics.
+            - Identity transform is used because log returns are signed.
+    discrete:
+      selected: hidden128_logreturn_cb64_conv_transformer_k3
+      required_ablation: hidden128_logreturn_cb64_additive_ar
+      candidates:
+        hidden128_logreturn_cb64_conv_transformer_k3:
+          description: Leading discrete Hawkes/SVMHJD candidate by smooth path profile.
+          tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
+          prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_logreturn_robustness/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: constant_condition_log_return_prior
+          selection_profile: research_candidate
+          status: research_candidate
+          public_default: false
+          source: hawkes_jump_seed_robust_logreturn_results
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+          metrics:
+            mmd: 0.1141
+            mmd_std: 0.0355
+            swd: 0.0186
+            swd_std: 0.0060
+            terminal_wasserstein: 0.0217
+            terminal_wasserstein_std: 0.0120
+            volatility_wasserstein: 0.0010
+            volatility_wasserstein_std: 0.0010
+            drawdown_wasserstein: 0.0111
+            drawdown_wasserstein_std: 0.0052
+            jump_count_wasserstein: 0.0576
+            jump_count_wasserstein_std: 0.0324
+            inter_arrival_wasserstein: 8.1888
+            inter_arrival_wasserstein_std: 6.7270
+            jump_size_wasserstein: 0.0177
+            jump_size_wasserstein_std: 0.0101
+            negative_jump_fraction: 0.9989
+            negative_jump_fraction_std: 0.0019
+            generated_jump_count_mean: 0.2357
+            generated_jump_count_mean_std: 0.0555
+            var_01: -0.0748
+            var_01_std: 0.0026
+            es_01: -0.1069
+            es_01_std: 0.0080
+            sampled_active_codes: 64.00
+            sampled_active_codes_std: 0.00
+            sampled_codebook_perplexity: 44.42
+            sampled_codebook_perplexity_std: 0.80
+            transition_matrix_l1: 0.4345
+            transition_matrix_l1_std: 0.0177
+            run_length_wasserstein: 0.0037
+            run_length_wasserstein_std: 0.0022
+          missing_metrics:
+            - lsgm_or_score_prior_comparator
+          no_leakage:
+            dataset: passed
+            causal_conv: passed
+            tokenizer: passed
+            token_prior: passed
+          caveats:
+            - Selected as a research candidate, not as a public default.
+            - Additive AR remains a required sparse-jump ablation.
+        hidden128_logreturn_cb64_additive_ar:
+          description: Required additive AR ablation with slightly stronger jump-count metrics.
+          tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
+          prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_additive.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_logreturn_robustness/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: constant_condition_log_return_prior
+          selection_profile: research_candidate_ablation
+          status: research_candidate
+          public_default: false
+          source: hawkes_jump_seed_robust_logreturn_results
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+          metrics:
+            mmd: 0.1567
+            mmd_std: 0.0644
+            swd: 0.0238
+            swd_std: 0.0085
+            terminal_wasserstein: 0.0320
+            terminal_wasserstein_std: 0.0152
+            volatility_wasserstein: 0.0011
+            volatility_wasserstein_std: 0.0008
+            drawdown_wasserstein: 0.0106
+            drawdown_wasserstein_std: 0.0059
+            jump_count_wasserstein: 0.0469
+            jump_count_wasserstein_std: 0.0319
+            inter_arrival_wasserstein: 6.3080
+            inter_arrival_wasserstein_std: 4.2239
+            jump_size_wasserstein: 0.0180
+            jump_size_wasserstein_std: 0.0101
+            negative_jump_fraction: 0.9955
+            negative_jump_fraction_std: 0.0078
+            generated_jump_count_mean: 0.2314
+            generated_jump_count_mean_std: 0.0492
+            var_01: -0.0745
+            var_01_std: 0.0028
+            es_01: -0.1068
+            es_01_std: 0.0080
+            sampled_active_codes: 64.00
+            sampled_active_codes_std: 0.00
+            sampled_codebook_perplexity: 44.36
+            sampled_codebook_perplexity_std: 0.70
+            transition_matrix_l1: 0.4341
+            transition_matrix_l1_std: 0.0153
+            run_length_wasserstein: 0.0031
+            run_length_wasserstein_std: 0.0033
+          missing_metrics:
+            - lsgm_or_score_prior_comparator
+          no_leakage:
+            dataset: passed
+            causal_conv: passed
+            tokenizer: passed
+            token_prior: passed
+
   pdv:
     display_name: PDV4
     continuous:
