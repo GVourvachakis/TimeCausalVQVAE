@@ -17,6 +17,23 @@ import torch
 from torch import Tensor
 from torch.utils.data import TensorDataset
 
+from time_causal_vae.data.ogata_hawkes_jump import (
+    OgataHawkesJumpDataset,
+    OgataHawkesJumpSimulation,
+    simulate_ogata_hawkes_paths,
+    simulate_single_ogata_path,
+)
+
+__all__ = [
+    "HawkesJumpDataset",
+    "HawkesJumpSimulation",
+    "OgataHawkesJumpDataset",
+    "OgataHawkesJumpSimulation",
+    "simulate_hawkes_jump_paths",
+    "simulate_ogata_hawkes_paths",
+    "simulate_single_ogata_path",
+]
+
 
 @dataclass(frozen=True)
 class HawkesJumpSimulation:
@@ -189,42 +206,26 @@ class HawkesJumpDataset(TensorDataset):
         *,
         seed: int | None = None,
         data_output: Literal["price", "log_return"] = "price",
+        simulation_scheme: Literal["fixed_grid", "ogata"] = "fixed_grid",
         **kwargs: object,
     ) -> None:
         """Simulate a Hawkes-jump dataset.
 
-        Parameters not consumed by the dataset factory are forwarded to
-        :func:`simulate_hawkes_jump_paths`. ``data_output`` controls the
-        model-facing ``data`` tensor; prices are the default because they match
-        the existing financial path conventions.
+        ``simulation_scheme="fixed_grid"`` preserves the original fast
+        discrete-time approximation. ``simulation_scheme="ogata"`` uses exact
+        continuous-time Hawkes arrivals and then observes the path on the same
+        regular grid.
         """
         if data_output not in {"price", "log_return"}:
             raise ValueError("data_output must be 'price' or 'log_return'.")
-        simulation = simulate_hawkes_jump_paths(
-            n_sample,
-            n_timestep,
+        if simulation_scheme not in {"fixed_grid", "ogata"}:
+            raise ValueError("simulation_scheme must be 'fixed_grid' or 'ogata'.")
+        simulation = _simulate_selected_scheme(
+            n_sample=n_sample,
+            n_timestep=n_timestep,
             seed=seed,
-            dt=_float_kwarg(kwargs, "dt", 1.0 / 60.0),
-            drift=_float_kwarg(kwargs, "drift", 0.0),
-            brownian_volatility=_float_kwarg(kwargs, "brownian_volatility", 0.18),
-            baseline_intensity=_float_kwarg(kwargs, "baseline_intensity", 3.0),
-            excitation=_float_kwarg(kwargs, "excitation", 2.0),
-            decay=_float_kwarg(kwargs, "decay", 12.0),
-            mark_excitation=_float_kwarg(kwargs, "mark_excitation", 20.0),
-            max_intensity=_float_kwarg(kwargs, "max_intensity", 80.0),
-            max_jumps_per_step=_int_kwarg(kwargs, "max_jumps_per_step", 8),
-            negative_jump_probability=_float_kwarg(kwargs, "negative_jump_probability", 0.7),
-            positive_jump_mean=_float_kwarg(kwargs, "positive_jump_mean", 0.018),
-            positive_jump_std=_float_kwarg(kwargs, "positive_jump_std", 0.008),
-            negative_jump_mean=_float_kwarg(kwargs, "negative_jump_mean", 0.035),
-            negative_jump_std=_float_kwarg(kwargs, "negative_jump_std", 0.018),
-            severe_jump_probability=_float_kwarg(kwargs, "severe_jump_probability", 0.08),
-            severe_jump_mean=_float_kwarg(kwargs, "severe_jump_mean", 0.12),
-            severe_jump_std=_float_kwarg(kwargs, "severe_jump_std", 0.04),
-            volatility_excitation=_bool_kwarg(kwargs, "volatility_excitation", True),
-            volatility_excitation_scale=_float_kwarg(kwargs, "volatility_excitation_scale", 1.2),
-            volatility_decay=_float_kwarg(kwargs, "volatility_decay", 18.0),
-            max_volatility=_float_kwarg(kwargs, "max_volatility", 1.5),
+            simulation_scheme=simulation_scheme,
+            kwargs=kwargs,
         )
         self.simulation = simulation
         self.prices = simulation.prices
@@ -238,6 +239,88 @@ class HawkesJumpDataset(TensorDataset):
         self.data = simulation.log_returns if data_output == "log_return" else simulation.prices
         self.labels = torch.ones((n_sample, 1), dtype=torch.float32)
         super().__init__(self.data)
+
+
+def _simulate_selected_scheme(
+    *,
+    n_sample: int,
+    n_timestep: int,
+    seed: int | None,
+    simulation_scheme: Literal["fixed_grid", "ogata"],
+    kwargs: Mapping[str, object],
+) -> HawkesJumpSimulation | OgataHawkesJumpSimulation:
+    dt = _float_kwarg(kwargs, "dt", 1.0 / 60.0)
+    drift = _float_kwarg(kwargs, "drift", 0.0)
+    brownian_volatility = _float_kwarg(kwargs, "brownian_volatility", 0.18)
+    baseline_intensity = _float_kwarg(kwargs, "baseline_intensity", 3.0)
+    excitation = _float_kwarg(kwargs, "excitation", 2.0)
+    decay = _float_kwarg(kwargs, "decay", 12.0)
+    mark_excitation = _float_kwarg(kwargs, "mark_excitation", 20.0)
+    max_intensity = _float_kwarg(kwargs, "max_intensity", 80.0)
+    negative_jump_probability = _float_kwarg(kwargs, "negative_jump_probability", 0.7)
+    positive_jump_mean = _float_kwarg(kwargs, "positive_jump_mean", 0.018)
+    positive_jump_std = _float_kwarg(kwargs, "positive_jump_std", 0.008)
+    negative_jump_mean = _float_kwarg(kwargs, "negative_jump_mean", 0.035)
+    negative_jump_std = _float_kwarg(kwargs, "negative_jump_std", 0.018)
+    severe_jump_probability = _float_kwarg(kwargs, "severe_jump_probability", 0.08)
+    severe_jump_mean = _float_kwarg(kwargs, "severe_jump_mean", 0.12)
+    severe_jump_std = _float_kwarg(kwargs, "severe_jump_std", 0.04)
+    volatility_excitation = _bool_kwarg(kwargs, "volatility_excitation", True)
+    volatility_excitation_scale = _float_kwarg(kwargs, "volatility_excitation_scale", 1.2)
+    volatility_decay = _float_kwarg(kwargs, "volatility_decay", 18.0)
+    max_volatility = _float_kwarg(kwargs, "max_volatility", 1.5)
+    if simulation_scheme == "ogata":
+        return simulate_ogata_hawkes_paths(
+            n_sample,
+            n_timestep,
+            seed=seed,
+            dt=dt,
+            drift=drift,
+            brownian_volatility=brownian_volatility,
+            baseline_intensity=baseline_intensity,
+            excitation=excitation,
+            decay=decay,
+            mark_excitation=mark_excitation,
+            max_intensity=max_intensity,
+            negative_jump_probability=negative_jump_probability,
+            positive_jump_mean=positive_jump_mean,
+            positive_jump_std=positive_jump_std,
+            negative_jump_mean=negative_jump_mean,
+            negative_jump_std=negative_jump_std,
+            severe_jump_probability=severe_jump_probability,
+            severe_jump_mean=severe_jump_mean,
+            severe_jump_std=severe_jump_std,
+            volatility_excitation=volatility_excitation,
+            volatility_excitation_scale=volatility_excitation_scale,
+            volatility_decay=volatility_decay,
+            max_volatility=max_volatility,
+        )
+    return simulate_hawkes_jump_paths(
+        n_sample,
+        n_timestep,
+        seed=seed,
+        dt=dt,
+        drift=drift,
+        brownian_volatility=brownian_volatility,
+        baseline_intensity=baseline_intensity,
+        excitation=excitation,
+        decay=decay,
+        mark_excitation=mark_excitation,
+        max_intensity=max_intensity,
+        max_jumps_per_step=_int_kwarg(kwargs, "max_jumps_per_step", 8),
+        negative_jump_probability=negative_jump_probability,
+        positive_jump_mean=positive_jump_mean,
+        positive_jump_std=positive_jump_std,
+        negative_jump_mean=negative_jump_mean,
+        negative_jump_std=negative_jump_std,
+        severe_jump_probability=severe_jump_probability,
+        severe_jump_mean=severe_jump_mean,
+        severe_jump_std=severe_jump_std,
+        volatility_excitation=volatility_excitation,
+        volatility_excitation_scale=volatility_excitation_scale,
+        volatility_decay=volatility_decay,
+        max_volatility=max_volatility,
+    )
 
 
 def _float_kwarg(kwargs: Mapping[str, object], name: str, default: float) -> float:

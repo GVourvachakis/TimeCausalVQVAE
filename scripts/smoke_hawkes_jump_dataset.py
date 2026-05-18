@@ -24,6 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--n-timesteps", type=int, default=60, help="Path length including start.")
     parser.add_argument("--seed", type=int, default=99, help="Deterministic simulation seed.")
     parser.add_argument(
+        "--simulation-scheme",
+        choices=("fixed_grid", "ogata"),
+        default="fixed_grid",
+        help="Hawkes-jump simulator backend to smoke-check.",
+    )
+    parser.add_argument(
         "--output-dir",
         default="outputs/hawkes_jump_smoke",
         help="Output directory for JSON and Markdown smoke summaries.",
@@ -48,6 +54,7 @@ def main() -> int:
         args.n_samples,
         args.n_timesteps,
         seed=args.seed,
+        simulation_scheme=args.simulation_scheme,
         volatility_excitation=not args.no_volatility_excitation,
     )
     summary = build_summary(dataset, args=args)
@@ -59,6 +66,7 @@ def main() -> int:
     markdown_path.write_text(build_markdown_summary(summary), encoding="utf-8")
 
     print("Hawkes-jump smoke complete.")
+    print(f"simulation_scheme={args.simulation_scheme}")
     print(f"data_shape={tuple(dataset.data.shape)}")
     print(f"label_shape={tuple(dataset.labels.shape)}")
     print(f"total_jumps={int(dataset.jump_counts.sum().item())}")
@@ -82,6 +90,7 @@ def build_summary(dataset: HawkesJumpDataset, *, args: argparse.Namespace) -> di
             "n_samples": int(args.n_samples),
             "n_timesteps": int(args.n_timesteps),
             "seed": int(args.seed),
+            "simulation_scheme": str(args.simulation_scheme),
             "volatility_excitation": not bool(args.no_volatility_excitation),
         },
         "tensor_shapes": {
@@ -137,6 +146,7 @@ def build_markdown_summary(summary: Mapping[str, Any]) -> str:
         f"- Samples: {summary['config']['n_samples']}",
         f"- Timesteps: {summary['config']['n_timesteps']}",
         f"- Seed: {summary['config']['seed']}",
+        f"- Simulation scheme: {summary['config']['simulation_scheme']}",
         f"- Volatility excitation: {summary['config']['volatility_excitation']}",
         "",
         "## Dataset",

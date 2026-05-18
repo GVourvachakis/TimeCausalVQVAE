@@ -70,6 +70,7 @@ SUPPORTED_DATA_PARAMS = {
             "severe_jump_mean",
             "severe_jump_probability",
             "severe_jump_std",
+            "simulation_scheme",
             "volatility_decay",
             "volatility_excitation",
             "volatility_excitation_scale",

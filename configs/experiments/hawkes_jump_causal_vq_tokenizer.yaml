@@ -9,6 +9,7 @@ data:
   condition_dim: 1
   condition_feature: constant
   data_params:
+    simulation_scheme: ogata
     seed: 0
     data_output: price
     dt: 0.0166666667
