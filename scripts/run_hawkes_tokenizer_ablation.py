@@ -16,9 +16,9 @@ from typing import Any, cast
 import torch
 from torch import Tensor
 
+from time_causal_vae.data.hawkes_jump import HawkesJumpDataset
 from time_causal_vae.evaluation.tokenizer import summarise_code_usage
 from time_causal_vae.models.discrete.priors.data import (
-    build_tokenizer_datasets,
     load_tokenizer_experiment_config,
 )
 
@@ -387,11 +387,7 @@ def compute_jump_code_alignment(
     base_data_dir: str,
 ) -> dict[str, Any]:
     """Compute oracle jump/code alignment from extracted indices and simulator metadata."""
-    train_dataset, eval_dataset = build_tokenizer_datasets(
-        raw_config,
-        n_sample=n_samples,
-        base_data_dir=base_data_dir,
-    )
+    train_dataset, eval_dataset = build_hawkes_oracle_datasets(raw_config, n_samples=n_samples)
     split_summaries = {
         "train": split_alignment(
             indices=load_token_indices(token_dir / "train_tokens.pt"),
@@ -409,6 +405,26 @@ def compute_jump_code_alignment(
         "split_summaries": split_summaries,
         "combined": combine_split_alignment(split_summaries),
     }
+
+
+def build_hawkes_oracle_datasets(
+    raw_config: Mapping[str, Any],
+    *,
+    n_samples: int,
+) -> tuple[HawkesJumpDataset, HawkesJumpDataset]:
+    """Build Hawkes datasets directly so oracle simulator metadata is preserved."""
+    experiment = require_mapping(raw_config, "experiment")
+    data = require_mapping(raw_config, "data")
+    if str(experiment["dataset"]) not in {"hawkes_jump", "HawkesJump"}:
+        raise ValueError("Jump/code alignment currently supports only Hawkes-jump configs.")
+    n_timesteps = int(data["n_timesteps"])
+    data_params = dict(require_mapping(data, "data_params"))
+    train_dataset = HawkesJumpDataset(n_samples, n_timesteps, **data_params)
+    eval_params = dict(data_params)
+    if eval_params.get("seed") is not None:
+        eval_params["seed"] = int(eval_params["seed"]) + 1
+    eval_dataset = HawkesJumpDataset(n_samples, n_timesteps, **eval_params)
+    return train_dataset, eval_dataset
 
 
 def load_token_indices(path: Path) -> Tensor:
