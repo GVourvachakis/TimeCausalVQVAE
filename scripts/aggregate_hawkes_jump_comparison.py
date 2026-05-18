@@ -1,4 +1,4 @@
-"""Aggregate matched Hawkes continuous and discrete log-return evaluations."""
+"""Aggregate Hawkes continuous-ablation and discrete log-return evaluations."""
 
 from __future__ import annotations
 
@@ -86,12 +86,18 @@ METRIC_PATHS: dict[str, tuple[str, ...]] = {
 def build_parser() -> argparse.ArgumentParser:
     """Build the aggregation parser."""
     parser = argparse.ArgumentParser(
-        description="Aggregate matched Hawkes log-return continuous/discrete evaluations.",
+        description="Aggregate Hawkes log-return continuous ablations and discrete evaluations.",
     )
     parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     parser.add_argument(
         "--continuous-root",
         default="outputs/hawkes_jump_continuous_logreturn_identity",
+        help="Root containing repaired BetaCVAE identity evaluations by seed.",
+    )
+    parser.add_argument(
+        "--info-continuous-root",
+        default="outputs/hawkes_jump_continuous_logreturn_info_identity",
+        help="Root containing InfoCVAE identity evaluations by seed.",
     )
     parser.add_argument(
         "--discrete-eval-root",
@@ -139,6 +145,21 @@ def main() -> None:
         )
         rows.append(
             load_model_row(
+                model="continuous_logreturn_info_cvae",
+                seed=seed,
+                summary_path=Path(args.info_continuous_root)
+                / f"seed{seed}"
+                / "evaluation"
+                / "evaluation_summary.json",
+                batch_path=Path(args.info_continuous_root)
+                / f"seed{seed}"
+                / "evaluation"
+                / "evaluation_batch.pt",
+                runtime_path=find_continuous_runtime(Path(args.info_continuous_root), seed),
+            ),
+        )
+        rows.append(
+            load_model_row(
                 model="cb64_additive_ar",
                 seed=seed,
                 summary_path=Path(args.discrete_eval_root)
@@ -174,6 +195,7 @@ def main() -> None:
         "manifest": {
             "seeds": args.seeds,
             "continuous_root": args.continuous_root,
+            "info_continuous_root": args.info_continuous_root,
             "discrete_eval_root": args.discrete_eval_root,
             "discrete_prior_root": args.discrete_prior_root,
         },
@@ -184,7 +206,7 @@ def main() -> None:
     write_csv(output_dir / "aggregate_summary.csv", rows)
     write_markdown(output_dir / "aggregate_summary.md", aggregate)
 
-    print("Hawkes matched comparison aggregation complete.")
+    print("Hawkes continuous ablation aggregation complete.")
     print(f"output_dir: {output_dir}")
     for model, stats in aggregate["by_model"].items():
         print(
@@ -366,7 +388,7 @@ def write_markdown(path: Path, aggregate: Mapping[str, Any]) -> None:
         "sampled_code_perplexity",
     ]
     lines = [
-        "# Hawkes Matched Continuous/Discrete Aggregate",
+        "# Hawkes Continuous-Ablation/Discrete Aggregate",
         "",
         "| Model | " + " | ".join(metrics) + " |",
         "|---|" + "|".join(["---"] * len(metrics)) + "|",
