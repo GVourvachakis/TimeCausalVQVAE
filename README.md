@@ -209,13 +209,13 @@ and should not train or evaluate unless their run flags are deliberately enabled
 Small public demo figures are committed under `assets/figures/`. They are curated from local
 TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
-![S&P500/VIX hidden128 conv-transformer paths by VIX regime](assets/figures/sp500_vix_best_research_paths.png)
-
-![S&P500/VIX hidden128 conv-transformer generated paths](assets/figures/sp500_vix_best_generated_paths.png)
-
-![S&P500/VIX hidden128 VQ codebook Voronoi diagram](assets/figures/sp500_vix_hidden128_codebook_voronoi.png)
-
-![S&P500/VIX hidden128 VIX-bucket code usage](assets/figures/sp500_vix_vix_bucket_code_usage.png)
+| Figure | What it shows | Interpretation |
+| --- | --- | --- |
+| ![S&P500/VIX hidden128 conv-transformer paths by VIX regime](assets/figures/sp500_vix_best_research_paths.png) | S&P500/VIX decoded paths stratified by VIX regime for the hidden128 conv-transformer research comparison. | This is a research comparison figure, not a public default; S&P500/VIX remains the public demo entry point. |
+| ![S&P500/VIX hidden128 VQ codebook Voronoi diagram](assets/figures/sp500_vix_hidden128_codebook_voronoi.png) | Projected hidden128 VQ codebook geometry for the S&P500/VIX tokenizer. | Codebook geometry is an explanatory diagnostic for latent organisation, not proof of model quality by itself. |
+| ![Hawkes/SVMHJD Ogata jump raster](assets/figures/hawkes_jump_ogata_jump_raster.png) | Ogata-simulated Hawkes/SVMHJD jump indicators across sample paths. | The benchmark stresses clustered jump timing and tail events; it is a synthetic scenario test and carries the no-arbitrage caveat. |
+| ![Hawkes/SVMHJD continuous and discrete metric comparison](assets/figures/hawkes_jump_model_metric_comparison.png) | Matched smooth-path and jump-distance metrics for repaired log-return BetaCVAE, additive AR, and conv-transformer k3 candidates. | On this benchmark, the log-return discrete candidates preserve jump and tail structure better than the repaired continuous BetaCVAE. |
+| ![Hawkes/SVMHJD jump and tail diagnostic comparison](assets/figures/hawkes_jump_tail_jump_comparison.png) | Generated jump frequency and 1% VaR/ES estimates for the same Hawkes/SVMHJD candidates. | The hidden128 log-return cb64 tokenizer with conv-transformer k3 prior is the selected research candidate; the additive AR prior remains the required ablation. |
 
 Trained-model metadata is documented in `trained_models/model_registry.yaml` and summarised by
 the model cards under `trained_models/<experiment>/model_card.md`. Notebooks can use the registry
