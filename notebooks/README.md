@@ -32,9 +32,11 @@ guarded log-return comparator demo for the optional research-candidate benchmark
 TC-VQVAE discrete-latent demos. The S&P500/VIX notebook is a public discrete-baseline demo:
 standard causal VQ tokenizer, additive scalar-conditioned causal AR prior, paper-style diagnostics,
 and latent-geometry diagnostics. The Hawkes/SVMHJD discrete notebook is a guarded log-return
-tokenizer and token-prior demo for the optional research-candidate benchmark. The hidden128 causal
-conv-transformer k3 prior is an optional research variant for report comparison, not the default
-notebook workflow. RVQ q2 was evaluated on research branches and is not part of the public baseline.
+tokenizer and token-prior demo for the optional research-candidate benchmark. For Hawkes/SVMHJD,
+the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior is the selected
+research candidate under the balanced/smooth profile, while the additive AR prior remains the
+required ablation and is slightly stronger on jump-count and inter-arrival diagnostics. RVQ q2 was
+evaluated on research branches and is not part of the public baseline.
 
 - `black_scholes.ipynb`
 - `hawkes_jump.ipynb`

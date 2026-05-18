@@ -17,6 +17,12 @@ weights, token tensors, generated paths, or output summaries are committed.
 Sampling uses `temperature=1.0` and `top_k=null`. Evaluation uses the Ogata
 backend, `data_output: log_return`, `n_sample=1024`, and seeds `0/1/2`.
 
+`hidden128_logreturn_cb64_conv_transformer_k3` remains the selected
+Hawkes/SVMHJD discrete research candidate under the balanced/smooth profile.
+`hidden128_logreturn_cb64_additive_ar` remains the required ablation and is
+slightly stronger on jump-count and inter-arrival diagnostics. This selection
+does not imply that either prior dominates every metric.
+
 ## Smooth Metrics
 
 Mean / std across seeds. Lower is better.

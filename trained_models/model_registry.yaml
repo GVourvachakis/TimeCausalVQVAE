@@ -251,7 +251,7 @@ experiments:
       required_ablation: hidden128_logreturn_cb64_additive_ar
       candidates:
         hidden128_logreturn_cb64_conv_transformer_k3:
-          description: Leading discrete Hawkes/SVMHJD candidate by smooth path profile.
+          description: Selected discrete Hawkes/SVMHJD research candidate by balanced/smooth profile.
           tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
           prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer.yaml
           tokenizer_checkpoint_path: local_outputs_only
@@ -313,9 +313,9 @@ experiments:
             token_prior: passed
           caveats:
             - Selected as a research candidate, not as a public default.
-            - Additive AR remains a required sparse-jump ablation.
+            - Additive AR remains the required ablation and is slightly stronger on jump-count and inter-arrival diagnostics.
         hidden128_logreturn_cb64_additive_ar:
-          description: Required additive AR ablation with slightly stronger jump-count metrics.
+          description: Required additive AR ablation, slightly stronger on jump-count and inter-arrival diagnostics.
           tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
           prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_additive.yaml
           tokenizer_checkpoint_path: local_outputs_only
