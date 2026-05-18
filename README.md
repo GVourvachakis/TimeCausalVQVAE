@@ -134,12 +134,15 @@ projecting them to the fixed observation grid, while the fixed-grid backend rema
 fast smoke tests. Jump-specific diagnostics and leakage checks are included under `scripts/`, and
 the public note is `docs/benchmarks/hawkes_jump.md`.
 
-This benchmark currently makes no model-selection claim. No Hawkes/SVMHJD trained model is selected
-in `trained_models/model_registry.yaml`, and the public default models remain unchanged.
+Hawkes/SVMHJD has an optional research-candidate registry entry, not a public default. The
+S&P500/VIX workflow remains the public default demo. The selected Hawkes/SVMHJD research candidate
+is the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior. The required
+ablation is the hidden128 log-return cb64 tokenizer + additive AR prior. Continuous comparators use
+the repaired log-return BetaCVAE and InfoCVAE configurations.
 
-The current best discrete research model pairs a hidden128 VQ tokenizer with a causal
-conv-transformer k3 prior. It is documented for comparison on research branches only. It is not
-the public default, and its configs, checkpoints, and evidence outputs are not part of this public branch.
+The benchmark remains a scenario-data stress test, not an arbitrage-free pricing model. No
+Hawkes/SVMHJD trained weights, checkpoints, token tensors, generated samples, W&B exports, or output
+summaries are committed.
 
 ## 🧠 Model Architecture
 
