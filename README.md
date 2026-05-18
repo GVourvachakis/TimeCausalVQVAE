@@ -126,19 +126,19 @@ data/processed/sp500vix/sp500vix_normalized.npy
 This file is local and is not committed. Training and evaluation commands create local `outputs/`
 directories.
 
-### Optional Hawkes/SVMHJD Benchmark
+### Hawkes/SVMHJD Benchmark
 
-The optional Hawkes/SVMHJD synthetic benchmark adds clustered, marked jump paths for stress-testing
+The Hawkes/SVMHJD synthetic benchmark adds clustered, marked jump paths for stress-testing
 rare-event behaviour. The Ogata backend simulates continuous-time marked Hawkes events before
 projecting them to the fixed observation grid, while the fixed-grid backend remains available for
 fast smoke tests. Jump-specific diagnostics and leakage checks are included under `scripts/`, and
 the public note is `docs/benchmarks/hawkes_jump.md`.
 
-Hawkes/SVMHJD has an optional research-candidate registry entry, not a public default. The
+Hawkes/SVMHJD has an optional research-candidate registry entry. The
 S&P500/VIX workflow remains the public default demo. The selected Hawkes/SVMHJD research candidate
 is the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior. The required
 ablation is the hidden128 log-return cb64 tokenizer + additive AR prior. Continuous comparators use
-the repaired log-return BetaCVAE and InfoCVAE configurations.
+the log-return BetaCVAE and InfoCVAE configurations.
 
 The benchmark remains a scenario-data stress test, not an arbitrage-free pricing model. No
 Hawkes/SVMHJD trained weights, checkpoints, token tensors, generated samples, W&B exports, or output
@@ -196,7 +196,9 @@ work in this repository.
 
 Notebook demos are grouped by role:
 
-- `notebooks/continuous/`: continuous TC-VAE demos for Black-Scholes, Heston, PDV, and S&P500/VIX.
+- `notebooks/benchmarks/`:
+  Ogata's Modified Thinning Algorithm and fixed-grid approximation comparison.
+- `notebooks/continuous/`: continuous TC-VAE demos for Black-Scholes, Heston, PDV, Hawkes/SVMHJD, and S&P500/VIX.
 - `notebooks/discrete/`: public discrete tokenizer and token-prior demos, including latent
   geometry.
 - `notebooks/report/`: figure-manifest notebooks that read from local `outputs/` paths.
