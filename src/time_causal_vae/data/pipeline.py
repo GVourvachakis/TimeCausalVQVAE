@@ -14,6 +14,7 @@ import torch
 
 from time_causal_vae.data.base import BaseDataset
 from time_causal_vae.data.black_scholes import BlackScholes2Dataset, BlackScholesDataset
+from time_causal_vae.data.hawkes_jump import HawkesJumpDataset
 from time_causal_vae.data.heston import HestonDataset
 from time_causal_vae.data.market import LogrDataset, SP500VIXDataset
 from time_causal_vae.data.path_dependent_volatility import PDVPriceFeatureDataset
@@ -26,6 +27,8 @@ DATASET_NAME_ALIASES = {
     "BS2price": "BS2price",
     "heston": "Hestonprice",
     "Hestonprice": "Hestonprice",
+    "hawkes_jump": "HawkesJump",
+    "HawkesJump": "HawkesJump",
     "path_dependent_volatility": "PDVPriceConFeature",
     "PDVPriceConFeature": "PDVPriceConFeature",
     "sp500_vix": "SP500VIX",
@@ -82,6 +85,17 @@ class DataPipeline:
             )
             data = dataset.data
             labels = torch.ones([data.shape[0], 1])
+        elif dataset_name == "HawkesJump":
+            hawkes_kwargs = dict(dataset_kwargs)
+            if use == "eval" and hawkes_kwargs.get("seed") is not None:
+                hawkes_kwargs["seed"] = int(hawkes_kwargs["seed"]) + 1
+            dataset = HawkesJumpDataset(
+                exp_config.n_sample,
+                exp_config.n_timestep,
+                **hawkes_kwargs,
+            )
+            data = dataset.data
+            labels = dataset.labels
         elif dataset_name == "PDVPriceConFeature":
             dataset = PDVPriceFeatureDataset(
                 exp_config.n_sample,

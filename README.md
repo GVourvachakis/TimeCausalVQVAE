@@ -126,6 +126,17 @@ data/processed/sp500vix/sp500vix_normalized.npy
 This file is local and is not committed. Training and evaluation commands create local `outputs/`
 directories.
 
+### Optional Hawkes/SVMHJD Benchmark
+
+The optional Hawkes/SVMHJD synthetic benchmark adds clustered, marked jump paths for stress-testing
+rare-event behaviour. The Ogata backend simulates continuous-time marked Hawkes events before
+projecting them to the fixed observation grid, while the fixed-grid backend remains available for
+fast smoke tests. Jump-specific diagnostics and leakage checks are included under `scripts/`, and
+the public note is `docs/benchmarks/hawkes_jump.md`.
+
+This benchmark currently makes no model-selection claim. No Hawkes/SVMHJD trained model is selected
+in `trained_models/model_registry.yaml`, and the public default models remain unchanged.
+
 The current best discrete research model pairs a hidden128 VQ tokenizer with a causal
 conv-transformer k3 prior. It is documented for comparison on research branches only. It is not
 the public default, and its configs, checkpoints, and evidence outputs are not part of this public branch.
