@@ -44,7 +44,7 @@ on research branches and is not part of the public baseline.
 Public dataset-analysis notebooks. These generate synthetic benchmark data in memory, compare
 simulator diagnostics, and do not train models or commit generated artefacts.
 
-- `hawkes_jump_dataset.ipynb`
+- `benchmarks/hawkes_jump_dataset.ipynb`
 
 ## `report/`
 
@@ -53,7 +53,8 @@ train models by default. The S&P500/VIX report notebook can compare the public d
 the best discrete research model, and the continuous BetaCVAE reference when the corresponding
 local paper-style output directories are available.
 
-- `sp500_vix_report_figures.ipynb`
+- `report/sp500_vix_report_figures.ipynb`
+- `report/hawkes_jump_model_comparison.ipynb`
 
 ## Output Policy
 
