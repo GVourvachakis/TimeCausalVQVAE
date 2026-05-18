@@ -39,6 +39,13 @@ on research branches and is not part of the public baseline.
 - `sp500_vix.ipynb`
 - `discrete_latent_geometry.ipynb`
 
+## `benchmarks/`
+
+Public dataset-analysis notebooks. These generate synthetic benchmark data in memory, compare
+simulator diagnostics, and do not train models or commit generated artefacts.
+
+- `hawkes_jump_dataset.ipynb`
+
 ## `report/`
 
 Report-specific figure notebooks. These read figures from local `outputs/` paths and do not
