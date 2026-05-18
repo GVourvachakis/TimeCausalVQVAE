@@ -1,0 +1,34 @@
+experiment:
+  name: hawkes_jump_causal_token_prior_hidden128_conv_transformer
+  dataset: hawkes_jump
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/hawkes_jump_discrete/tokenizer/hawkes_jump_causal_vq_tokenizer_hidden128_seed0
+  token_data_dir: outputs/hawkes_jump_discrete/token_prior/tokens_hidden128
+
+model:
+  family: causal_token_prior
+  prior_type: causal_conv_transformer
+  codebook_size: 64
+  sequence_length: 60
+  token_embedding_dim: 128
+  num_layers: 2
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+  condition_dim: 1
+  condition_injection: additive
+  conv_num_layers: 2
+  conv_kernel_size: 3
+  conv_dilations: [1, 2]
+  conv_dropout: 0.1
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 64
+  eval_batch_size: 64
+  epochs: 2

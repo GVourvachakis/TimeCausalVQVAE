@@ -12,6 +12,9 @@ This directory stores lightweight metadata for selected continuous and discrete 
 
 Selected entries are current registry selections for public workflows, not universal mathematical optima. They reflect the metrics and caveats recorded in the registry and model cards.
 
+Hawkes/SVMHJD is an optional synthetic benchmark. No Hawkes/SVMHJD trained model is registered yet,
+and registry updates require seed-robust model-selection evidence.
+
 The per-experiment model cards provide a compact human-readable summary:
 
 - `black_scholes/model_card.md`;
