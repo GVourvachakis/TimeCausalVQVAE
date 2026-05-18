@@ -213,7 +213,7 @@ and should not train or evaluate unless their run flags are deliberately enabled
 Small public demo figures are committed under `assets/figures/`. They are curated from local
 TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
-| Figure | What it shows | Interpretation |
+| Figure | Description | Interpretation |
 | --- | --- | --- |
 | ![S&P500/VIX hidden128 conv-transformer paths by VIX regime](assets/figures/sp500_vix_best_research_paths.png) | S&P500/VIX decoded paths stratified by VIX regime for the hidden128 conv-transformer research comparison. | This is a research comparison figure, not a public default; S&P500/VIX remains the public demo entry point. |
 | ![S&P500/VIX hidden128 VQ codebook Voronoi diagram](assets/figures/sp500_vix_hidden128_codebook_voronoi.png) | Projected hidden128 VQ codebook geometry for the S&P500/VIX tokenizer. | Codebook geometry is an explanatory diagnostic for latent organisation, not proof of model quality by itself. |
