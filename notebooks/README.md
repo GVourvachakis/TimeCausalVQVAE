@@ -18,9 +18,11 @@ Refactored continuous TC-VAE baseline demos. These notebooks select the register
 candidate for their own experiment, show the selected continuous config, print dry-run training
 and evaluation commands, and avoid released-checkpoint requirements by default. For S&P500/VIX,
 the continuous notebook is the TC-VAE baseline and the continuous BetaCVAE remains the strongest
-overall reference in the current report evidence.
+overall reference in the current report evidence. The Hawkes/SVMHJD continuous notebook is a
+guarded log-return comparator demo for the optional research-candidate benchmark.
 
 - `black_scholes.ipynb`
+- `hawkes_jump.ipynb`
 - `heston.ipynb`
 - `pdv.ipynb`
 - `sp500_vix.ipynb`
@@ -29,24 +31,38 @@ overall reference in the current report evidence.
 
 TC-VQVAE discrete-latent demos. The S&P500/VIX notebook is a public discrete-baseline demo:
 standard causal VQ tokenizer, additive scalar-conditioned causal AR prior, paper-style diagnostics,
-and latent-geometry diagnostics. The hidden128 causal conv-transformer k3 prior is an optional
-research variant for report comparison, not the default notebook workflow. RVQ q2 was evaluated
-on research branches and is not part of the public baseline.
+and latent-geometry diagnostics. The Hawkes/SVMHJD discrete notebook is a guarded log-return
+tokenizer and token-prior demo for the optional research-candidate benchmark. For Hawkes/SVMHJD,
+the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior is the selected
+research candidate under the balanced/smooth profile, while the additive AR prior remains the
+required ablation and is slightly stronger on jump-count and inter-arrival diagnostics. RVQ q2 was
+evaluated on research branches and is not part of the public baseline.
 
 - `black_scholes.ipynb`
+- `hawkes_jump.ipynb`
 - `heston.ipynb`
 - `pdv.ipynb`
 - `sp500_vix.ipynb`
 - `discrete_latent_geometry.ipynb`
+
+## `benchmarks/`
+
+Public dataset-analysis notebooks. The Hawkes/SVMHJD benchmark notebook generates synthetic data in
+memory, compares simulator diagnostics, and does not train models or commit generated artefacts.
+
+- `benchmarks/hawkes_jump_dataset.ipynb`
 
 ## `report/`
 
 Report-specific figure notebooks. These read figures from local `outputs/` paths and do not
 train models by default. The S&P500/VIX report notebook can compare the public discrete baseline,
 the best discrete research model, and the continuous BetaCVAE reference when the corresponding
-local paper-style output directories are available.
+local paper-style output directories are available. The Hawkes/SVMHJD report notebook is a
+side-by-side model-comparison notebook for the continuous comparator, additive AR ablation, and
+conv-transformer k3 research candidate.
 
-- `sp500_vix_report_figures.ipynb`
+- `report/sp500_vix_report_figures.ipynb`
+- `report/hawkes_jump_model_comparison.ipynb`
 
 ## Output Policy
 

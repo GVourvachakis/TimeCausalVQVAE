@@ -48,5 +48,8 @@ poetry run python scripts/check_hawkes_jump_dataset_no_leakage.py \
   --config configs/experiments/hawkes_jump_causal_vq_tokenizer.yaml
 ```
 
-No Hawkes/SVMHJD trained model is selected in the public registry yet. Registry updates should only
-follow seed-robust model-selection evidence.
+Hawkes/SVMHJD has an optional registry entry with `status: research_candidate` and
+`public_default: false`. The selected discrete research candidate under the balanced/smooth profile
+is the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior. The hidden128
+log-return cb64 tokenizer + additive AR prior remains the required ablation and is slightly
+stronger on jump-count and inter-arrival diagnostics.
