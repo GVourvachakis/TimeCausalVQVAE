@@ -59,7 +59,9 @@ train models by default. The S&P500/VIX report notebook can compare the public d
 the best discrete research model, and the continuous BetaCVAE reference when the corresponding
 local paper-style output directories are available. The Hawkes/SVMHJD report notebook is a
 side-by-side model-comparison notebook for the continuous comparator, additive AR ablation, and
-conv-transformer k3 research candidate.
+conv-transformer k3 research candidate. Both report notebooks also profile the selected YAML
+architectures by parameter count and CPU generation time using randomly initialised weights, so
+the timing tables measure architecture cost rather than checkpoint quality.
 
 - `report/sp500_vix_report_figures.ipynb`
 - `report/hawkes_jump_model_comparison.ipynb`
