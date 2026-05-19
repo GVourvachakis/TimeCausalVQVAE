@@ -5,7 +5,7 @@ description = "Clean Python-package rewrite of Time-Causal VAE for financial tim
 authors = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
-license = "MIT"
+license = "GPL-3.0-only"
 keywords = ["time-series", "vae", "finance", "generative-models", "pytorch"]
 dependencies = [
     "torch>=2.5,<3.0",
@@ -38,9 +38,7 @@ tcvae-inspect-checkpoint = "time_causal_vae.cli.inspect_checkpoint:main"
 tcvae-select-model = "time_causal_vae.cli.select_model:main"
 
 [tool.poetry]
-packages = [
-    { include = "time_causal_vae", from = "src" },
-]
+packages = [{ include = "time_causal_vae", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.8.0,<1.0"

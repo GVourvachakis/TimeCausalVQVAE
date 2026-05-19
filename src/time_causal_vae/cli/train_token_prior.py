@@ -712,10 +712,12 @@ class MetricTotals:
             "accuracy": self.accuracy_total / self.n_samples,
             "perplexity": self.perplexity_total / self.n_samples,
         }
-        metrics.update({
-            key: value / self.n_samples
-            for key, value in sorted(self.extra_totals.items(), key=lambda item: item[0])
-        })
+        metrics.update(
+            {
+                key: value / self.n_samples
+                for key, value in sorted(self.extra_totals.items(), key=lambda item: item[0])
+            }
+        )
         return metrics
 
 

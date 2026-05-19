@@ -1,5 +1,10 @@
 # TimeCausalVAE
 
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Ruff](https://github.com/GVourvachakis/TimeCausalVQVAE/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/GVourvachakis/TimeCausalVQVAE/actions/workflows/lint.yml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
+
 [![starline](https://starlines.qoo.monster/assets/GVourvachakis/TimeCausalVQVAE)](https://github.com/qoomon/starline)
 
 `time-causal-vae` is a compact research package for no-anticipation financial time-series
