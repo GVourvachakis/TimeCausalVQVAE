@@ -73,6 +73,14 @@ extend-exclude = ["src/time_causal_vae/evaluation/external"]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM", "ANN", "D", "N", "RUF"]
 ignore = ["D100", "D104", "ANN401"]
 
+[tool.ruff.lint.per-file-ignores]
+"notebooks/**/*.ipynb" = [
+    "D103", # Notebook helper functions are intentionally lightweight.
+    "E402", # Notebooks set paths and plotting env vars before imports.
+    "E501", # Narrative strings and shell commands are clearer unwrapped.
+    "RUF005", # Command construction in notebooks favours linear readability.
+]
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
