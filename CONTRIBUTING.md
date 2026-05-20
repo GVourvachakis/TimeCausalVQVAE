@@ -204,6 +204,7 @@ Future work should remain staged, evidence-backed, and separate from public defa
 ready for review. Useful directions include:
 
 - Per-experiment model selection and periodic registry refreshes, with clear metrics, caveats, and model cards.
+- Pytest coverage: add unit and smoke tests for causal no-leakage checks, dataset tensor contracts, Ogata Hawkes simulation invariants, log-return-to-price conversion, model-registry selection, token-prior sampling shapes, and notebook-safe command generation. Integration tests should remain lightweight and should not require trained checkpoints.
 - Stronger causal priors for hidden128 tokens, including more robust conv-transformer variants. Mamba or selective-SSM priors should wait for CUDA/package compatibility and strict stepwise-causality checks.
 - Continuous-latent prior extensions such as LSGM, score-based, or flow-based alternatives to RealNVP, kept separate from the discrete branch.
 - VQ-family tokenizer experiments such as GroupedResidualVQ and MGVQ, only after prior-calibration bottlenecks are controlled.
