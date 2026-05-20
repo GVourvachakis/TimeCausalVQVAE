@@ -193,3 +193,6 @@ should continue to point at the k3 conv-transformer as the selected
 balanced-profile research candidate. Tiny may be mentioned in documentation as
 an efficiency candidate, but it should not become the registered selected model
 unless a later experiment closes the smooth-profile gap.
+
+No merge to `main` is required from this research branch for the compact-prior
+ablation close-out.
