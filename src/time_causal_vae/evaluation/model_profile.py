@@ -155,9 +155,11 @@ def _profile_continuous_spec(
 
     torch.manual_seed(seed)
     raw_config = _load_yaml_mapping(_resolve_path(spec.config, repo_root))
-    model = _build_continuous_model(raw_config).to(device)
+    model = _build_continuous_model(raw_config)
+    model.to(device)
+    generation_model = cast(Any, model)
     model.eval()
-    model.device = device
+    generation_model.device = device
     condition_dim = int(cast(Mapping[str, Any], raw_config["data"]).get("condition_dim", 0))
     conditions = _zero_conditions(
         batch_size=batch_size,
@@ -167,8 +169,8 @@ def _profile_continuous_spec(
 
     def run_generation() -> torch.Tensor:
         if conditions is None:
-            return cast(torch.Tensor, model.generation(batch_size))
-        return cast(torch.Tensor, model.generation(batch_size, c=conditions))
+            return cast(torch.Tensor, generation_model.generation(batch_size))
+        return cast(torch.Tensor, generation_model.generation(batch_size, c=conditions))
 
     mean_seconds, std_seconds = _time_inference(
         run_generation,
