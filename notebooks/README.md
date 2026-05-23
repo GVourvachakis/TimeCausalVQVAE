@@ -65,6 +65,7 @@ the timing tables measure architecture cost rather than checkpoint quality.
 
 - `report/sp500_vix_report_figures.ipynb`
 - `report/hawkes_jump_model_comparison.ipynb`
+- `report/final_sample_geometry_report.ipynb`
 
 ## Output Policy
 
