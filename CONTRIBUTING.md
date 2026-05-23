@@ -206,7 +206,12 @@ ready for review. Useful directions include:
 - Per-experiment model selection and periodic registry refreshes, with clear metrics, caveats, and model cards.
 - Pytest coverage: add unit and smoke tests for causal no-leakage checks, dataset tensor contracts, Ogata Hawkes simulation invariants, log-return-to-price conversion, model-registry selection, token-prior sampling shapes, and notebook-safe command generation. Integration tests should remain lightweight and should not require trained checkpoints.
 - Stronger causal priors for hidden128 tokens, including more robust conv-transformer variants. Mamba or selective-SSM priors should wait for CUDA/package compatibility and strict stepwise-causality checks.
-- Continuous-latent prior extensions such as LSGM, score-based, or flow-based alternatives to RealNVP, kept separate from the discrete branch.
+- Continuous-latent prior extensions should remain research-branch work until they are
+  promotion-competitive. A continuous latent score-prior / LSGM v1 branch explored frozen TC-VAE
+  encoders and decoders, a latent VP-DDPM prior, and causal TCN and causal Transformer denoisers,
+  but it did not outperform the registered S&P500/VIX continuous RealNVP baseline and no registry
+  update was made. Future LSGM work should focus on representation-aware v2 directions such as
+  higher latent dimension or end-to-end score-compatible continuous VAE training.
 - VQ-family tokenizer experiments such as GroupedResidualVQ and MGVQ, only after prior-calibration bottlenecks are controlled.
 - Causal low/high-frequency decomposition inspired by TimeVQVAE, without introducing bidirectional priors.
 - Optional signature and path-space diagnostics, including log-signature conditioning and signature-kernel metrics, without making them public defaults.
