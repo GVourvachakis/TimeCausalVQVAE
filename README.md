@@ -218,6 +218,12 @@ and should not train or evaluate unless their run flags are deliberately enabled
 Small public demo figures are committed under `assets/figures/`. They are curated from local
 TimeCausalVQVAE runs and are not copied from the original TC-VAE repository.
 
+The report notebook `notebooks/report/final_sample_geometry_report.ipynb` creates t-SNE and
+KDE/ECDF diagnostics for registered continuous and discrete candidates when local output batches
+are available. t-SNE is qualitative only; KDE/ECDF panels are the preferred view for financial
+feature retention. Generated report figures are written locally under
+`outputs/final_sample_geometry_report/` and are not committed by default.
+
 | Figure | Description | Interpretation |
 | --- | --- | --- |
 | ![S&P500/VIX hidden128 conv-transformer paths by VIX regime](assets/figures/sp500_vix_best_research_paths.png) | S&P500/VIX decoded paths stratified by VIX regime for the hidden128 conv-transformer research comparison. | This is a research comparison figure, not a public default; S&P500/VIX remains the public demo entry point. |

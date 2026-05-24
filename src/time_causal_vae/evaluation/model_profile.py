@@ -8,7 +8,7 @@ import warnings
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, Protocol, cast
 
 import ml_collections
 import torch
@@ -38,6 +38,14 @@ _CONTINUOUS_PRIOR_NAMES = {
     "gaussian": "Gaussian",
     "real_nvp": "RealNVP",
 }
+
+
+class _ContinuousGenerationProtocol(Protocol):
+    """Structural type for continuous models that expose generation."""
+
+    def generation(self, n_sample: int, **kwargs: Any) -> torch.Tensor:
+        """Generate a batch of paths."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -155,9 +163,11 @@ def _profile_continuous_spec(
 
     torch.manual_seed(seed)
     raw_config = _load_yaml_mapping(_resolve_path(spec.config, repo_root))
-    model = _build_continuous_model(raw_config).to(device)
+    model = _build_continuous_model(raw_config)
+    model.to(device)
     model.eval()
-    model.device = device
+    model.__dict__["device"] = device
+    generation_model = cast(_ContinuousGenerationProtocol, model)
     condition_dim = int(cast(Mapping[str, Any], raw_config["data"]).get("condition_dim", 0))
     conditions = _zero_conditions(
         batch_size=batch_size,
@@ -167,8 +177,8 @@ def _profile_continuous_spec(
 
     def run_generation() -> torch.Tensor:
         if conditions is None:
-            return cast(torch.Tensor, model.generation(batch_size))
-        return cast(torch.Tensor, model.generation(batch_size, c=conditions))
+            return generation_model.generation(batch_size)
+        return generation_model.generation(batch_size, c=conditions)
 
     mean_seconds, std_seconds = _time_inference(
         run_generation,
