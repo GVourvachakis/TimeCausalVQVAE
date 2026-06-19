@@ -16,7 +16,15 @@ Prerequisites:
 Install the full development environment:
 
 ```bash
-poetry install
+poetry install --with dev
+```
+
+Add optional groups only when they are needed:
+
+```bash
+poetry install --with notebooks
+poetry install --with data
+poetry install --with tracking
 ```
 
 Install pre-commit hooks when you are doing regular development:
@@ -163,9 +171,11 @@ Guidelines:
 
 ## Versioning / Branches
 
-The package version is configured in `pyproject.toml`, and Commitizen is configured for
-conventional commits. Public branches should be release-oriented and minimal. Research branches
-may contain fuller experiment history, verification notes, and candidate configs.
+The package version is configured in `pyproject.toml` and
+`src/time_causal_vae/version.py`; keep them synchronised. Commitizen is configured for
+conventional commits and should update both version files. Public branches should be
+release-oriented and minimal. Research branches may contain fuller experiment history,
+verification notes, and candidate configs.
 
 Suggested branch roles:
 
