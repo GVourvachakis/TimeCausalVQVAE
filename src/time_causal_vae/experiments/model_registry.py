@@ -63,6 +63,15 @@ def load_registry(path: PathLike | None = None) -> RegistryData:
     return cast(RegistryData, data)
 
 
+def load_model_registry(path: PathLike | None = None) -> RegistryData:
+    """Load the trained-model metadata registry.
+
+    This alias keeps the public import name explicit for package smoke tests and downstream
+    callers while preserving `load_registry` as the canonical internal helper.
+    """
+    return load_registry(path)
+
+
 def list_experiments(registry: Mapping[str, Any]) -> list[str]:
     """List experiments registered in metadata."""
     experiments = registry.get("experiments", {})

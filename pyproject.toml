@@ -77,6 +77,7 @@ commitizen = ">=4.0,<5.0"
 nbstripout = ">=0.7,<1.0"
 ipykernel = ">=6.29,<7.0"
 types-pyyaml = ">=6.0.12.20260508,<7.0.0.0"
+twine = ">=6.0,<7.0"
 
 [tool.poetry.group.notebooks]
 optional = true
