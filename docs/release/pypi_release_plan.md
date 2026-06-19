@@ -44,16 +44,55 @@ Final dry check:
 poetry run twine check dist/*
 ```
 
-Publish command:
+Publish with Poetry, using a token supplied only for the current shell:
+
+```bash
+POETRY_PYPI_TOKEN_PYPI=<pypi-token> poetry publish
+```
+
+Alternatively, if credentials are already configured locally in Poetry or the system keyring:
+
+```bash
+poetry publish
+```
+
+Publish with Twine:
 
 ```bash
 poetry run twine upload dist/*
 ```
 
-If using a named repository alias, configure it outside the repository and then run:
+If using a named repository alias with Twine, configure it outside the repository and then run:
 
 ```bash
 poetry run twine upload --repository pypi dist/*
+```
+
+For a first upload of a new PyPI project, prefer an account-scoped API token. A project-scoped
+token only works after the project already exists and the token has been granted access to that
+project.
+
+If PyPI returns `403 Invalid or non-existent authentication information`, check:
+
+- the token was copied with its full `pypi-` prefix;
+- the token is for PyPI, not TestPyPI;
+- the publishing account has a verified email address;
+- the token scope is valid for `time-causal-vae`;
+- no stale `~/.pypirc`, Poetry credential, keyring entry, or `~/.netrc` entry is overriding the
+  intended token.
+
+To replace a stale local Poetry token, run this outside the repository with a fresh PyPI token:
+
+```bash
+poetry config pypi-token.pypi <pypi-token>
+poetry publish
+```
+
+To avoid storing the token in Poetry configuration, prefer the one-command environment variable
+form:
+
+```bash
+POETRY_PYPI_TOKEN_PYPI=<pypi-token> poetry publish
 ```
 
 ## Trusted Publishing Procedure
