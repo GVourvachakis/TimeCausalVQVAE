@@ -28,6 +28,11 @@ The package is organised around five steps:
 5. **Discrete latent geometry**: inspect codebook usage, codebook projections, VIX-bucket usage,
    and example token trajectories.
 
+![High-level TimeCausalVAE workflow](assets/figures/time_causal_vqvae_pipeline.svg)
+
+High-level TimeCausalVAE workflow. The public default remains the one-dimensional S&P500/VIX
+workflow; multidimensional factor/RVQ paths are experimental.
+
 ## 📦 Installation
 
 The project uses [Poetry](https://python-poetry.org/). For the full development environment:

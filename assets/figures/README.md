@@ -1,13 +1,17 @@
 # Figure Assets
 
-This directory contains a small curated set of locally generated TimeCausalVQVAE
-figures for the public README. The source runs remain in local `outputs/`
-directories and are not required to use the package.
+This directory contains a small curated set of locally generated TimeCausalVQVAE figures for the
+public README. The source runs remain in local `outputs/` directories and are not required to use
+the package.
 
-No original TC-VAE figures are copied here.
+No original TC-VAE, VQ-VAE, or VQ-VAE-2 paper figures are copied here. The architecture overview
+SVG is a hand-written original diagram for this repository.
 
 Current assets:
 
+- `time_causal_vqvae_pipeline.svg`: original hand-written SVG overview of the continuous TC-VAE,
+  discrete VQ, experimental multidimensional factor/RVQ, causal-prior, and diagnostics workflow.
+  Source: authored directly in this repository for README, PyPI, and report-facing use.
 - `sp500_vix_best_research_paths.png`: hidden128 conv-transformer path diagnostic
   across VIX regimes. Source: local S&P500/VIX paper-style path output,
   matching `outputs/sp500_vix_discrete/paper_style_hidden128_conv_transformer_sampling_temp10_topk40/vix_bucket_paths.png`.
