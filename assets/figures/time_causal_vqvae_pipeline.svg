@@ -21,10 +21,11 @@
       .tiny { font: 11px Arial, sans-serif; fill: #4d4d4d; }
       .math { font: italic 16px Georgia, serif; fill: #333333; }
       .box { fill: #ffffff; stroke: #333333; stroke-width: 1.5; }
-      .soft { fill: #fff4df; stroke: #7a4b18; stroke-width: 2; }
-      .cyan { fill: #aee6f2; stroke: #7f8c8d; stroke-width: 1.8; }
-      .orange { fill: #ef7d2d; stroke: #b95a1f; stroke-width: 1.4; }
-      .green { fill: #6a9631; stroke: #4e7124; stroke-width: 1; }
+      .prior { fill: #f1e5f7; stroke: #7b3294; stroke-width: 2; }
+      .cyan { fill: #d7ecff; stroke: #0072b2; stroke-width: 1.8; }
+      .quantizer { fill: #fff2cc; stroke: #e69f00; stroke-width: 2; }
+      .orange { fill: #e69f00; stroke: #a66100; stroke-width: 1.4; }
+      .green { fill: #009e73; stroke: #006b4f; stroke-width: 1; }
       .grey { fill: #f4f5f7; stroke: #7a7a7a; stroke-width: 1.4; }
       .line { stroke: #333333; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
       .dash { stroke: #5f6b75; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; marker-end: url(#arrow); }
@@ -46,7 +47,7 @@
 
   <rect class="cyan" x="196" y="56" width="188" height="46" rx="7" />
   <text class="label" x="234" y="76">Causal Encoder</text>
-  <text class="tiny" x="226" y="93">dilated causal convolutions</text>
+  <text class="tiny" x="218" y="93">dilated causal conv encoder</text>
   <g transform="translate(217 124)">
     <polygon points="0,25 18,10 62,10 44,25" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.2" />
     <polygon points="44,25 62,10 62,66 44,81" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.2" />
@@ -66,7 +67,7 @@
 
   <path class="line" d="M465,115 H510" />
 
-  <rect class="box" x="510" y="49" width="156" height="132" />
+  <rect class="quantizer" x="510" y="49" width="156" height="132" />
   <text class="label" x="519" y="39">Vector Quantizer Layer</text>
   <g transform="translate(536 67)">
     <rect class="green" x="0" y="0" width="20" height="11" />
@@ -98,7 +99,7 @@
 
   <rect class="cyan" x="795" y="56" width="188" height="46" rx="7" />
   <text class="label" x="840" y="76">Causal Decoder</text>
-  <text class="tiny" x="824" y="93">dilated causal convolutions</text>
+  <text class="tiny" x="817" y="93">dilated causal conv decoder</text>
   <g transform="translate(810 124)">
     <polygon points="0,25 18,10 62,10 44,25" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.2" />
     <polygon points="44,25 62,10 62,66 44,81" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.2" />
@@ -117,7 +118,7 @@
   <polyline points="992,128 1002,123 1012,124 1022,111 1032,114 1042,102 1052,107 1062,96 1072,100 1080,94" fill="none" stroke="#c8ff6a" stroke-width="2.1" />
   <text class="math" x="1010" y="166">X̂<tspan baseline-shift="sub" font-size="12">t:T</tspan></text>
 
-  <rect class="soft" x="363" y="238" width="360" height="88" rx="14" />
+  <rect class="prior" x="363" y="238" width="360" height="88" rx="14" />
   <text class="label" x="476" y="266">Causal Token Prior</text>
   <text class="math" x="429" y="294">p<tspan baseline-shift="sub" font-size="12">θ</tspan>(q<tspan baseline-shift="sub" font-size="12">t</tspan> | q<tspan baseline-shift="sub" font-size="12">&lt;t</tspan>, c<tspan baseline-shift="sub" font-size="12">≤t</tspan>)</text>
   <text class="tiny" x="448" y="314">sample token sequence before decoding</text>
