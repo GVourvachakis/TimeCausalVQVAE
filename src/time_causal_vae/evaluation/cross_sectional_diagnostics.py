@@ -166,12 +166,14 @@ def sector_block_correlation_summary(
             block_mean = _safe_mean(block_values)
             if block_values.numel() > 0:
                 target.append(block_mean)
-            blocks.append({
-                "row_sector": int(row_sector),
-                "col_sector": int(col_sector),
-                "asset_count": int(block.numel()),
-                "mean_correlation": block_mean,
-            })
+            blocks.append(
+                {
+                    "row_sector": int(row_sector),
+                    "col_sector": int(col_sector),
+                    "asset_count": int(block.numel()),
+                    "mean_correlation": block_mean,
+                }
+            )
 
     within_mean = _safe_float_mean(within_values)
     between_mean = _safe_float_mean(between_values)
