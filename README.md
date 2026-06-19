@@ -18,19 +18,10 @@ also hosts the discrete VQ extension work.
 
 ## Installation
 
-Install the package from PyPI after release:
+Install the package from PyPI:
 
 ```bash
 python -m pip install time-causal-vae
-```
-
-For the TestPyPI release candidate:
-
-```bash
-python -m pip install \
-  --index-url https://test.pypi.org/simple/ \
-  --extra-index-url https://pypi.org/simple \
-  time-causal-vae==0.1.0a1
 ```
 
 Wheel installs include the runtime package only. From a source checkout, use

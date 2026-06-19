@@ -1,6 +1,6 @@
 [project]
 name = "time-causal-vae"
-version = "0.1.0a1"
+version = "0.1.0"
 description = "Time-causal financial generative models with TC-VAE baselines, causal VQ/RVQ tokenizers, token priors, and path-risk diagnostics."
 authors = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
 maintainers = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
@@ -128,6 +128,7 @@ convention = "numpy"
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+preview = true
 
 [tool.mypy]
 python_version = "3.11"
@@ -142,6 +143,6 @@ exclude = ["^src/time_causal_vae/evaluation/external/"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0a1"
+version = "0.1.0"
 version_files = ["pyproject.toml:^version", "src/time_causal_vae/version.py:__version__"]
 tag_format = "v$version"
