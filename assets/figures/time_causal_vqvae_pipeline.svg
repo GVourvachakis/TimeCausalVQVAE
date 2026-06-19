@@ -1,141 +1,159 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="660" viewBox="0 0 1120 660" role="img" aria-labelledby="title desc">
-  <title id="title">High-level TimeCausalVAE workflow</title>
-  <desc id="desc">Original architecture overview showing continuous TC-VAE, discrete VQ, experimental multidimensional factor/RVQ, causal prior, and diagnostics paths.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Time-causal VQ-VAE architecture overview</title>
+  <desc id="desc">Original sketch of the default time-causal VQ-VAE and continuous TC-VAE baseline workflows, with causal encoder, vector quantizer, token prior, decoder, latent codebook sketch, and diagnostics.</desc>
   <defs>
+    <linearGradient id="cyanBox" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#19e5e8" />
+      <stop offset="1" stop-color="#b9e6f4" />
+    </linearGradient>
+    <linearGradient id="latentBox" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#ffd0c8" />
+      <stop offset="1" stop-color="#f5f7c7" />
+    </linearGradient>
     <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L10,4 L0,8 Z" fill="#34495e" />
+      <path d="M0,0 L10,4 L0,8 Z" fill="#4c4c4c" />
     </marker>
     <style>
-      .bg { fill: #fbfcfd; }
-      .title { font: 700 26px Arial, sans-serif; fill: #1f2d3d; }
-      .subtitle { font: 14px Arial, sans-serif; fill: #52616f; }
-      .lane-title { font: 700 15px Arial, sans-serif; fill: #253443; }
-      .label { font: 13px Arial, sans-serif; fill: #253443; }
-      .small { font: 11px Arial, sans-serif; fill: #607080; }
-      .box { stroke-width: 1.6; rx: 10; ry: 10; }
-      .input { fill: #eef6ff; stroke: #3d7fc2; }
-      .continuous { fill: #ecf8f2; stroke: #2f9b67; }
-      .discrete { fill: #fff5e8; stroke: #d88a20; }
-      .factor { fill: #f4efff; stroke: #805ad5; }
-      .diagnostic { fill: #f2f4f7; stroke: #6b7785; }
-      .note { fill: #fffdf2; stroke: #c5a100; }
-      .line { stroke: #34495e; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
-      .soft-line { stroke: #7a8b99; stroke-width: 1.4; stroke-dasharray: 5 5; fill: none; marker-end: url(#arrow); }
-      .lane { stroke: #d9e0e7; stroke-width: 1; fill: none; }
+      .title { font: 700 28px Arial, sans-serif; fill: #2d2d2d; }
+      .subtitle { font: 15px Arial, sans-serif; fill: #555; }
+      .panel { fill: #fff0dc; stroke: #6b4316; stroke-width: 3.5; }
+      .panel-small { fill: #fff0dc; stroke: #6b4316; stroke-width: 3; }
+      .module { fill: url(#cyanBox); stroke: #8c8c8c; stroke-width: 2.4; }
+      .latent { fill: url(#latentBox); stroke: #8c8c8c; stroke-width: 2.2; }
+      .quant { fill: #ffffff; stroke: #8c8c8c; stroke-width: 2; }
+      .cube-front { fill: #3f76c9; stroke: #2f5597; stroke-width: 1.4; }
+      .cube-side { fill: #2e5fae; stroke: #2f5597; stroke-width: 1.2; }
+      .cube-top { fill: #6d9de5; stroke: #2f5597; stroke-width: 1.2; }
+      .orange { fill: #ee7c2f; stroke: #bb5722; stroke-width: 1.3; }
+      .green { fill: #6b9e35; stroke: #4f7728; stroke-width: 1; }
+      .node { fill: #bfbfbf; stroke: #555; stroke-width: 1.6; }
+      .node-text { font: italic 13px Georgia, serif; fill: #333; }
+      .label { font: 700 15px Arial, sans-serif; fill: #2f2f2f; }
+      .small { font: 12px Arial, sans-serif; fill: #4f4f4f; }
+      .formula { font: italic 20px Georgia, serif; fill: #555; }
+      .formula-small { font: italic 15px Georgia, serif; fill: #555; }
+      .caption { font: 13px Arial, sans-serif; fill: #5e5e5e; }
+      .line { stroke: #555; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .thin-line { stroke: #666; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #777; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; marker-end: url(#arrow); }
+      .brace { stroke: #555; stroke-width: 1.4; fill: none; }
     </style>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1120" height="660" />
-  <text class="title" x="40" y="46">TimeCausalVAE workflow</text>
-  <text class="subtitle" x="40" y="70">Causal continuous and discrete generators with experimental multidimensional benchmark paths</text>
+  <rect x="0" y="0" width="1280" height="720" fill="#ffffff" />
+  <text class="title" x="48" y="44">Time-causal VQ-VAE architecture</text>
+  <text class="subtitle" x="48" y="68">Default one-dimensional financial path workflow with no-anticipation encoder, vector quantizer, causal token prior, and diagnostics</text>
 
-  <rect class="lane" x="30" y="100" width="1060" height="130" rx="16" />
-  <rect class="lane" x="30" y="250" width="1060" height="150" rx="16" />
-  <rect class="lane" x="30" y="420" width="1060" height="150" rx="16" />
+  <rect class="panel" x="42" y="92" width="770" height="520" rx="62" />
+  <text class="label" x="330" y="640">Time-Causal VQ-VAE</text>
 
-  <text class="lane-title" x="50" y="126">Continuous TC-VAE path</text>
-  <text class="lane-title" x="50" y="276">Discrete VQ path</text>
-  <text class="lane-title" x="50" y="446">Experimental multidimensional factor/RVQ path</text>
+  <text class="formula" x="82" y="133">X = (X₁, X₂, ..., Xₜ) ~ μdata</text>
+  <path class="line" d="M205,142 V170" />
 
-  <rect class="box input" x="60" y="145" width="145" height="58" />
-  <text class="label" x="82" y="170">market paths</text>
-  <text class="small" x="82" y="188">prefix-safe conditions</text>
+  <rect class="module" x="90" y="170" width="230" height="64" rx="10" />
+  <text class="label" x="133" y="196">Time Causal Network</text>
+  <text class="label" x="166" y="216">(Encoder)</text>
 
-  <rect class="box continuous" x="250" y="135" width="135" height="76" />
-  <text class="label" x="279" y="162">causal encoder</text>
-  <text class="small" x="278" y="182">adapted history</text>
-  <text class="small" x="291" y="197">to latent z</text>
+  <path class="line" d="M320,202 H394" />
+  <g transform="translate(395 176)">
+    <polygon class="cube-top" points="0,22 16,8 54,8 38,22" />
+    <polygon class="cube-side" points="38,22 54,8 54,50 38,64" />
+    <rect class="cube-front" x="0" y="22" width="38" height="42" />
+    <text class="small" x="-8" y="83">causal conv</text>
+  </g>
+  <path class="line" d="M456,202 H505" />
+  <rect class="orange" x="508" y="187" width="44" height="28" rx="4" />
+  <text class="formula-small" x="488" y="239">zₑ,t = fφ(X≤t, c≤t)</text>
 
-  <rect class="box continuous" x="430" y="135" width="120" height="76" />
-  <text class="label" x="461" y="163">RealNVP</text>
-  <text class="small" x="456" y="182">latent prior</text>
-  <text class="small" x="466" y="197">sample z</text>
+  <path class="line" d="M552,202 H592" />
+  <rect class="quant" x="594" y="152" width="132" height="94" />
+  <text class="label" x="601" y="140">Vector Quantizer</text>
+  <g transform="translate(618 173)">
+    <rect class="green" x="0" y="0" width="18" height="10" />
+    <rect class="green" x="34" y="0" width="18" height="10" />
+    <rect class="green" x="68" y="0" width="18" height="10" />
+    <rect class="green" x="0" y="23" width="18" height="10" />
+    <rect class="green" x="34" y="23" width="18" height="10" />
+    <rect class="green" x="68" y="23" width="18" height="10" />
+    <rect class="green" x="0" y="46" width="18" height="10" />
+    <rect class="green" x="34" y="46" width="18" height="10" />
+    <rect class="green" x="68" y="46" width="18" height="10" />
+    <circle cx="43" cy="28" r="6" fill="#f08a2f" stroke="#bb5722" stroke-width="1.2" />
+  </g>
+  <text class="formula-small" x="588" y="270">qₜ = argminⱼ ||zₑ,t - eⱼ||²</text>
+  <text class="formula-small" x="622" y="292">zq,t = e(qₜ)</text>
 
-  <rect class="box continuous" x="595" y="135" width="135" height="76" />
-  <text class="label" x="624" y="162">causal decoder</text>
-  <text class="small" x="626" y="182">generated</text>
-  <text class="small" x="632" y="197">returns</text>
+  <path class="line" d="M660,246 V332" />
+  <rect class="latent" x="515" y="332" width="290" height="72" rx="12" />
+  <text class="formula" x="545" y="361">Q = (q₁, q₂, ..., qₜ)</text>
+  <text class="formula-small" x="550" y="386">discrete latent path in learned codebook E</text>
 
-  <rect class="box input" x="60" y="305" width="145" height="58" />
-  <text class="label" x="82" y="330">market paths</text>
-  <text class="small" x="88" y="348">VIX / scalar context</text>
+  <path class="line" d="M515,368 H430" />
+  <g transform="translate(354 337)">
+    <polygon class="cube-top" points="0,22 16,8 58,8 42,22" />
+    <polygon class="cube-side" points="42,22 58,8 58,58 42,72" />
+    <rect class="cube-front" x="0" y="22" width="42" height="50" />
+    <text class="small" x="-8" y="92">ConvT decoder</text>
+  </g>
+  <path class="line" d="M354,368 H290" />
+  <rect class="module" x="95" y="336" width="195" height="64" rx="10" />
+  <text class="label" x="121" y="362">Time Causal Network</text>
+  <text class="label" x="155" y="382">(Decoder)</text>
+  <path class="line" d="M192,400 V438" />
+  <text class="formula" x="82" y="468">Y = (Y₁, Y₂, ..., Yₜ) ~ μrec</text>
 
-  <rect class="box discrete" x="250" y="288" width="135" height="88" />
-  <text class="label" x="279" y="314">causal encoder</text>
-  <text class="small" x="276" y="334">dilated causal</text>
-  <text class="small" x="292" y="350">CNN stack</text>
+  <rect class="panel-small" x="858" y="106" width="368" height="250" rx="44" />
+  <text class="label" x="978" y="378">Causal token generation</text>
+  <text class="formula" x="906" y="158">Q̂ ~ pθ(qₜ | q₁:ₜ₋₁, c≤t)</text>
+  <path class="line" d="M1040,170 V202" />
+  <rect class="module" x="936" y="202" width="210" height="58" rx="10" />
+  <text class="label" x="982" y="226">Causal Prior</text>
+  <text class="small" x="974" y="246">AR token model</text>
+  <path class="line" d="M1040,260 V292" />
+  <rect class="module" x="936" y="292" width="210" height="52" rx="10" />
+  <text class="label" x="984" y="314">Shared Decoder</text>
+  <text class="small" x="991" y="333">X̂ ~ μgen</text>
 
-  <rect class="box discrete" x="430" y="288" width="125" height="88" />
-  <text class="label" x="452" y="315">VQ tokenizer</text>
-  <text class="small" x="457" y="335">one code per</text>
-  <text class="small" x="467" y="351">time step</text>
+  <rect class="panel-small" x="858" y="418" width="368" height="206" rx="38" />
+  <text class="label" x="974" y="646">Continuous TC-VAE baseline</text>
+  <text class="formula-small" x="900" y="468">qφ(Zₜ | X≤t, c≤t) = N(μₜ, σₜ²)</text>
+  <text class="formula-small" x="924" y="498">Zₜ = μₜ + σₜ ⊙ εₜ</text>
+  <path class="line" d="M1040,507 V535" />
+  <rect class="module" x="934" y="535" width="214" height="54" rx="10" />
+  <text class="label" x="973" y="557">Time Causal Decoder</text>
+  <text class="small" x="993" y="576">continuous sample path</text>
 
-  <rect class="box discrete" x="600" y="288" width="130" height="88" />
-  <text class="label" x="631" y="315">causal prior</text>
-  <text class="small" x="624" y="335">autoregressive</text>
-  <text class="small" x="642" y="351">tokens</text>
+  <rect class="quant" x="60" y="512" width="290" height="68" rx="10" />
+  <text class="label" x="82" y="538">Diagnostics</text>
+  <text class="small" x="82" y="558">financial distances, VIX buckets, no-leakage checks</text>
+  <path class="dash" d="M192,468 V512" />
+  <path class="dash" d="M1040,344 C1040,386 345,502 320,528" />
+  <path class="dash" d="M1040,589 C1040,626 365,596 324,574" />
 
-  <rect class="box discrete" x="775" y="288" width="130" height="88" />
-  <text class="label" x="804" y="315">decoder</text>
-  <text class="small" x="806" y="335">decoded</text>
-  <text class="small" x="801" y="351">return path</text>
+  <g transform="translate(910 28)">
+    <text class="label" x="0" y="0">Causal information flow</text>
+    <circle class="node" cx="28" cy="38" r="17" />
+    <circle class="node" cx="108" cy="38" r="17" />
+    <circle class="node" cx="188" cy="38" r="17" />
+    <circle class="node" cx="28" cy="93" r="17" />
+    <circle class="node" cx="108" cy="93" r="17" />
+    <circle class="node" cx="188" cy="93" r="17" />
+    <text class="node-text" x="18" y="43">x₁</text>
+    <text class="node-text" x="98" y="43">x₂</text>
+    <text class="node-text" x="178" y="43">x₃</text>
+    <text class="node-text" x="18" y="98">q₁</text>
+    <text class="node-text" x="98" y="98">q₂</text>
+    <text class="node-text" x="178" y="98">q₃</text>
+    <path class="thin-line" d="M28,55 V76" />
+    <path class="thin-line" d="M108,55 V76" />
+    <path class="thin-line" d="M188,55 V76" />
+    <path class="thin-line" d="M45,45 L94,82" />
+    <path class="thin-line" d="M125,45 L174,82" />
+    <path class="thin-line" d="M45,42 L173,83" />
+  </g>
 
-  <rect class="box input" x="60" y="472" width="145" height="58" />
-  <text class="label" x="82" y="497">50D returns</text>
-  <text class="small" x="86" y="515">train-only stats</text>
-
-  <rect class="box factor" x="250" y="456" width="135" height="88" />
-  <text class="label" x="284" y="483">train PCA</text>
-  <text class="small" x="275" y="503">K factor coords</text>
-  <text class="small" x="282" y="519">fit on train</text>
-
-  <rect class="box factor" x="430" y="456" width="125" height="88" />
-  <text class="label" x="449" y="483">RVQ tokenizer</text>
-  <text class="small" x="451" y="503">q0, q1 codes</text>
-  <text class="small" x="459" y="519">experimental</text>
-
-  <rect class="box factor" x="600" y="456" width="130" height="88" />
-  <text class="label" x="625" y="483">multi-code</text>
-  <text class="label" x="646" y="501">prior</text>
-  <text class="small" x="622" y="521">factorised first</text>
-
-  <rect class="box factor" x="775" y="456" width="130" height="88" />
-  <text class="label" x="795" y="483">inverse project</text>
-  <text class="small" x="801" y="503">back to 50D</text>
-  <text class="small" x="805" y="519">raw returns</text>
-
-  <rect class="box diagnostic" x="940" y="230" width="125" height="185" />
-  <text class="label" x="965" y="256">financial and</text>
-  <text class="label" x="952" y="274">cross-sectional</text>
-  <text class="label" x="974" y="292">diagnostics</text>
-  <text class="small" x="960" y="322">MMD / SWD</text>
-  <text class="small" x="960" y="342">covariance</text>
-  <text class="small" x="960" y="362">sector blocks</text>
-  <text class="small" x="960" y="382">VaR / ES</text>
-  <text class="small" x="960" y="402">no-leakage checks</text>
-
-  <rect class="box note" x="830" y="125" width="230" height="74" />
-  <text class="label" x="852" y="151">Public default remains</text>
-  <text class="label" x="852" y="170">one-dimensional S&amp;P500/VIX.</text>
-  <text class="small" x="852" y="188">Multidimensional paths are experimental.</text>
-
-  <path class="line" d="M205,174 H250" />
-  <path class="line" d="M385,173 H430" />
-  <path class="line" d="M550,173 H595" />
-  <path class="line" d="M730,173 C810,173 835,245 940,280" />
-
-  <path class="line" d="M205,334 H250" />
-  <path class="line" d="M385,332 H430" />
-  <path class="line" d="M555,332 H600" />
-  <path class="line" d="M730,332 H775" />
-  <path class="line" d="M905,332 H940" />
-
-  <path class="line" d="M205,501 H250" />
-  <path class="line" d="M385,500 H430" />
-  <path class="line" d="M555,500 H600" />
-  <path class="line" d="M730,500 H775" />
-  <path class="line" d="M905,500 C935,500 935,410 955,410" />
-
-  <path class="soft-line" d="M132,363 C132,390 132,430 132,472" />
-  <text class="small" x="75" y="414">same no-anticipation rule</text>
+  <path class="brace" d="M90,250 C90,268 105,268 105,286 H320 C320,268 335,268 335,250" />
+  <text class="small" x="165" y="310">encoder network</text>
+  <path class="brace" d="M95,416 C95,434 110,434 110,452 H290 C290,434 305,434 305,416" />
+  <text class="small" x="151" y="494">decoder network</text>
 </svg>
