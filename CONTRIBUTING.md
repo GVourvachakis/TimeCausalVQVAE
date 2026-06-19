@@ -142,6 +142,12 @@ poetry run python scripts/select_registered_model.py --experiment sp500_vix --fa
 Do not change public defaults unless the registry contains explicit metadata justifying the
 selection and the corresponding documentation explains the trade-off.
 
+Multidimensional registry promotion has a higher evidence bar. It requires seed-robust empirical
+evidence, no-leakage preprocessing, an explicit selection profile, a model card, and
+local-output-only checkpoint conventions. Until that evidence exists, multidimensional loaders,
+diagnostics, and configs should remain experimental infrastructure rather than registry-selected
+models.
+
 ## Code Quality
 
 Prefer narrow, local changes. Preserve public commands and notebook workflows when refactoring.
@@ -189,7 +195,7 @@ Before committing, inspect the diff and check that no generated artefacts are st
 ```bash
 git status --short
 git diff --stat
-git ls-files | grep -E '(^outputs/|^wandb/|^data/processed/|\.npy$|\.npz$|\.pt$|\.pkl$|\.pyc$|__pycache__)' || true
+git ls-files | grep -E '(^outputs/|^wandb/|^data/raw/|^data/processed/|\.npy$|\.npz$|\.pt$|\.pkl$|\.pyc$|__pycache__)' || true
 ```
 
 ## Research Branch Policy

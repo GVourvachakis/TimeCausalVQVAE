@@ -173,7 +173,8 @@ No multidimensional generator is selected in `trained_models/model_registry.yaml
 RVQ q2 configs are labelled experimental and are provided to exercise multi-code tokenizer and
 prior infrastructure, not to declare a public default. Empirical S&P500 50-stock data is
 Yahoo-backed through optional `yfinance` access, must remain local, and must not be redistributed
-or committed.
+or committed. Non-smoke multidimensional result documents, seed grids, sampling ablations, and
+hierarchy ablations are research-branch evidence rather than public README claims.
 
 ## 🧠 Model Architecture
 
