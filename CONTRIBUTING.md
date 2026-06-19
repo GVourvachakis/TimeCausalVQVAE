@@ -41,9 +41,9 @@ Common commands:
 - Build the package: `poetry build`
 - Check package metadata: `poetry check`
 
-Dependency groups are declared in `pyproject.toml` for `dev`, `notebooks`, and `tracking`.
-Before adding a dependency, prefer existing scientific Python packages already used in the
-project, and keep optional tooling out of the core runtime when possible.
+Dependency groups are declared in `pyproject.toml` for `dev`, `notebooks`, `tracking`, and
+optional `data` access. Before adding a dependency, prefer existing scientific Python packages
+already used in the project, and keep optional tooling out of the core runtime when possible.
 
 ## Running Checks
 
@@ -101,6 +101,7 @@ Do not commit:
 
 - `outputs/`
 - `wandb/`
+- `data/raw/`
 - `data/processed/`
 - model checkpoints or weights
 - `.pt`, `.npy`, `.npz`, `.pkl`, `.pyc`, or cache files
@@ -108,6 +109,10 @@ Do not commit:
 - local logs and paper-style JSON summaries
 
 The `outputs/` directory is for local training and evaluation results. It should stay out of Git.
+Downloaded financial data must remain local under `data/raw`, `data/processed`, or `outputs`.
+Empirical benchmark downloaders may use optional data dependencies, but raw Yahoo-backed or
+yfinance-backed data, processed tensors, local metadata exports, and redistributed price files
+must not be committed.
 
 Small curated public images may be committed under `assets/figures/` when they are intentionally
 selected for the README or a demo. Trained model directories should contain only lightweight
@@ -194,9 +199,12 @@ evidence summaries when they are useful for ongoing analysis. Do not remove rese
 research branches while preparing a public branch.
 
 Public branches should keep only the source, notebooks, configs, scripts, and documentation needed
-for the public baseline and any explicitly documented demo. RVQ q2, hidden128 variants, diffusion,
-signature-kernel experiments, and other exploratory paths should remain on research branches
-unless they are deliberately promoted.
+for the public baseline and any explicitly documented demo. Multidimensional benchmark loaders,
+diagnostics, smoke scripts, and clearly labelled experimental configs may be public when they do
+not claim a selected model. Multidimensional non-smoke evidence, seed grids, sampling ablations,
+hierarchy ablations, generated summaries, and empirical result logs belong on research branches.
+RVQ q2, hidden128 variants, diffusion, signature-kernel experiments, and other exploratory paths
+should remain on research branches unless they are deliberately promoted.
 
 ## Future Directions
 

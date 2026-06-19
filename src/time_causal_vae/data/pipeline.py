@@ -14,10 +14,13 @@ import torch
 
 from time_causal_vae.data.base import BaseDataset
 from time_causal_vae.data.black_scholes import BlackScholes2Dataset, BlackScholesDataset
+from time_causal_vae.data.factor_projected_market import FactorProjectedMultifactorMarketDataset
 from time_causal_vae.data.hawkes_jump import HawkesJumpDataset
 from time_causal_vae.data.heston import HestonDataset
 from time_causal_vae.data.market import LogrDataset, SP500VIXDataset
+from time_causal_vae.data.multifactor_market import MultifactorMarketDataset
 from time_causal_vae.data.path_dependent_volatility import PDVPriceFeatureDataset
+from time_causal_vae.data.sp500_panel import SP50050PanelDataset
 from time_causal_vae.data.toy import ANMDataset, CheckerBoard, MixMultiVariateNormal, Spiral
 
 DATASET_NAME_ALIASES = {
@@ -29,10 +32,16 @@ DATASET_NAME_ALIASES = {
     "Hestonprice": "Hestonprice",
     "hawkes_jump": "HawkesJump",
     "HawkesJump": "HawkesJump",
+    "multifactor_market": "MultifactorMarket",
+    "MultifactorMarket": "MultifactorMarket",
+    "multifactor_market_factor_projected": "MultifactorFactorProjectedMarket",
+    "MultifactorFactorProjectedMarket": "MultifactorFactorProjectedMarket",
     "path_dependent_volatility": "PDVPriceConFeature",
     "PDVPriceConFeature": "PDVPriceConFeature",
     "sp500_vix": "SP500VIX",
     "SP500VIX": "SP500VIX",
+    "sp500_50_panel": "SP50050Panel",
+    "SP50050Panel": "SP50050Panel",
     "Logr": "Logr",
     "ANM": "ANM",
     "GM": "GM",
@@ -47,9 +56,17 @@ class DataPipeline:
     def __init__(self) -> None:
         """Initialise the pipeline and store the first raw dataset as reference."""
         self.base_dataset = None
+        self._multifactor_standardization_stats = None
+        self._multifactor_factor_projection_state = None
+        self._sp500_standardization_stats = None
+        self._sp500_factor_projection_state = None
 
     def __call__(self, exp_config, **kwargs):
         """Return train and eval ``BaseDataset`` objects."""
+        self._multifactor_standardization_stats = None
+        self._multifactor_factor_projection_state = None
+        self._sp500_standardization_stats = None
+        self._sp500_factor_projection_state = None
         train_data, train_labels = self._get_data_label(exp_config, use="train", **kwargs)
         train_dataset = BaseDataset(train_data, train_labels)
         eval_data, eval_labels = self._get_data_label(exp_config, use="eval", **kwargs)
@@ -96,6 +113,58 @@ class DataPipeline:
             )
             data = dataset.data
             labels = dataset.labels
+        elif dataset_name == "MultifactorMarket":
+            multifactor_kwargs = dict(dataset_kwargs)
+            if use == "eval":
+                if multifactor_kwargs.get("path_seed") is not None:
+                    multifactor_kwargs["path_seed"] = int(multifactor_kwargs["path_seed"]) + 1
+                elif multifactor_kwargs.get("seed") is not None:
+                    multifactor_kwargs["seed"] = int(multifactor_kwargs["seed"]) + 1
+                if (
+                    multifactor_kwargs.get("standardize_returns")
+                    and self._multifactor_standardization_stats is not None
+                ):
+                    multifactor_kwargs["standardization_stats"] = (
+                        self._multifactor_standardization_stats
+                    )
+            dataset = MultifactorMarketDataset(
+                exp_config.n_sample,
+                exp_config.n_timestep,
+                **multifactor_kwargs,
+            )
+            if use == "train" and multifactor_kwargs.get("standardize_returns"):
+                self._multifactor_standardization_stats = dataset.standardization_stats
+            data = dataset.data
+            labels = dataset.labels
+        elif dataset_name == "MultifactorFactorProjectedMarket":
+            multifactor_kwargs = dict(dataset_kwargs)
+            if use == "eval":
+                if multifactor_kwargs.get("path_seed") is not None:
+                    multifactor_kwargs["path_seed"] = int(multifactor_kwargs["path_seed"]) + 1
+                elif multifactor_kwargs.get("seed") is not None:
+                    multifactor_kwargs["seed"] = int(multifactor_kwargs["seed"]) + 1
+                if (
+                    multifactor_kwargs.get("standardize_returns")
+                    and self._multifactor_standardization_stats is not None
+                ):
+                    multifactor_kwargs["standardization_stats"] = (
+                        self._multifactor_standardization_stats
+                    )
+                if self._multifactor_factor_projection_state is not None:
+                    multifactor_kwargs["projection_state"] = (
+                        self._multifactor_factor_projection_state
+                    )
+            dataset = FactorProjectedMultifactorMarketDataset(
+                exp_config.n_sample,
+                exp_config.n_timestep,
+                **multifactor_kwargs,
+            )
+            if use == "train":
+                if multifactor_kwargs.get("standardize_returns"):
+                    self._multifactor_standardization_stats = dataset.standardization_stats
+                self._multifactor_factor_projection_state = dataset.projection_state
+            data = dataset.data
+            labels = dataset.labels
         elif dataset_name == "PDVPriceConFeature":
             dataset = PDVPriceFeatureDataset(
                 exp_config.n_sample,
@@ -110,6 +179,35 @@ class DataPipeline:
                 exp_config.n_timestep,
                 base_data_dir=exp_config.base_data_dir,
             )
+            data = dataset.data
+            labels = dataset.labels
+        elif dataset_name == "SP50050Panel":
+            panel_kwargs = dict(dataset_kwargs)
+            if use in {"train", "eval"} and "split" not in panel_kwargs:
+                panel_kwargs["split"] = use
+            if (
+                use == "eval"
+                and panel_kwargs.get("standardize_returns")
+                and self._sp500_standardization_stats is not None
+            ):
+                panel_kwargs["standardization_stats"] = self._sp500_standardization_stats
+            if (
+                use == "eval"
+                and panel_kwargs.get("projection_mode") is not None
+                and self._sp500_factor_projection_state is not None
+            ):
+                panel_kwargs["projection_state"] = self._sp500_factor_projection_state
+            dataset = SP50050PanelDataset(
+                _split_sample_count(exp_config, use=use),
+                exp_config.n_timestep,
+                base_data_dir=exp_config.base_data_dir,
+                **panel_kwargs,
+            )
+            if use == "train":
+                if panel_kwargs.get("standardize_returns"):
+                    self._sp500_standardization_stats = dataset.standardization_stats
+                if panel_kwargs.get("projection_mode") is not None:
+                    self._sp500_factor_projection_state = dataset.projection_state
             data = dataset.data
             labels = dataset.labels
         elif dataset_name == "Logr":
@@ -140,3 +238,22 @@ class DataPipeline:
         if self.base_dataset is None:
             self.base_dataset = dataset
         return data, labels
+
+
+def _split_sample_count(exp_config, *, use=None) -> int | None:
+    """Return split-specific sample count, falling back to legacy ``n_sample``."""
+    if use == "train" and "train_n_sample" in exp_config and exp_config.train_n_sample is not None:
+        return _optional_positive_int(exp_config.train_n_sample)
+    if use == "eval" and "eval_n_sample" in exp_config and exp_config.eval_n_sample is not None:
+        return _optional_positive_int(exp_config.eval_n_sample)
+    return int(exp_config.n_sample)
+
+
+def _optional_positive_int(value) -> int | None:
+    """Return ``None`` or a validated positive integer."""
+    if value is None:
+        return None
+    count = int(value)
+    if count <= 0:
+        raise ValueError("split-specific sample counts must be positive when provided.")
+    return count

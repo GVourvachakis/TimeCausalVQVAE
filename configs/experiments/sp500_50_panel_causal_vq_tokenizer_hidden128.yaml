@@ -1,0 +1,36 @@
+experiment:
+  name: sp500_50_panel_causal_vq_tokenizer_hidden128
+  dataset: sp500_50_panel
+  seed: 0
+data:
+  n_samples: 64
+  n_timesteps: 60
+  data_dim: 50
+  condition_dim: 2
+  condition_feature: spy_vix_level
+  data_params:
+    processed_subdir: sp500_50_panel
+    condition_mode: spy_vix_level
+model:
+  family: causal_vq_tokenizer
+  data_dim: 50
+  data_length: 60
+  embedding_dim: 64
+  codebook_size: 64
+  commitment_weight: 0.1
+  encoder_hidden_dim: 128
+  decoder_hidden_dim: 128
+  num_layers: 4
+  dilations: [1, 2, 4, 8]
+  dropout: 0.0
+  condition_dim: 2
+  kmeans_init: true
+  kmeans_iters: 5
+  use_cosine_sim: false
+  codebook_dim: 16
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 64
+  eval_batch_size: 64
+  epochs: 1
