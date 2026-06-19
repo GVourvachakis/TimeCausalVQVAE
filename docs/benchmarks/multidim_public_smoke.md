@@ -158,3 +158,92 @@ cross-sectional dataset diagnostics, and tokenizer no-leakage checks all pass.
 The branch should not be merged automatically. It remains an experimental
 benchmark integration with no multidimensional registry-selected model.
 Generated outputs and downloaded or processed empirical data remain local only.
+
+## Final Merge Readiness
+
+Final validation was run on branch
+`feature/multidim-experimental-benchmarks` before manual merge review.
+
+Commands run:
+
+```bash
+poetry run python scripts/smoke_multifactor_market_dataset.py \
+  --n-samples 128 \
+  --n-assets 50 \
+  --n-factors 5 \
+  --n-timesteps 60 \
+  --seed 99 \
+  --output-dir outputs/multidim_public_smoke_final/multifactor
+```
+
+Status: passed. The synthetic smoke produced data and raw-return tensors with
+shape `(128, 60, 50)`, labels with shape `(128, 1)`, and loadings with shape
+`(50, 5)`.
+
+```bash
+poetry run python scripts/smoke_sp500_50_panel_dataset.py \
+  --n-samples 13 \
+  --train-n-samples 32 \
+  --eval-n-samples 13 \
+  --n-timesteps 60 \
+  --base-data-dir data/processed \
+  --output-dir outputs/multidim_public_smoke_final/sp500_50_panel \
+  --standardize-returns
+```
+
+Status: passed because a local short-range processed panel was available. The
+empirical smoke produced train tensors with shape `(32, 60, 50)` and eval
+tensors with shape `(13, 60, 50)`, each with two prefix-safe condition labels.
+
+```bash
+poetry run python scripts/check_conditional_vq_tokenizer_no_leakage.py \
+  --config configs/experiments/multifactor_market_causal_vq_tokenizer.yaml \
+  --batch-size 8
+```
+
+Status: passed with maximum prefix reconstruction difference
+`0.00000000e+00`.
+
+For the empirical tokenizer no-leakage check, a temporary smoke-sized config was
+created under `/tmp` from
+`configs/experiments/sp500_50_panel_causal_vq_tokenizer.yaml` with
+`n_samples: 13`.
+
+```bash
+poetry run python scripts/check_conditional_vq_tokenizer_no_leakage.py \
+  --config /tmp/sp500_50_panel_final_smoke_causal_vq_tokenizer.yaml \
+  --batch-size 8
+```
+
+Status: passed with maximum prefix reconstruction difference
+`0.00000000e+00`.
+
+Additional public-branch checks:
+
+```bash
+poetry run python - <<'PY'
+from time_causal_vae.data.multifactor_market import MultifactorMarketDataset
+from time_causal_vae.data.sp500_panel import SP50050PanelDataset
+from time_causal_vae.evaluation.cross_sectional_diagnostics import compare_cross_sectional_diagnostics
+print("multidim imports ok")
+PY
+poetry run python scripts/select_registered_model.py --experiment sp500_vix --family discrete
+poetry check
+poetry run ruff check src scripts configs docs --fix
+poetry run mypy src/time_causal_vae
+git ls-files | grep -E '(^outputs/|^wandb/|^data/raw/|^data/processed/|\.npy$|\.npz$|\.pt$|\.pkl$|\.pyc$|__pycache__)' || true
+```
+
+Status: passed. The registry selector still resolves the existing
+one-dimensional `sp500_vix` discrete public baseline, `poetry check` passed,
+`ruff` passed, and `mypy` reported no issues in `116` source files.
+
+The forbidden artefact scan reported no tracked outputs, W&B artefacts,
+downloaded raw or processed financial data, tensor dumps, pickle files, bytecode
+files, or `__pycache__` entries. No generated outputs or downloaded data are
+tracked by git. No multidimensional model entry has been added to
+`trained_models/model_registry.yaml`.
+
+Readiness decision: the branch is ready for manual review and manual merge as
+an experimental benchmark infrastructure branch. It should still not be merged
+automatically, and it does not claim a selected multidimensional generator.
