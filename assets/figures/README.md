@@ -10,8 +10,8 @@ SVG is a hand-written original diagram for this repository.
 Current assets:
 
 - `time_causal_vqvae_pipeline.svg`: original hand-written SVG overview of the default
-  time-causal VQ-VAE path, causal token prior, continuous TC-VAE baseline, latent codebook sketch,
-  and diagnostics workflow. Source: authored directly in this repository for README, PyPI, and
+  time-causal VQ-VAE path, causal token prior, vector-quantizer codebook, latent-space sketch, and
+  diagnostics endpoint. Source: authored directly in this repository for README, PyPI, and
   report-facing use.
 - `sp500_vix_best_research_paths.png`: hidden128 conv-transformer path diagnostic
   across VIX regimes. Source: local S&P500/VIX paper-style path output,
