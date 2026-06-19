@@ -359,7 +359,7 @@ def build_quantizer_adapter(
     sample_codebook_temp: float = 0.0,
 ) -> nn.Module:
     """Build a configured tokenizer quantizer adapter."""
-    if quantizer_type == "vector":
+    if quantizer_type in {"standard_vq", "vector"}:
         return VectorQuantizerAdapter(
             embedding_dim=embedding_dim,
             codebook_size=codebook_size,

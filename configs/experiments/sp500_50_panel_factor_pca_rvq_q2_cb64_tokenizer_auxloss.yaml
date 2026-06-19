@@ -1,0 +1,49 @@
+# Experimental empirical RVQ q2 config; not a registry-selected public model.
+experiment:
+  name: sp500_50_panel_factor_pca_rvq_q2_cb64_tokenizer_auxloss
+  dataset: sp500_50_panel
+  seed: 0
+data:
+  n_samples: 89
+  n_timesteps: 60
+  data_dim: 5
+  condition_dim: 2
+  condition_feature: spy_vix_level
+  data_params:
+    processed_subdir: sp500_50_panel
+    condition_mode: spy_vix_level
+    projection_mode: train_pca
+    projection_n_factors: 5
+model:
+  family: causal_vq_tokenizer
+  data_dim: 5
+  data_length: 60
+  embedding_dim: 64
+  codebook_size: 64
+  commitment_weight: 0.1
+  encoder_hidden_dim: 64
+  decoder_hidden_dim: 64
+  num_layers: 4
+  dilations: [1, 2, 4, 8]
+  dropout: 0.0
+  condition_dim: 2
+  kmeans_init: true
+  kmeans_iters: 10
+  use_cosine_sim: false
+  codebook_dim: 16
+  quantizer_type: residual_vq
+  num_quantizers: 2
+  shared_codebook: false
+  factor_reconstruction_loss_weight: 1.0
+  factor_covariance_loss_weight: 0.0
+  factor_correlation_loss_weight: 0.1
+  inverse_projected_covariance_loss_weight: 0.0
+  inverse_projected_correlation_loss_weight: 0.1
+  sector_block_loss_weight: 0.1
+  equal_weight_portfolio_vol_loss_weight: 0.05
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 64
+  eval_batch_size: 64
+  epochs: 50

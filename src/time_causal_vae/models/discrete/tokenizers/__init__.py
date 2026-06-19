@@ -4,6 +4,7 @@ from time_causal_vae.models.discrete.tokenizers.causal_vq_tokenizer import (
     CausalVQDecoder,
     CausalVQEncoder,
     CausalVQTokenizer,
+    TokenizerAuxiliaryLossContext,
 )
 from time_causal_vae.models.discrete.tokenizers.config import VQTokenizerConfig
 from time_causal_vae.models.discrete.tokenizers.quantizers import (
@@ -22,6 +23,7 @@ __all__ = [
     "GroupedResidualVQAdapter",
     "QuantizerAdapter",
     "ResidualVQAdapter",
+    "TokenizerAuxiliaryLossContext",
     "VQTokenizerConfig",
     "VectorQuantizerAdapter",
     "VectorQuantizerOutput",

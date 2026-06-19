@@ -1,0 +1,49 @@
+# Experimental multidimensional RVQ q2 prior config; not a registry-selected public model.
+experiment:
+  name: multifactor_market_factor_pca_rvq_q2_cb64_prior_factorised_additive
+  dataset: multifactor_market_factor_projected
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/multifactor_factor_rvq_tokenizer_ablation/tokenizers/multifactor_market_factor_pca_causal_rvq_tokenizer_q2_cb64_auxloss/multifactor_market_factor_pca_causal_rvq_tokenizer_q2_cb64_auxloss_seed0
+  token_data_dir: outputs/multifactor_factor_rvq_tokenizer_ablation/tokens/multifactor_market_factor_pca_causal_rvq_tokenizer_q2_cb64_auxloss
+  token_shape: [60, 2]
+  tokenizer_profile: train_pca_factor_rvq_q2_cb64_auxloss
+  benchmark_notes:
+    projection_mode: train_pca
+    factor_dim: 5
+    n_assets: 50
+    n_factors: 5
+    with_jumps: false
+    standardize_returns: true
+    structure_seed: 0
+    train_path_seed: 0
+    eval_path_seed: 1
+
+model:
+  family: causal_token_prior
+  prior_type: factorised_multi_code
+  codebook_size: 64
+  sequence_length: 60
+  index_shape: [60, 2]
+  num_quantizers: 2
+  groups: 1
+  token_embedding_dim: 128
+  num_layers: 2
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+  condition_dim: 1
+  condition_injection: additive
+  component_loss_weights: [1.0, 1.0]
+  data_dim: 5
+  factor_dim: 5
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 128
+  eval_batch_size: 128
+  epochs: 3

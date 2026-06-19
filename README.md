@@ -28,6 +28,12 @@ The package is organised around five steps:
 5. **Discrete latent geometry**: inspect codebook usage, codebook projections, VIX-bucket usage,
    and example token trajectories.
 
+![Time-causal VQ-VAE architecture sketch](assets/figures/time_causal_vqvae_pipeline.svg)
+
+Time-causal VQ-VAE architecture sketch. The public default remains the one-dimensional
+S&P500/VIX workflow; multidimensional factor/RVQ paths are experimental and are not shown in this
+default-model diagram.
+
 ## 📦 Installation
 
 The project uses [Poetry](https://python-poetry.org/). For the full development environment:
@@ -47,6 +53,8 @@ Dependency groups are defined for development, notebooks, and tracking:
 - `dev`: Ruff, mypy, pre-commit, Commitizen, nbstripout, and IPython kernel support.
 - `notebooks`: Jupyter, seaborn, torchview, and graphviz.
 - `tracking`: optional W&B logging support.
+- `data`: optional local data-access tools such as `yfinance` for empirical benchmark
+  downloaders.
 
 ## 🔩 Usage
 
@@ -151,6 +159,29 @@ The benchmark remains a scenario-data stress test, not an arbitrage-free pricing
 Hawkes/SVMHJD trained weights, checkpoints, token tensors, generated samples, W&B exports, or output
 summaries are committed.
 
+### Experimental Multidimensional Benchmarks
+
+The public branch includes experimental 50-dimensional benchmark infrastructure:
+
+- `multifactor_market`: a synthetic low-rank factor-market generator with sector structure,
+  train/eval path seed separation, train-only return standardisation, and optional common/sector
+  jump stress profiles.
+- `multifactor_market_factor_projected`: a factor-coordinate view using train-fitted PCA for
+  empirical-compatible discrete tokenizer experiments.
+- `sp500_50_panel`: a local-only empirical S&P500 50-stock panel with SPY/VIX prefix-safe
+  conditions and train-only per-asset standardisation.
+
+The benchmark notes are `docs/benchmarks/multifactor_market.md` and
+`docs/benchmarks/sp500_50_panel.md`. They document tensor shapes, local-data policy, smoke
+commands, diagnostics, and no-leakage conventions.
+
+No multidimensional generator is selected in `trained_models/model_registry.yaml`. The included
+RVQ q2 configs are labelled experimental and are provided to exercise multi-code tokenizer and
+prior infrastructure, not to declare a public default. Empirical S&P500 50-stock data is
+Yahoo-backed through optional `yfinance` access, must remain local, and must not be redistributed
+or committed. Non-smoke multidimensional result documents, seed grids, sampling ablations, and
+hierarchy ablations are research-branch evidence rather than public README claims.
+
 ## 🧠 Model Architecture
 
 All modelling paths preserve **no anticipation**: at time `t`, encoders, tokenizers, priors, and
@@ -181,11 +212,14 @@ transition-constrained sampling were also evaluated during development, but they
   quantizer adapters, token-prior configs, masks, autoregressive priors, and sampling utilities.
 - `time_causal_vae.models.layers`: shared causal layers used across model families.
 - `time_causal_vae.evaluation`: financial diagnostics, plotting, model selection, checkpoint
-  compatibility, token diagnostics, and latent-geometry helpers.
+  compatibility, cross-sectional benchmark diagnostics, token diagnostics, and latent-geometry
+  helpers.
 - `time_causal_vae.experiments`: portable experiment config loading, continuous-config
   adaptation, selection profiles, and trained-model registry selection.
 - `notebooks`: continuous, discrete, and report-facing demonstration notebooks.
 - `scripts`: config inspection, reproduction wrappers, token extraction, evaluation, latent geometry, and no-leakage checks.
+- `docs/benchmarks`: concise public benchmark notes for synthetic, empirical, and jump-stress
+  workflows.
 
 ### Upstream TC-VAE Components
 

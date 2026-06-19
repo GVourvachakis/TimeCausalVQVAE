@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="390" viewBox="0 0 1120 390" role="img" aria-labelledby="title desc">
+  <title id="title">Time-causal VQ-VAE architecture sketch</title>
+  <desc id="desc">Minimal original schematic of the package default time-causal VQ-VAE: input path, dilated causal encoder, vector quantizer codebook, causal token prior, decoder, output path, and diagnostics.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,3.5 L0,7 Z" fill="#333333" />
+    </marker>
+    <linearGradient id="panelBlue" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#67a0e8" />
+      <stop offset="1" stop-color="#2f62b4" />
+    </linearGradient>
+    <linearGradient id="pathGradient" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#2b145f" />
+      <stop offset="0.35" stop-color="#156e91" />
+      <stop offset="0.7" stop-color="#4bb06b" />
+      <stop offset="1" stop-color="#d5d84e" />
+    </linearGradient>
+    <style>
+      .label { font: 700 14px Arial, sans-serif; fill: #1f1f1f; }
+      .small { font: 12px Arial, sans-serif; fill: #333333; }
+      .tiny { font: 11px Arial, sans-serif; fill: #4d4d4d; }
+      .math { font: italic 16px Georgia, serif; fill: #333333; }
+      .box { fill: #ffffff; stroke: #333333; stroke-width: 1.5; }
+      .prior { fill: #f1e5f7; stroke: #7b3294; stroke-width: 2; }
+      .cyan { fill: #d7ecff; stroke: #0072b2; stroke-width: 1.8; }
+      .quantizer { fill: #fff2cc; stroke: #e69f00; stroke-width: 2; }
+      .orange { fill: #e69f00; stroke: #a66100; stroke-width: 1.4; }
+      .green { fill: #009e73; stroke: #006b4f; stroke-width: 1; }
+      .grey { fill: #f4f5f7; stroke: #7a7a7a; stroke-width: 1.4; }
+      .line { stroke: #333333; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #5f6b75; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; marker-end: url(#arrow); }
+      .axis { stroke: #c6c6c6; stroke-width: 1; }
+      .dot { fill: #6a9631; stroke: #4e7124; stroke-width: 1; }
+      .selected { fill: #ef7d2d; stroke: #b95a1f; stroke-width: 1.2; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1120" height="390" fill="#ffffff" />
+
+  <rect class="box" x="34" y="34" width="74" height="31" />
+  <text class="label" x="51" y="55">Input</text>
+  <rect x="40" y="92" width="96" height="44" fill="url(#pathGradient)" stroke="#222222" stroke-width="1" />
+  <polyline points="44,128 54,123 64,124 74,111 84,114 94,102 104,107 114,96 124,100 132,94" fill="none" stroke="#c8ff6a" stroke-width="2.1" />
+  <text class="math" x="62" y="166">X<tspan baseline-shift="sub" font-size="12">t:T</tspan></text>
+
+  <path class="line" d="M150,115 H196" />
+
+  <rect class="cyan" x="196" y="56" width="188" height="46" rx="7" />
+  <text class="label" x="234" y="76">Causal Encoder</text>
+  <text class="tiny" x="218" y="93">dilated causal conv encoder</text>
+  <g transform="translate(217 124)">
+    <polygon points="0,25 18,10 62,10 44,25" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.2" />
+    <polygon points="44,25 62,10 62,66 44,81" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.2" />
+    <rect x="0" y="25" width="44" height="56" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.3" />
+    <text class="tiny" x="1" y="101">dilation 1,2</text>
+  </g>
+  <g transform="translate(310 137)">
+    <polygon points="0,20 14,8 47,8 33,20" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.1" />
+    <polygon points="33,20 47,8 47,50 33,62" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.1" />
+    <rect x="0" y="20" width="33" height="42" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.2" />
+    <text class="tiny" x="-5" y="82">dilation 4,8</text>
+  </g>
+
+  <path class="line" d="M384,115 H423" />
+  <rect class="orange" x="423" y="101" width="42" height="28" rx="4" />
+  <text class="math" x="419" y="83">zₑ(x)</text>
+
+  <path class="line" d="M465,115 H510" />
+
+  <rect class="quantizer" x="510" y="49" width="156" height="132" />
+  <text class="label" x="519" y="39">Vector Quantizer Layer</text>
+  <g transform="translate(536 67)">
+    <rect class="green" x="0" y="0" width="20" height="11" />
+    <rect class="green" x="35" y="0" width="20" height="11" />
+    <rect class="green" x="70" y="0" width="20" height="11" />
+    <rect class="green" x="0" y="25" width="20" height="11" />
+    <rect class="green" x="35" y="25" width="20" height="11" />
+    <rect class="green" x="70" y="25" width="20" height="11" />
+    <rect class="green" x="0" y="50" width="20" height="11" />
+    <rect class="green" x="35" y="50" width="20" height="11" />
+    <rect class="green" x="70" y="50" width="20" height="11" />
+  </g>
+  <g transform="translate(611 92)">
+    <line class="axis" x1="-30" y1="52" x2="36" y2="52" />
+    <line class="axis" x1="-30" y1="52" x2="-30" y2="-8" />
+    <circle class="dot" cx="-16" cy="37" r="4" />
+    <circle class="dot" cx="1" cy="19" r="4" />
+    <circle class="dot" cx="19" cy="33" r="4" />
+    <circle class="dot" cx="25" cy="4" r="4" />
+    <circle class="selected" cx="5" cy="31" r="5.5" />
+  </g>
+  <text class="small" x="534" y="164">qₜ = nearest code</text>
+
+  <path class="line" d="M666,115 H708" />
+  <rect class="orange" x="708" y="101" width="42" height="28" rx="4" />
+  <text class="math" x="704" y="83">z<tspan baseline-shift="sub" font-size="12">q</tspan>(x)</text>
+
+  <path class="line" d="M750,115 H795" />
+
+  <rect class="cyan" x="795" y="56" width="188" height="46" rx="7" />
+  <text class="label" x="840" y="76">Causal Decoder</text>
+  <text class="tiny" x="817" y="93">dilated causal conv decoder</text>
+  <g transform="translate(810 124)">
+    <polygon points="0,25 18,10 62,10 44,25" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.2" />
+    <polygon points="44,25 62,10 62,66 44,81" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.2" />
+    <rect x="0" y="25" width="44" height="56" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.3" />
+  </g>
+  <g transform="translate(903 137)">
+    <polygon points="0,20 14,8 47,8 33,20" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.1" />
+    <polygon points="33,20 47,8 47,50 33,62" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.1" />
+    <rect x="0" y="20" width="33" height="42" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.2" />
+  </g>
+
+  <path class="line" d="M983,115 H1027" />
+  <rect class="box" x="1018" y="34" width="80" height="31" />
+  <text class="label" x="1035" y="55">Output</text>
+  <rect x="988" y="92" width="96" height="44" fill="url(#pathGradient)" stroke="#222222" stroke-width="1" />
+  <polyline points="992,128 1002,123 1012,124 1022,111 1032,114 1042,102 1052,107 1062,96 1072,100 1080,94" fill="none" stroke="#c8ff6a" stroke-width="2.1" />
+  <text class="math" x="1010" y="166">X̂<tspan baseline-shift="sub" font-size="12">t:T</tspan></text>
+
+  <rect class="prior" x="363" y="238" width="360" height="88" rx="14" />
+  <text class="label" x="476" y="266">Causal Token Prior</text>
+  <text class="math" x="429" y="294">p<tspan baseline-shift="sub" font-size="12">θ</tspan>(q<tspan baseline-shift="sub" font-size="12">t</tspan> | q<tspan baseline-shift="sub" font-size="12">&lt;t</tspan>, c<tspan baseline-shift="sub" font-size="12">≤t</tspan>)</text>
+  <text class="tiny" x="448" y="314">sample token sequence before decoding</text>
+  <path class="dash" d="M588,181 V238" />
+  <path class="dash" d="M723,282 C786,282 862,226 866,181" />
+
+  <rect class="grey" x="789" y="260" width="206" height="48" rx="8" />
+  <text class="label" x="820" y="281">Diagnostics</text>
+  <text class="tiny" x="812" y="300">paths, VIX buckets, no-leakage</text>
+  <path class="dash" d="M1038,170 C1038,230 997,276 995,283" />
+</svg>
