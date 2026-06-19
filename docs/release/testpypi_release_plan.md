@@ -46,7 +46,8 @@ Suggested TestPyPI publisher settings:
 - Owner: `GVourvachakis`
 - Repository: `TimeCausalVQVAE`
 - Workflow filename: `publish-testpypi.yml`
-- Environment name: `testpypi`
+- Environment name: leave blank. The workflow does not declare a GitHub Actions environment, which
+  avoids editor/schema validation issues around `jobs.<job_id>.environment`.
 
 The workflow is:
 

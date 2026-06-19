@@ -13,8 +13,6 @@ jobs:
   publish-testpypi:
     name: Build and publish to TestPyPI
     runs-on: ubuntu-latest
-    environment:
-      name: testpypi
     permissions:
       contents: read
       id-token: write
