@@ -31,6 +31,30 @@ notebooks:
     timeout_seconds: 3600
     required_local_outputs: []
     fallback_behavior: Generate only lightweight in-memory synthetic Hawkes/SVMHJD diagnostics.
+  - path: notebooks/benchmarks/multifactor_market_50d.ipynb
+    priority: 15
+    category: benchmark
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    download_allowed: false
+    expensive_metrics_allowed: false
+    allow_missing_outputs: true
+    timeout_seconds: 3600
+    required_local_outputs: []
+    fallback_behavior: Generate only lightweight in-memory synthetic multifactor diagnostics and display multidimensional profile metadata.
+  - path: notebooks/benchmarks/sp500_50_panel.ipynb
+    priority: 16
+    category: benchmark
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    download_allowed: false
+    expensive_metrics_allowed: false
+    allow_missing_outputs: true
+    timeout_seconds: 3600
+    required_local_outputs: []
+    fallback_behavior: Skip local Yahoo-backed panel diagnostics when processed empirical data is absent and display multidimensional profile metadata.
   - path: notebooks/report/hawkes_jump_model_comparison.ipynb
     priority: 20
     category: report
@@ -64,6 +88,18 @@ notebooks:
     required_local_outputs:
       - outputs/final_sample_geometry_report/
     fallback_behavior: Allow missing model batches and render available lightweight geometry summaries only.
+  - path: notebooks/report/multidim_experimental_comparison.ipynb
+    priority: 45
+    category: report
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    download_allowed: false
+    expensive_metrics_allowed: false
+    allow_missing_outputs: true
+    timeout_seconds: 3600
+    required_local_outputs: []
+    fallback_behavior: Display multidimensional profile metadata and skip missing local output summaries or tensor batches.
   - path: notebooks/continuous/sp500_vix.ipynb
     priority: 50
     category: continuous

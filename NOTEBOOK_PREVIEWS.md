@@ -19,9 +19,11 @@ Preview outputs depend on local artefacts, checkpoints, processed-data conventio
 evaluation summaries that may not exist on another machine. The notebooks are therefore useful for
 inspection, but they are not a reproducibility contract for the package release.
 
-Multidimensional notebooks were intentionally not executed on this branch. Expensive metrics were
-run only as capped diagnostics in the report notebooks. The retained expensive diagnostic is
-Gaussian path MMD on small cached batches; those values are preview smoke checks, not
+The initial preview passes intentionally skipped multidimensional notebooks. A later
+multidimensional preview pass executed the new profile-aware notebooks for visual inspection only,
+with training, downloads, checkpoint evaluation, and expensive metrics disabled. Expensive metrics
+were run only as capped diagnostics in the earlier report notebooks. The retained expensive
+diagnostic is Gaussian path MMD on small cached batches; those values are preview smoke checks, not
 model-selection evidence. Signature MMD was attempted in the report notebooks and skipped because
 the optional `signatory` dependency is unavailable. Adapted Wasserstein remained disabled.
 
@@ -42,6 +44,26 @@ notebooks/preview_notebook_manifest.yaml --continue-on-error` on 2026-06-20.
 | `notebooks/discrete/hawkes_jump.ipynb` | Executed | Guarded discrete Hawkes/SVMHJD research-candidate demo path. |
 
 No multidimensional notebooks were executed in this pass.
+
+## Multidimensional Preview Set
+
+Executed with `poetry run python scripts/run_notebook_previews.py --manifest
+/tmp/multidim_preview_notebook_manifest.yaml --parameter-mode preview --continue-on-error` on
+2026-06-20. The temporary manifest contained only the three multidimensional entries that were
+added to `notebooks/preview_notebook_manifest.yaml`.
+
+This pass kept `RUN_TRAINING=False`, `RUN_EVALUATION=False`, `RUN_DOWNLOAD=False`,
+`RUN_EXPENSIVE_METRICS=False`, and `ALLOW_MISSING_OUTPUTS=True`. No full training, downloads, or
+checkpoint evaluation were run. The S&P500 50-stock panel notebook was executed with
+`SP50050_PANEL_PROCESSED_DIR` pointed at a missing temporary directory, so the rendered notebook
+shows the clean-checkout missing-data skip path. The multidimensional comparison notebook keeps
+local-output summary, tensor-batch, and token-diagnostic discovery disabled in this preview pass.
+
+| Notebook | Status | Notes |
+| --- | --- | --- |
+| `notebooks/benchmarks/multifactor_market_50d.ipynb` | Executed | Shows lightweight in-memory synthetic multifactor EDA and experimental profile metadata. |
+| `notebooks/benchmarks/sp500_50_panel.ipynb` | Executed | Shows the static universe, guarded download command, missing-data skip path, and experimental profile metadata. |
+| `notebooks/report/multidim_experimental_comparison.ipynb` | Executed | Shows multidimensional profile metadata, representative metric tables, disabled local-output discovery, and printed commands only. |
 
 ## Full-Output Preview Set
 
