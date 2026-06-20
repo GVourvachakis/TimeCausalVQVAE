@@ -4,11 +4,17 @@ This note records optional expensive diagnostics for future notebook work. The f
 keeps `RUN_EXPENSIVE_METRICS=False`, `RUN_SIGNATURE_KERNEL=False`, and
 `RUN_ADAPTED_WASSERSTEIN=False`.
 
+The executed Gaussian path MMD values on this branch are preview and smoke diagnostics only. They
+are not model-selection evidence. Expensive path-space diagnostics should remain concentrated in
+the report notebooks, where cached local artefacts and small deterministic caps can be documented,
+rather than being added to every per-experiment walkthrough notebook.
+
 ## Signature MMD
 
 The repository already exposes optional signature-style metric infrastructure through
 `time_causal_vae.evaluation.metrics.SignatureMMD`. None of the preview notebooks should run it by
-default.
+default. sigMMD should remain optional and dependency-gated because the executed small-cap report
+pass skipped it when the optional `signatory` dependency was unavailable.
 
 Recommended optional cells:
 
@@ -24,6 +30,9 @@ Recommended optional cells:
 The evaluation package retains adapted-Wasserstein-style optional behaviour through
 `time_causal_vae.evaluation.metrics`. Current notebooks already display ordinary one-dimensional
 Wasserstein summaries when local evaluation artefacts contain them.
+
+Adapted Wasserstein should remain disabled by default. If it is enabled later, it should use cached
+data only, deterministic subsampling, and small sample sizes.
 
 Recommended optional cells:
 

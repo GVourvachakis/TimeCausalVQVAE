@@ -10,6 +10,21 @@ Do not merge this branch into `main`. Do not commit raw or processed downloaded 
 checkpoints, W&B artefacts, generated tensors, or large generated outputs outside notebooks.
 Large embedded notebook outputs should be avoided so this preview branch remains inspectable.
 
+## Closure Status
+
+This branch is closed as an executed-notebook preview branch. It is intended only for public visual
+inspection of rendered notebook outputs and should not be merged into `main`.
+
+Preview outputs depend on local artefacts, checkpoints, processed-data conventions, and cached
+evaluation summaries that may not exist on another machine. The notebooks are therefore useful for
+inspection, but they are not a reproducibility contract for the package release.
+
+Multidimensional notebooks were intentionally not executed on this branch. Expensive metrics were
+run only as capped diagnostics in the report notebooks. The retained expensive diagnostic is
+Gaussian path MMD on small cached batches; those values are preview smoke checks, not
+model-selection evidence. Signature MMD was attempted in the report notebooks and skipped because
+the optional `signatory` dependency is unavailable. Adapted Wasserstein remained disabled.
+
 ## First Preview Set
 
 Executed with `poetry run python scripts/run_notebook_previews.py --manifest
