@@ -1,0 +1,51 @@
+# Experimental empirical RVQ q2 v2 prior config; not a registry-selected public model.
+experiment:
+  name: sp500_50_panel_v2_factor_pca_rvq_q2_cb64_prior_factorised_additive
+  dataset: sp500_50_panel
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/sp500_50_panel_v2_setup/tokenizer/sp500_50_panel_v2_factor_pca_rvq_q2_cb64_tokenizer_auxloss_seed0
+  token_data_dir: outputs/sp500_50_panel_v2_setup/tokens/sp500_50_panel_v2_factor_pca_rvq_q2_cb64_tokenizer_auxloss
+  token_shape: [60, 2]
+  tokenizer_profile: empirical_v2_train_pca_factor_rvq_q2_cb64_auxloss
+  benchmark_notes:
+    source_dataset: sp500_50_panel
+    projection_mode: train_pca
+    factor_dim: 5
+    n_assets: 50
+    train_n_samples: 355
+    eval_n_samples: 89
+    standardize_returns: true
+    no_oracle_loadings: true
+    condition_mode: spy_vix_level
+    condition_names: [spy_log_return_start, log_vix_level_start]
+    local_processed_subdir: sp500_50_panel
+
+model:
+  family: causal_token_prior
+  prior_type: factorised_multi_code
+  codebook_size: 64
+  sequence_length: 60
+  index_shape: [60, 2]
+  num_quantizers: 2
+  groups: 1
+  token_embedding_dim: 128
+  num_layers: 2
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+  condition_dim: 2
+  condition_injection: additive
+  component_loss_weights: [1.0, 1.0]
+  data_dim: 5
+  factor_dim: 5
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 64
+  eval_batch_size: 64
+  epochs: 50

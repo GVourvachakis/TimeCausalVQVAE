@@ -1,29 +1,26 @@
-"""Causal tokenization modules for experimental discrete-latent models."""
+"""Compatibility aliases for the discrete tokenizer namespace."""
 
-from time_causal_vae.tokenization.causal_vq_tokenizer import (
-    CausalVQDecoder,
-    CausalVQEncoder,
-    CausalVQTokenizer,
-)
-from time_causal_vae.tokenization.config import VQTokenizerConfig
-from time_causal_vae.tokenization.quantizers import (
-    GroupedResidualVQAdapter,
-    QuantizerAdapter,
-    ResidualVQAdapter,
-    VectorQuantizerAdapter,
-    VectorQuantizerOutput,
-    build_quantizer_adapter,
-)
+from __future__ import annotations
 
-__all__ = [
-    "CausalVQDecoder",
-    "CausalVQEncoder",
-    "CausalVQTokenizer",
-    "GroupedResidualVQAdapter",
-    "QuantizerAdapter",
-    "ResidualVQAdapter",
-    "VQTokenizerConfig",
-    "VectorQuantizerAdapter",
-    "VectorQuantizerOutput",
-    "build_quantizer_adapter",
-]
+import importlib
+import sys
+
+_CANONICAL_PACKAGE = "time_causal_vae.models.discrete.tokenizers"
+_COMPAT_ALIASES = {
+    "causal_vq_tokenizer": f"{_CANONICAL_PACKAGE}.causal_vq_tokenizer",
+    "config": f"{_CANONICAL_PACKAGE}.config",
+    "quantizers": f"{_CANONICAL_PACKAGE}.quantizers",
+}
+
+_canonical_package = importlib.import_module(_CANONICAL_PACKAGE)
+__all__ = list(getattr(_canonical_package, "__all__", ()))
+
+for _name in __all__:
+    globals()[_name] = getattr(_canonical_package, _name)
+
+for _old_suffix, _new_name in _COMPAT_ALIASES.items():
+    _module = importlib.import_module(_new_name)
+    sys.modules.setdefault(f"{__name__}.{_old_suffix}", _module)
+    setattr(sys.modules[__name__], _old_suffix, _module)
+
+del _canonical_package, _module, _name, _new_name, _old_suffix

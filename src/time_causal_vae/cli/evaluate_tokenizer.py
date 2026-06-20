@@ -21,7 +21,7 @@ from time_causal_vae.evaluation.tokenizer import (
     save_tokenizer_batch,
     save_tokenizer_summary,
 )
-from time_causal_vae.tokenization import CausalVQTokenizer
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer
 from time_causal_vae.utils.random import set_seed
 
 
@@ -152,7 +152,7 @@ def main() -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that tokenizer evaluation artifacts stay below ignored outputs/."""
+    """Validate that tokenizer evaluation artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -160,7 +160,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 
@@ -204,6 +204,8 @@ def build_dataset(
     exp_config = ml_collections.ConfigDict()
     exp_config.dataset = str(experiment["dataset"])
     exp_config.n_sample = n_sample_test
+    exp_config.train_n_sample = optional_split_sample_count(data.get("train_n_samples"))
+    exp_config.eval_n_sample = n_sample_test
     exp_config.n_timestep = int(data["n_timesteps"])
     exp_config.base_data_dir = base_data_dir
     exp_config.data_params = dict(cast(Mapping[str, Any], data.get("data_params", {})))
@@ -211,6 +213,16 @@ def build_dataset(
         exp_config.rho = data["rho"]
     _train_dataset, eval_dataset = DataPipeline()(exp_config)
     return cast(BaseDataset, eval_dataset)
+
+
+def optional_split_sample_count(value: Any) -> int | None:
+    """Return ``None`` or a validated positive split sample count."""
+    if value is None:
+        return None
+    count = int(value)
+    if count <= 0:
+        raise SystemExit("split-specific sample counts must be positive when provided.")
+    return count
 
 
 def require_mapping(raw_config: Mapping[str, Any], key: str) -> dict[str, Any]:

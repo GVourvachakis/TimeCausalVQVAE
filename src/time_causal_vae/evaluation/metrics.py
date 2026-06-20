@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch import Tensor, nn
 
-from time_causal_vae.models.distances import GaussianMMD, GaussianMMD2
+from time_causal_vae.models.continuous.distances import GaussianMMD, GaussianMMD2
 
 try:
     from ot import sliced_wasserstein_distance

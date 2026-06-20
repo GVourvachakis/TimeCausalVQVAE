@@ -6,7 +6,7 @@ from typing import Union
 
 from torch import nn
 
-from time_causal_vae.models.config import BaseConfig
+from time_causal_vae.models.continuous.config import BaseConfig
 
 
 @dataclass

@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from time_causal_vae.models.distances import GaussianMMD, GaussianMMD2
+from time_causal_vae.models.continuous.distances import GaussianMMD, GaussianMMD2
 from time_causal_vae.evaluation.metrics import SAWD, SWD, SignatureMMD
 from time_causal_vae.evaluation.checkpoints import TargetModelEvaluator as ModelEvaluator
 from time_causal_vae.evaluation.style import apply_source_style

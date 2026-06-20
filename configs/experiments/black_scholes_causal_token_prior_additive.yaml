@@ -1,0 +1,27 @@
+experiment:
+  name: black_scholes_causal_token_prior_additive
+  dataset: black_scholes
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/per_experiment_selection/black_scholes/standard_vq_additive_ar/tokenizer/black_scholes_causal_vq_tokenizer_codebook64_codebookdim16_seed0
+  token_data_dir: outputs/per_experiment_selection/black_scholes/standard_vq_additive_ar/tokens
+
+model:
+  family: causal_token_prior
+  codebook_size: 64
+  sequence_length: 60
+  token_embedding_dim: 128
+  num_layers: 4
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 256
+  eval_batch_size: 256
+  epochs: 100

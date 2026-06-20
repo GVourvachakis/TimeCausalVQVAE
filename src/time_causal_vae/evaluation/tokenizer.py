@@ -13,7 +13,7 @@ import torch
 from torch import Tensor
 
 from time_causal_vae.evaluation.style import apply_clean_style, apply_source_style
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer, VQTokenizerConfig
 from time_causal_vae.utils.output import ModelOutput
 
 
@@ -74,16 +74,14 @@ def evaluate_tokenizer_batch(
             conditions=conditions,
             codebook_size=codebook_size,
         )
-    metrics.update(
-        {
-            "model_recon_loss": float(cast(Tensor, output.recon_loss).detach().cpu()),
-            "model_commitment_loss": float(cast(Tensor, output.commitment_loss).detach().cpu()),
-            "model_codebook_loss": float(cast(Tensor, output.codebook_loss).detach().cpu()),
-            "model_usage_loss": float(cast(Tensor, output.usage_loss).detach().cpu()),
-            "model_usage_regularization_applied": bool(output.usage_regularization_applied),
-            "model_total_loss": float(cast(Tensor, output.loss).detach().cpu()),
-        }
-    )
+    metrics.update({
+        "model_recon_loss": float(cast(Tensor, output.recon_loss).detach().cpu()),
+        "model_commitment_loss": float(cast(Tensor, output.commitment_loss).detach().cpu()),
+        "model_codebook_loss": float(cast(Tensor, output.codebook_loss).detach().cpu()),
+        "model_usage_loss": float(cast(Tensor, output.usage_loss).detach().cpu()),
+        "model_usage_regularization_applied": bool(output.usage_regularization_applied),
+        "model_total_loss": float(cast(Tensor, output.loss).detach().cpu()),
+    })
     return output, metrics
 
 
@@ -117,6 +115,7 @@ def compute_tokenizer_metrics(
         :codebook_size
     ]
     code_stats = summarise_code_usage(code_counts)
+    component_stats = component_code_usage(indices.detach().cpu(), codebook_size)
     transition_summary = summarise_code_transitions(indices.detach().cpu())
     return {
         "reconstruction_l1": float(reconstruction_l1.detach().cpu()),
@@ -124,6 +123,7 @@ def compute_tokenizer_metrics(
         "terminal_return_error": float(terminal_return_error.detach().cpu()),
         "volatility_reconstruction_error": float(volatility_error.detach().cpu()),
         **code_stats,
+        **component_stats,
         **transition_summary,
     }
 
@@ -172,6 +172,47 @@ def summarise_code_usage(code_counts: Tensor) -> dict[str, Any]:
         "token_count": total,
         "active_code_indices": active_indices,
         "code_usage_counts": [int(value) for value in code_counts.tolist()],
+    }
+
+
+def component_code_usage(indices: Tensor, codebook_size: int) -> dict[str, Any]:
+    """Return per-component code usage for vector, RVQ, and grouped RVQ outputs."""
+    if indices.ndim == 2:
+        return {"component_usage_note": "single_vector_code_per_time_step"}
+    if indices.ndim == 3:
+        return {
+            "per_quantizer": [
+                {
+                    "quantizer_index": quantizer_index,
+                    **summarise_code_usage(
+                        torch.bincount(
+                            indices[:, :, quantizer_index].reshape(-1),
+                            minlength=codebook_size,
+                        )[:codebook_size]
+                    ),
+                }
+                for quantizer_index in range(indices.shape[2])
+            ]
+        }
+    if indices.ndim == 4:
+        per_group_quantizer = []
+        for group_index in range(indices.shape[2]):
+            for quantizer_index in range(indices.shape[3]):
+                code_counts = torch.bincount(
+                    indices[:, :, group_index, quantizer_index].reshape(-1),
+                    minlength=codebook_size,
+                )[:codebook_size]
+                per_group_quantizer.append({
+                    "group_index": group_index,
+                    "quantizer_index": quantizer_index,
+                    **summarise_code_usage(code_counts),
+                })
+        return {"per_group_quantizer": per_group_quantizer}
+    return {
+        "component_usage_note": (
+            "component code usage omitted for unsupported index rank "
+            f"{indices.ndim}; expected 2, 3, or 4."
+        )
     }
 
 
@@ -275,28 +316,24 @@ def compute_condition_bucket_metrics(
         else:
             top_codes = []
         bucket_condition_values = condition_values.index_select(0, bucket_positions)
-        buckets.append(
-            {
-                "bucket_index": bucket_index,
-                "bucket_label": condition_bucket_label(bucket_index, bucket_count),
-                "n_samples": int(bucket_positions.numel()),
-                "condition_min": float(bucket_condition_values.min().item()),
-                "condition_max": float(bucket_condition_values.max().item()),
-                "condition_mean": float(bucket_condition_values.mean().item()),
-                "reconstruction_l1": bucket_metrics["reconstruction_l1"],
-                "reconstruction_l2": bucket_metrics["reconstruction_l2"],
-                "terminal_return_error": bucket_metrics["terminal_return_error"],
-                "volatility_reconstruction_error": bucket_metrics[
-                    "volatility_reconstruction_error"
-                ],
-                "active_code_count": bucket_metrics["active_code_count"],
-                "active_code_ratio": bucket_metrics["active_code_ratio"],
-                "codebook_perplexity": bucket_metrics["codebook_perplexity"],
-                "index_entropy": bucket_metrics["index_entropy"],
-                "active_code_indices": bucket_metrics["active_code_indices"],
-                "top_codes": top_codes,
-            }
-        )
+        buckets.append({
+            "bucket_index": bucket_index,
+            "bucket_label": condition_bucket_label(bucket_index, bucket_count),
+            "n_samples": int(bucket_positions.numel()),
+            "condition_min": float(bucket_condition_values.min().item()),
+            "condition_max": float(bucket_condition_values.max().item()),
+            "condition_mean": float(bucket_condition_values.mean().item()),
+            "reconstruction_l1": bucket_metrics["reconstruction_l1"],
+            "reconstruction_l2": bucket_metrics["reconstruction_l2"],
+            "terminal_return_error": bucket_metrics["terminal_return_error"],
+            "volatility_reconstruction_error": bucket_metrics["volatility_reconstruction_error"],
+            "active_code_count": bucket_metrics["active_code_count"],
+            "active_code_ratio": bucket_metrics["active_code_ratio"],
+            "codebook_perplexity": bucket_metrics["codebook_perplexity"],
+            "index_entropy": bucket_metrics["index_entropy"],
+            "active_code_indices": bucket_metrics["active_code_indices"],
+            "top_codes": top_codes,
+        })
     return buckets
 
 

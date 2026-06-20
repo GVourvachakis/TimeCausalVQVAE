@@ -1,8 +1,8 @@
 """Dilated causal convolution layers for time-series tokenizers.
 
-The public convention in this module is ``[batch, length, channels]``. The
-wrappers transpose internally to PyTorch's ``[batch, channels, length]`` layout
-only around ``torch.nn.Conv1d`` calls.
+The public convention in this module is ``[batch, length, channels]``.
+The layer classes transpose internally to PyTorch's ``[batch, channels, length]``
+layout only around ``torch.nn.Conv1d`` calls.
 """
 
 from __future__ import annotations
