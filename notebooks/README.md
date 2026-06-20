@@ -47,10 +47,20 @@ evaluated on research branches and is not part of the public baseline.
 
 ## `benchmarks/`
 
-Public dataset-analysis notebooks. The Hawkes/SVMHJD benchmark notebook generates synthetic data in
-memory, compares simulator diagnostics, and does not train models or commit generated artefacts.
+Public and experimental dataset-analysis notebooks. The Hawkes/SVMHJD benchmark notebook generates
+synthetic data in memory, compares simulator diagnostics, and does not train models or commit
+generated artefacts.
+
+The multidimensional notebooks are experimental EDA notebooks. They read
+`trained_models/multidim_profiles.yaml` for profile labels rather than
+`trained_models/model_registry.yaml`, because no multidimensional model is a public default. They
+print non-smoke training, evaluation, download, and calibration commands without executing them.
+The empirical S&P500 50-stock panel notebook must pass on a clean checkout without local Yahoo-backed
+data.
 
 - `benchmarks/hawkes_jump_dataset.ipynb`
+- `benchmarks/multifactor_market_50d.ipynb`
+- `benchmarks/sp500_50_panel.ipynb`
 
 ## `report/`
 
@@ -68,9 +78,15 @@ Black-Scholes, Heston, PDV4, S&P500/VIX, and Hawkes/SVMHJD continuous/discrete c
 local output batches exist. It creates t-SNE and KDE/ECDF diagnostics under local `outputs/`
 paths, and it does not train or evaluate models by default.
 
+The multidimensional experimental comparison notebook is profile-aware rather than registry-aware.
+It reads `trained_models/multidim_profiles.yaml`, compares synthetic and empirical 50D
+continuous/discrete profiles, optionally displays local-output summaries and token diagnostics,
+and states explicitly that no multidimensional public default exists.
+
 - `report/sp500_vix_report_figures.ipynb`
 - `report/hawkes_jump_model_comparison.ipynb`
 - `report/final_sample_geometry_report.ipynb`
+- `report/multidim_experimental_comparison.ipynb`
 
 ## Output Policy
 
