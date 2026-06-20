@@ -3,6 +3,27 @@
 This plan describes the final PyPI release procedure for `time-causal-vae` version `0.1.0`. It
 does not publish automatically and does not include tokens.
 
+## Release Status
+
+Version `0.1.0` is live on PyPI:
+
+```text
+https://pypi.org/project/time-causal-vae/
+```
+
+The post-upload smoke install from PyPI passed in a clean Python 3.12 virtual environment:
+
+```bash
+/tmp/tcvae-pypi/bin/python -m pip install time-causal-vae==0.1.0
+/tmp/tcvae-pypi/bin/python -c "import time_causal_vae; print(time_causal_vae.__version__)"
+```
+
+The import check reported:
+
+```text
+0.1.0
+```
+
 ## Preconditions
 
 - TestPyPI validation for the `0.1.0a1` candidate has passed.
@@ -128,6 +149,15 @@ If a production workflow is added later, it should:
 - run `poetry run twine check dist/*`;
 - publish through `pypa/gh-action-pypi-publish` without any token or password.
 
+## Post-Release Token Hygiene
+
+After the first upload of the new project succeeds:
+
+- revoke the temporary account-scoped PyPI token used for the initial release;
+- create a new token scoped only to the `time-causal-vae` project;
+- keep the project-scoped token outside the repository;
+- prefer one-command environment variable use for manual future uploads.
+
 ## Post-Install Check
 
 After the PyPI upload completes, test installation from a fresh venv outside the repository:
@@ -175,4 +205,5 @@ git push origin v0.1.0
 
 ## Stop Point
 
-Stop here until a human explicitly approves the PyPI upload. Do not publish automatically.
+The `0.1.0` upload and import smoke have completed. Future uploads still require explicit human
+approval and must not be run automatically.

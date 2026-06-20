@@ -1,5 +1,6 @@
 # TimeCausalVAE
 
+[![PyPI](https://img.shields.io/pypi/v/time-causal-vae.svg)](https://pypi.org/project/time-causal-vae/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Ruff](https://github.com/GVourvachakis/TimeCausalVQVAE/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/GVourvachakis/TimeCausalVQVAE/actions/workflows/lint.yml)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com)
@@ -14,6 +15,8 @@ The Python distribution is `time-causal-vae`; the import package is
 `time_causal_vae`. The GitHub repository remains `TimeCausalVQVAE` because it
 also hosts the discrete VQ extension work.
 
+Release notes: [`0.1.0`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/docs/release/0.1.0.md).
+
 ![Time-causal VQ-VAE architecture sketch](https://raw.githubusercontent.com/GVourvachakis/TimeCausalVQVAE/main/assets/figures/time_causal_vqvae_pipeline.svg)
 
 ## Installation
@@ -21,7 +24,7 @@ also hosts the discrete VQ extension work.
 Install the package from PyPI:
 
 ```bash
-python -m pip install time-causal-vae
+pip install time-causal-vae
 ```
 
 Wheel installs include the runtime package only. From a source checkout, use
