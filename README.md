@@ -96,9 +96,10 @@ Remove `--dry-run` only when you intentionally want to train locally.
 
 ## Public Status
 
-S&P500/VIX is the public default workflow. Hawkes/SVMHJD is an optional
-research-candidate benchmark. Multidimensional benchmarks are experimental
-infrastructure, and no multidimensional model is selected in
+S&P500/VIX is the stable public default one-dimensional workflow.
+Hawkes/SVMHJD is an optional research benchmark with research-candidate
+metadata. Multidimensional benchmarks are experimental infrastructure, and no
+multidimensional model is selected in
 [`trained_models/model_registry.yaml`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/trained_models/model_registry.yaml).
 
 No downloaded data, trained weights, checkpoints, token tensors, generated
@@ -109,7 +110,7 @@ with the package.
 
 | Benchmark | Role | Public status |
 | --- | --- | --- |
-| S&P500/VIX | Empirical one-dimensional market workflow with VIX conditioning. | Public default. Uses local-only processed data and selected continuous/discrete registry metadata. |
+| S&P500/VIX | Empirical one-dimensional market workflow with VIX conditioning and a local processed data convention. | Public default. Uses local-only processed data and selected continuous/discrete registry metadata. |
 | Black-Scholes | Synthetic baseline for smoke tests and one-dimensional generation checks. | Stable baseline config and registry metadata. |
 | Heston | Synthetic stochastic-volatility baseline. | Stable baseline config and registry metadata. |
 | Path-dependent volatility | Conditional synthetic volatility baseline. | Stable baseline config and registry metadata. |
@@ -123,16 +124,30 @@ configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
 configs/experiments/sp500_vix_causal_token_prior_additive.yaml
 ```
 
+## Optional Research Benchmark
+
+| Benchmark | Description | Public status |
+| --- | --- | --- |
+| Hawkes/SVMHJD | Marked Hawkes jump-diffusion benchmark with Ogata event simulation and fixed-grid observation. | Optional rare-event research benchmark with `public_default: false`. No weights or generated outputs are committed. |
+
 ## Experimental Benchmarks
 
-| Benchmark | Role | Public status |
+| Benchmark | Description | Public status |
 | --- | --- | --- |
-| Hawkes/SVMHJD | Synthetic jump-stress benchmark with Ogata and fixed-grid simulators. | Optional research candidate with `public_default: false`. No weights or generated outputs are committed. |
-| Multifactor market | Synthetic 50-dimensional factor-market panel. | Experimental infrastructure for shape, covariance, and no-leakage checks. |
-| S&P500 50-stock panel | Local-only empirical 50-dimensional equity panel. | Experimental infrastructure. Downloaded Yahoo-backed data must remain local. |
+| Multifactor market | 50-dimensional low-rank factor market with sector structure and optional common/sector jumps. | Experimental infrastructure for shape, covariance, and no-leakage checks. |
+| S&P500 50-stock panel | Local-only `yfinance`/Yahoo-backed daily 50-stock equity panel. | Experimental infrastructure. Downloaded Yahoo-backed data must remain local and is not redistributed. |
 
 The benchmark notes live under
 [`docs/benchmarks`](https://github.com/GVourvachakis/TimeCausalVQVAE/tree/main/docs/benchmarks).
+
+## Benchmark Data Conventions
+
+| Benchmark | Data convention |
+| --- | --- |
+| S&P500/VIX | Local processed benchmark data is expected at `data/processed/sp500vix/sp500vix_normalized.npy`. |
+| Hawkes/SVMHJD | Synthetic paths are generated locally from the marked Hawkes jump-diffusion simulator. |
+| Multifactor market | Synthetic 50D panels are generated locally from the low-rank sector-factor simulator. |
+| S&P500 50-stock panel | Daily panels are downloaded locally through optional `yfinance` access and must not be redistributed. |
 
 ## Models And Features
 

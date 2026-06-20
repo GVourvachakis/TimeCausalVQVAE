@@ -24,10 +24,21 @@ The import check reported:
 0.1.0
 ```
 
+## Post-Release Main State
+
+The `v0.1.0` tag and PyPI distribution remain the immutable release artefacts for this version.
+After the successful release, the source tree has moved to `0.1.1.dev0` for post-0.1.0
+development. The post-release device hardening work is therefore expected to ship in a future patch
+release rather than changing the already-published `0.1.0` package.
+
+The PyPI long description for the published `0.1.0` distribution will update only when a future
+package release is uploaded.
+
 ## Preconditions
 
 - TestPyPI validation for the `0.1.0a1` candidate has passed.
-- `pyproject.toml`, `src/time_causal_vae/version.py`, and package metadata all report `0.1.0`.
+- For the completed `v0.1.0` release tag, `pyproject.toml`,
+  `src/time_causal_vae/version.py`, and package metadata all reported `0.1.0`.
 - Release notes exist at `docs/release/0.1.0.md`.
 - The working tree is clean except for intentionally ignored local build artefacts under `dist/`.
 - No downloaded data, generated outputs, notebooks with outputs, weights, checkpoints, or virtual

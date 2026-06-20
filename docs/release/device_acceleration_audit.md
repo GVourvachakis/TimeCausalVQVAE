@@ -4,6 +4,9 @@ This note records the post-release device-handling audit and selective hardening
 `time-causal-vae`. It does not report trained-model results and does not require notebook
 execution.
 
+This work is post-`0.1.0` development. The published PyPI `0.1.0` package is unchanged, and these
+device-handling improvements are intended for a future patch release.
+
 ## Summary
 
 The project now supports selective single-device CPU/CUDA execution across the main public model

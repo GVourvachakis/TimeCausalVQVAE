@@ -19,21 +19,19 @@ UNIVERSE_ID = "sp500_50_liquid_sector_v0"
 YFINANCE_DOC_URL = "https://ranaroussi.github.io/yfinance/"
 YAHOO_TERMS_URL = "https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html"
 
-SECTOR_TICKERS: OrderedDict[str, tuple[str, ...]] = OrderedDict(
-    [
-        ("Information Technology", ("AAPL", "MSFT", "NVDA", "AVGO", "AMD", "ADBE")),
-        ("Health Care", ("UNH", "JNJ", "LLY", "MRK", "ABBV", "TMO")),
-        ("Financials", ("JPM", "BAC", "WFC", "GS", "MS", "V")),
-        ("Consumer Discretionary", ("AMZN", "TSLA", "HD", "MCD", "NKE")),
-        ("Communication Services", ("GOOGL", "META", "NFLX", "DIS", "VZ")),
-        ("Industrials", ("CAT", "GE", "HON", "UNP", "RTX")),
-        ("Consumer Staples", ("PG", "KO", "PEP", "WMT")),
-        ("Energy", ("XOM", "CVX", "COP", "SLB")),
-        ("Utilities", ("NEE", "DUK", "SO")),
-        ("Materials", ("LIN", "APD", "SHW")),
-        ("Real Estate", ("AMT", "PLD", "EQIX")),
-    ]
-)
+SECTOR_TICKERS: OrderedDict[str, tuple[str, ...]] = OrderedDict([
+    ("Information Technology", ("AAPL", "MSFT", "NVDA", "AVGO", "AMD", "ADBE")),
+    ("Health Care", ("UNH", "JNJ", "LLY", "MRK", "ABBV", "TMO")),
+    ("Financials", ("JPM", "BAC", "WFC", "GS", "MS", "V")),
+    ("Consumer Discretionary", ("AMZN", "TSLA", "HD", "MCD", "NKE")),
+    ("Communication Services", ("GOOGL", "META", "NFLX", "DIS", "VZ")),
+    ("Industrials", ("CAT", "GE", "HON", "UNP", "RTX")),
+    ("Consumer Staples", ("PG", "KO", "PEP", "WMT")),
+    ("Energy", ("XOM", "CVX", "COP", "SLB")),
+    ("Utilities", ("NEE", "DUK", "SO")),
+    ("Materials", ("LIN", "APD", "SHW")),
+    ("Real Estate", ("AMT", "PLD", "EQIX")),
+])
 
 SECTOR_ETFS = {
     "Information Technology": "XLK",
@@ -409,19 +407,15 @@ def build_raw_conditions(
 ) -> pd.DataFrame:
     """Build unstandardised model-visible conditions."""
     if condition_mode == "spy_vix_level":
-        return pd.DataFrame(
-            {
-                "spy_log_return_start": spy_returns,
-                "log_vix_level_start": vix_log_level,
-            }
-        )
+        return pd.DataFrame({
+            "spy_log_return_start": spy_returns,
+            "log_vix_level_start": vix_log_level,
+        })
     if condition_mode == "spy_vix_change":
-        return pd.DataFrame(
-            {
-                "spy_log_return_start": spy_returns,
-                "vix_log_change_start": vix_log_change,
-            }
-        )
+        return pd.DataFrame({
+            "spy_log_return_start": spy_returns,
+            "vix_log_change_start": vix_log_change,
+        })
     return pd.DataFrame({"log_vix_level_start": vix_log_level})
 
 

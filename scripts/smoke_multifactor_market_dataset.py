@@ -299,16 +299,14 @@ def standardization_summary(dataset: MultifactorMarketDataset) -> dict[str, Any]
     if dataset.standardization_stats is not None:
         mean = dataset.standardization_stats["mean"]
         std = dataset.standardization_stats["std"]
-        summary.update(
-            {
-                "mean_shape": list(mean.shape),
-                "std_shape": list(std.shape),
-                "mean_abs_mean": float(mean.abs().mean().item()),
-                "std_mean": float(std.mean().item()),
-                "std_min": float(std.min().item()),
-                "std_max": float(std.max().item()),
-            }
-        )
+        summary.update({
+            "mean_shape": list(mean.shape),
+            "std_shape": list(std.shape),
+            "mean_abs_mean": float(mean.abs().mean().item()),
+            "std_mean": float(std.mean().item()),
+            "std_min": float(std.min().item()),
+            "std_max": float(std.max().item()),
+        })
     return summary
 
 
