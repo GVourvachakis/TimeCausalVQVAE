@@ -17,7 +17,7 @@ The Python distribution is `time-causal-vae`; the import package is
 `time_causal_vae`. The GitHub repository remains `TimeCausalVQVAE` because it
 also hosts the discrete VQ extension work.
 
-Release notes: [`0.1.0`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/docs/release/0.1.0.md).
+Release notes: [`0.1.1`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/docs/release/0.1.1.md).
 
 ![Discrete time-causal VQ-VAE architecture](assets/figures/time_causal_vqvae_pipeline.svg)
 
@@ -148,6 +148,9 @@ configs/experiments/sp500_vix_causal_token_prior_additive.yaml
 
 The benchmark notes live under
 [`docs/benchmarks`](https://github.com/GVourvachakis/TimeCausalVQVAE/tree/main/docs/benchmarks).
+They document the synthetic SDE or simulator specification, empirical data
+source conventions, tensor and condition layouts, preprocessing rules, and
+local-data boundaries for each workflow.
 
 ## Benchmark Data Conventions
 
