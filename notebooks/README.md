@@ -74,6 +74,11 @@ paths, and it does not train or evaluate models by default.
 
 ## Output Policy
 
+Executed notebook previews are available on the `docs/executed-notebook-previews` branch. The
+`main` branch keeps notebooks output-stripped for reproducibility and package size. Preview outputs
+depend on local artefacts and checkpoints, are not the package source of truth, and the preview
+branch is not intended to merge into `main`.
+
 Committed notebooks should remain output-stripped. Generated figures, executed notebooks,
 checkpoints, tensors, JSON summaries, logs, and local data belong under local `outputs/` or
 `data/processed/` paths and should not be committed.
