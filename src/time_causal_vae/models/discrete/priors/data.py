@@ -40,16 +40,30 @@ def build_tokenizer_datasets(
     sample_count = int(n_sample if n_sample is not None else data["n_samples"])
     if sample_count <= 0:
         raise ValueError("n_sample must be positive.")
+    train_sample_count = optional_split_sample_count(data.get("train_n_samples"))
+    eval_sample_count = optional_split_sample_count(data.get("eval_n_samples"))
 
     exp_config = ml_collections.ConfigDict()
     exp_config.dataset = str(experiment["dataset"])
     exp_config.n_sample = sample_count
+    exp_config.train_n_sample = sample_count if n_sample is not None else train_sample_count
+    exp_config.eval_n_sample = sample_count if n_sample is not None else eval_sample_count
     exp_config.n_timestep = int(data["n_timesteps"])
     exp_config.base_data_dir = base_data_dir
     exp_config.data_params = dict(cast(Mapping[str, Any], data.get("data_params", {})))
     if "rho" in data:
         exp_config.rho = data["rho"]
     return cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+
+
+def optional_split_sample_count(value: Any) -> int | None:
+    """Return ``None`` or a validated split-specific sample count."""
+    if value is None:
+        return None
+    count = int(value)
+    if count <= 0:
+        raise ValueError("split-specific sample counts must be positive when provided.")
+    return count
 
 
 def require_mapping(raw_config: Mapping[str, Any], key: str) -> dict[str, Any]:

@@ -1,12 +1,32 @@
 [project]
 name = "time-causal-vae"
-version = "0.1.0"
-description = "Clean Python-package rewrite of Time-Causal VAE for financial time-series generation."
+version = "0.1.1.dev0"
+description = "Time-causal financial generative models with TC-VAE baselines, causal VQ/RVQ tokenizers, token priors, and path-risk diagnostics."
 authors = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
+maintainers = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
-license = "MIT"
-keywords = ["time-series", "vae", "finance", "generative-models", "pytorch"]
+license = "GPL-3.0-only"
+keywords = [
+    "time-series",
+    "finance",
+    "variational-autoencoder",
+    "vq-vae",
+    "market-generators",
+    "pytorch",
+    "synthetic-data",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "torch>=2.5,<3.0",
     "numpy>=1.26,<3.0",
@@ -16,7 +36,6 @@ dependencies = [
     "pyyaml>=6.0,<7.0",
     "ml-collections>=0.1.1,<1.0",
     "tqdm (>=4.65.0,<5.0.0)",
-    "types-pyyaml (>=6.0.12.20260508,<7.0.0.0)",
     "absl-py==2.1.0",
     "joblib==1.4.2",
     "neuralhedge==0.1.0",
@@ -26,6 +45,12 @@ dependencies = [
     "statsmodels==0.14.4",
     "vector-quantize-pytorch>=1.24,<2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/GVourvachakis/TimeCausalVQVAE"
+Repository = "https://github.com/GVourvachakis/TimeCausalVQVAE"
+Documentation = "https://github.com/GVourvachakis/TimeCausalVQVAE/tree/main/docs"
+Issues = "https://github.com/GVourvachakis/TimeCausalVQVAE/issues"
 
 [project.scripts]
 tcvae-train = "time_causal_vae.cli.train:main"
@@ -38,9 +63,10 @@ tcvae-inspect-checkpoint = "time_causal_vae.cli.inspect_checkpoint:main"
 tcvae-select-model = "time_causal_vae.cli.select_model:main"
 
 [tool.poetry]
-packages = [
-    { include = "time_causal_vae", from = "src" },
-]
+packages = [{ include = "time_causal_vae", from = "src" }]
+
+[tool.poetry.group.dev]
+optional = true
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.8.0,<1.0"
@@ -49,6 +75,11 @@ pre-commit = ">=4.0,<5.0"
 commitizen = ">=4.0,<5.0"
 nbstripout = ">=0.7,<1.0"
 ipykernel = ">=6.29,<7.0"
+types-pyyaml = ">=6.0.12.20260508,<7.0.0.0"
+twine = ">=6.0,<7.0"
+
+[tool.poetry.group.notebooks]
+optional = true
 
 [tool.poetry.group.notebooks.dependencies]
 jupyter = ">=1.1,<2.0"
@@ -56,8 +87,17 @@ seaborn = ">=0.13,<1.0"
 torchview = ">=0.2,<1.0"
 graphviz = ">=0.20,<1.0"
 
+[tool.poetry.group.tracking]
+optional = true
+
 [tool.poetry.group.tracking.dependencies]
 wandb = ">=0.17,<1.0"
+
+[tool.poetry.group.data]
+optional = true
+
+[tool.poetry.group.data.dependencies]
+yfinance = ">=0.2,<2.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
@@ -73,12 +113,21 @@ extend-exclude = ["src/time_causal_vae/evaluation/external"]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM", "ANN", "D", "N", "RUF"]
 ignore = ["D100", "D104", "ANN401"]
 
+[tool.ruff.lint.per-file-ignores]
+"notebooks/**/*.ipynb" = [
+    "D103", # Notebook helper functions are intentionally lightweight.
+    "E402", # Notebooks set paths and plotting env vars before imports.
+    "E501", # Narrative strings and shell commands are clearer unwrapped.
+    "RUF005", # Command construction in notebooks favours linear readability.
+]
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+preview = true
 
 [tool.mypy]
 python_version = "3.11"
@@ -93,6 +142,6 @@ exclude = ["^src/time_causal_vae/evaluation/external/"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.0"
-version_files = ["pyproject.toml:^version"]
+version = "0.1.1.dev0"
+version_files = ["pyproject.toml:^version", "src/time_causal_vae/version.py:__version__"]
 tag_format = "v$version"

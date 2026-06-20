@@ -16,7 +16,10 @@ DATASET_NAME_MAP = {
     "black_scholes": "BSprice",
     "heston": "Hestonprice",
     "hawkes_jump": "HawkesJump",
+    "multifactor_market": "MultifactorMarket",
+    "multifactor_market_factor_projected": "MultifactorFactorProjectedMarket",
     "path_dependent_volatility": "PDVPriceConFeature",
+    "sp500_50_panel": "SP50050Panel",
     "sp500_vix": "SP500VIX",
 }
 
@@ -76,6 +79,69 @@ SUPPORTED_DATA_PARAMS = {
             "volatility_excitation_scale",
         }
     ),
+    "multifactor_market": frozenset({
+        "condition_mode",
+        "common_jumps",
+        "common_jump_base_probability",
+        "common_jump_excitation",
+        "factor_vol_max",
+        "factor_vol_min",
+        "idiosyncratic_jumps",
+        "idiosyncratic_vol_max",
+        "idiosyncratic_vol_min",
+        "jump_probability_decay",
+        "log_vol_ar",
+        "max_jump_probability",
+        "n_assets",
+        "n_factors",
+        "n_sectors",
+        "path_seed",
+        "regime_switch_probability",
+        "sector_jumps",
+        "sector_jump_base_probability",
+        "sector_jump_excitation",
+        "seed",
+        "standardization_epsilon",
+        "standardize_returns",
+        "structure_seed",
+        "with_jumps",
+    }),
+    "multifactor_market_factor_projected": frozenset({
+        "condition_mode",
+        "common_jumps",
+        "common_jump_base_probability",
+        "common_jump_excitation",
+        "factor_vol_max",
+        "factor_vol_min",
+        "idiosyncratic_jumps",
+        "idiosyncratic_vol_max",
+        "idiosyncratic_vol_min",
+        "jump_probability_decay",
+        "log_vol_ar",
+        "max_jump_probability",
+        "n_assets",
+        "n_factors",
+        "n_sectors",
+        "path_seed",
+        "projection_mode",
+        "projection_n_factors",
+        "regime_switch_probability",
+        "sector_jumps",
+        "sector_jump_base_probability",
+        "sector_jump_excitation",
+        "seed",
+        "standardization_epsilon",
+        "standardize_returns",
+        "structure_seed",
+        "with_jumps",
+    }),
+    "sp500_50_panel": frozenset({
+        "condition_mode",
+        "processed_subdir",
+        "split",
+        "standardization_epsilon",
+        "standardize_returns",
+    }),
 }
 
 
@@ -192,6 +258,8 @@ def adapt_selected_config(
         ),
         "prior": _map_value(model, "prior", PRIOR_NAME_MAP, "model.prior"),
         "n_sample": _required_value(data, "n_samples", "data.n_samples"),
+        "train_n_sample": data.get("train_n_samples"),
+        "eval_n_sample": data.get("eval_n_samples"),
         "n_timestep": _required_value(data, "n_timesteps", "data.n_timesteps"),
         "data_dim": _required_value(model, "data_dim", "model.data_dim"),
         "data_length": _required_value(model, "data_length", "model.data_length"),
@@ -341,7 +409,8 @@ def _validated_data_params(data: Mapping[str, Any], dataset_name: str) -> dict[s
         raise ValueError(
             f"Unsupported custom data.params for dataset '{dataset_name}'. "
             "Custom synthetic parameters are currently supported only for "
-            "black_scholes, heston, and hawkes_jump."
+            "black_scholes, heston, hawkes_jump, multifactor_market, "
+            "multifactor_market_factor_projected, and sp500_50_panel."
         )
 
     unsupported = sorted(set(params_dict) - supported)

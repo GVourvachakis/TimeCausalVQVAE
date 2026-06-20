@@ -51,14 +51,25 @@ class NeuralSDEDecoder(BaseDecoder):
             nn.Parameter(torch.randn(1, 1).to(self.device)),
         )
 
-        self.B1, self.B2 = (
+        self.register_buffer(
+            "B1",
             torch.randn(self.reservoir_dim, self.reservoir_dim, device=device),
-            torch.randn(self.brownian_dim, self.reservoir_dim, self.reservoir_dim, device=device),
+            persistent=False,
         )
-
-        self.lambda1, self.lambda2 = (
+        self.register_buffer(
+            "B2",
+            torch.randn(self.brownian_dim, self.reservoir_dim, self.reservoir_dim, device=device),
+            persistent=False,
+        )
+        self.register_buffer(
+            "lambda1",
             torch.randn(self.reservoir_dim, 1, device=device),
+            persistent=False,
+        )
+        self.register_buffer(
+            "lambda2",
             torch.randn(self.brownian_dim, self.reservoir_dim, 1, device=device),
+            persistent=False,
         )
 
         self.activation = activation

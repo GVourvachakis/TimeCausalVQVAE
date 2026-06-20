@@ -117,6 +117,7 @@ def compute_tokenizer_metrics(
         :codebook_size
     ]
     code_stats = summarise_code_usage(code_counts)
+    component_stats = component_code_usage(indices.detach().cpu(), codebook_size)
     transition_summary = summarise_code_transitions(indices.detach().cpu())
     return {
         "reconstruction_l1": float(reconstruction_l1.detach().cpu()),
@@ -124,6 +125,7 @@ def compute_tokenizer_metrics(
         "terminal_return_error": float(terminal_return_error.detach().cpu()),
         "volatility_reconstruction_error": float(volatility_error.detach().cpu()),
         **code_stats,
+        **component_stats,
         **transition_summary,
     }
 
@@ -172,6 +174,47 @@ def summarise_code_usage(code_counts: Tensor) -> dict[str, Any]:
         "token_count": total,
         "active_code_indices": active_indices,
         "code_usage_counts": [int(value) for value in code_counts.tolist()],
+    }
+
+
+def component_code_usage(indices: Tensor, codebook_size: int) -> dict[str, Any]:
+    """Return per-component code usage for vector, RVQ, and grouped RVQ outputs."""
+    if indices.ndim == 2:
+        return {"component_usage_note": "single_vector_code_per_time_step"}
+    if indices.ndim == 3:
+        return {
+            "per_quantizer": [
+                {
+                    "quantizer_index": quantizer_index,
+                    **summarise_code_usage(
+                        torch.bincount(
+                            indices[:, :, quantizer_index].reshape(-1),
+                            minlength=codebook_size,
+                        )[:codebook_size]
+                    ),
+                }
+                for quantizer_index in range(indices.shape[2])
+            ]
+        }
+    if indices.ndim == 4:
+        per_group_quantizer = []
+        for group_index in range(indices.shape[2]):
+            for quantizer_index in range(indices.shape[3]):
+                code_counts = torch.bincount(
+                    indices[:, :, group_index, quantizer_index].reshape(-1),
+                    minlength=codebook_size,
+                )[:codebook_size]
+                per_group_quantizer.append({
+                    "group_index": group_index,
+                    "quantizer_index": quantizer_index,
+                    **summarise_code_usage(code_counts),
+                })
+        return {"per_group_quantizer": per_group_quantizer}
+    return {
+        "component_usage_note": (
+            "component code usage omitted for unsupported index rank "
+            f"{indices.ndim}; expected 2, 3, or 4."
+        )
     }
 
 

@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
-QuantizerType = Literal["vector", "residual_vq", "grouped_residual_vq"]
+QuantizerType = Literal["vector", "standard_vq", "residual_vq", "grouped_residual_vq"]
 
 
 @dataclass(frozen=True)
@@ -52,9 +52,18 @@ class VQTokenizerConfig:
     shared_codebook: bool = False
     stochastic_sample_codes: bool = False
     sample_codebook_temp: float = 0.0
+    factor_reconstruction_loss_weight: float = 0.0
+    factor_covariance_loss_weight: float = 0.0
+    factor_correlation_loss_weight: float = 0.0
+    inverse_projected_covariance_loss_weight: float = 0.0
+    inverse_projected_correlation_loss_weight: float = 0.0
+    sector_block_loss_weight: float = 0.0
+    equal_weight_portfolio_vol_loss_weight: float = 0.0
 
     def __post_init__(self) -> None:
         """Validate scalar dimensions and dilation schedule."""
+        if self.quantizer_type == "standard_vq":
+            object.__setattr__(self, "quantizer_type", "vector")
         positive_fields = {
             "data_dim": self.data_dim,
             "data_length": self.data_length,
@@ -67,9 +76,9 @@ class VQTokenizerConfig:
             "num_quantizers": self.num_quantizers,
             "groups": self.groups,
         }
-        for field_name, value in positive_fields.items():
-            if value <= 0:
-                raise ValueError(f"{field_name} must be positive.")
+        for positive_field_name, positive_value in positive_fields.items():
+            if positive_value <= 0:
+                raise ValueError(f"{positive_field_name} must be positive.")
         if self.commitment_weight < 0.0:
             raise ValueError("commitment_weight must be non-negative.")
         if not 0.0 <= self.dropout < 1.0:
@@ -84,6 +93,22 @@ class VQTokenizerConfig:
             raise ValueError("decay must satisfy 0.0 < decay <= 1.0.")
         if self.usage_regularization_weight < 0.0:
             raise ValueError("usage_regularization_weight must be non-negative.")
+        auxiliary_weights = {
+            "factor_reconstruction_loss_weight": self.factor_reconstruction_loss_weight,
+            "factor_covariance_loss_weight": self.factor_covariance_loss_weight,
+            "factor_correlation_loss_weight": self.factor_correlation_loss_weight,
+            "inverse_projected_covariance_loss_weight": (
+                self.inverse_projected_covariance_loss_weight
+            ),
+            "inverse_projected_correlation_loss_weight": (
+                self.inverse_projected_correlation_loss_weight
+            ),
+            "sector_block_loss_weight": self.sector_block_loss_weight,
+            "equal_weight_portfolio_vol_loss_weight": self.equal_weight_portfolio_vol_loss_weight,
+        }
+        for weight_field_name, weight_value in auxiliary_weights.items():
+            if weight_value < 0.0:
+                raise ValueError(f"{weight_field_name} must be non-negative.")
         if self.usage_regularization_type not in {"none", "entropy"}:
             raise ValueError("usage_regularization_type must be 'none' or 'entropy'.")
         if self.usage_regularization_type == "none" and self.usage_regularization_weight != 0.0:
@@ -92,7 +117,8 @@ class VQTokenizerConfig:
             )
         if self.quantizer_type not in {"vector", "residual_vq", "grouped_residual_vq"}:
             raise ValueError(
-                "quantizer_type must be 'vector', 'residual_vq', or 'grouped_residual_vq'."
+                "quantizer_type must be 'standard_vq', 'vector', 'residual_vq', "
+                "or 'grouped_residual_vq'."
             )
         if self.quantizer_type == "vector" and self.num_quantizers != 1:
             raise ValueError("num_quantizers must be 1 when quantizer_type='vector'.")

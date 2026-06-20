@@ -12,10 +12,15 @@ This directory stores lightweight metadata for selected continuous and discrete 
 
 Selected entries are current registry selections for public workflows, not universal mathematical optima. They reflect the metrics and caveats recorded in the registry and model cards.
 
+Hawkes/SVMHJD is an optional synthetic benchmark with a research-candidate metadata entry only. It
+is registered with `status: research_candidate` and `public_default: false`; it is not a public
+default and does not imply committed weights.
+
 The per-experiment model cards provide a compact human-readable summary:
 
 - `black_scholes/model_card.md`;
 - `heston/model_card.md`;
+- `hawkes_jump/model_card.md`;
 - `pdv/model_card.md`;
 - `sp500_vix/model_card.md`.
 
