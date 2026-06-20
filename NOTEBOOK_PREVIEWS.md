@@ -4,9 +4,11 @@ This branch contains executed notebook previews for visual inspection.
 
 The `main` branch keeps notebooks output-stripped for reproducibility and package size. Outputs on
 this branch are generated from local artefacts and may not be reproducible without the same local
-data, checkpoints, summaries, or generated figures.
+outputs, checkpoints, summaries, generated figures, or processed data conventions.
 
-Do not merge this branch into `main`.
+Do not merge this branch into `main`. Do not commit raw or processed downloaded data,
+checkpoints, W&B artefacts, generated tensors, or large generated outputs outside notebooks.
+Large embedded notebook outputs should be avoided so this preview branch remains inspectable.
 
 ## First Preview Set
 
