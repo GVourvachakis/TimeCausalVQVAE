@@ -1,17 +1,17 @@
 # S&P500 50-Stock Panel Benchmark
 
 The S&P500 50-stock panel is an experimental local-only empirical benchmark for
-50-dimensional daily equity returns. It follows the 60-step S&P500/VIX
-conditioning convention while extending the model-visible tensor from one path
-to a static sector-stratified 50-stock cross-section.
+50-dimensional daily equity returns. It follows the 60-step market-condition
+convention while extending the model-visible tensor from one path to a static
+sector-stratified 50-stock cross-section.
 
 The benchmark is not packaged with downloaded data. Raw and processed market
 data must remain local under `data/raw`, `data/processed`, or `outputs`.
 
-## Data Access
+## Data Source Convention
 
-The planned downloader uses `yfinance`, which is optional and isolated in the
-`data` dependency group:
+The downloader uses optional `yfinance` access to Yahoo-backed adjusted-close
+data:
 
 ```bash
 poetry install --with data
@@ -21,33 +21,79 @@ poetry install --with data
 local research and educational use, subject to Yahoo's terms. Downloaded price
 data must not be redistributed or committed.
 
+The fixed universe is recorded as `sp500_50_liquid_sector_v0`. It is a static,
+sector-stratified 50-stock list plus `SPY` and `^VIX`; it is deliberately not
+scraped dynamically during processing.
+
+## Return And Condition Construction
+
+The processor aligns all required adjusted-close columns by date, drops any row
+with missing prices, and computes log returns after alignment:
+
+```text
+r_{t,a} = log P_{t,a} - log P_{t-1,a}.
+```
+
+For a generated stock-return window beginning at index `s`, the raw data tensor
+contains
+
+```text
+stock_returns.iloc[s : s + 60].
+```
+
+The legacy v2 condition mode, `spy_vix_level`, uses two start-of-window
+features:
+
+- `spy_log_return_start`;
+- `log_vix_level_start`.
+
+The v3 condition mode, `v3_prefix_market`, uses six prefix-safe features:
+
+- `spy_log_return_start`;
+- `log_vix_level_start`;
+- `previous_window_spy_realized_volatility`;
+- `previous_window_equal_weight_realized_volatility`;
+- `previous_window_average_correlation`;
+- `previous_window_equal_weight_log_return`.
+
+The previous-window statistics are computed from
+`stock_returns.iloc[s - 60 : s]`, so the previous window ends strictly before
+the generated 60-day stock-return window starts.
+
 ## Tensor Convention
 
 The processed dataset exposes:
 
-- `data`: 50D adjusted-close log returns with shape `[n_window, 60, 50]`;
-- `labels`: prefix-safe conditions with shape `[n_window, 2]`;
-- condition names: `spy_log_return_start` and `log_vix_level_start`;
+- `data`: 50D adjusted-close log-return windows with shape
+  `[n_window, 60, 50]`;
+- `labels`: train-standardised condition vectors with shape `[n_window, 2]`
+  for v2 `spy_vix_level`, or `[n_window, 6]` for v3 `v3_prefix_market`;
+- `raw_data.pt`: raw log returns;
+- `standardized_data.pt`: train-standardised returns written by the
+  downloader;
 - metadata: ticker order, sector labels, date range, split boundaries,
-  condition names, and missing-data handling.
+  condition names, lag conventions, missing-data handling, and data-use caveats.
 
-The v2 empirical convention uses separate train and eval counts, train-only
-per-asset standardisation, and train-fitted PCA for factor-projected discrete
-experiments. Eval data reuses the train standardisation statistics and train
-PCA basis. No oracle synthetic factor loading matrix exists for the empirical
-panel.
+The dataset loader can expose raw returns or train-standardised returns. When
+`standardize_returns: true`, train statistics are fitted only on train windows
+and reused for eval. If `projection_mode: train_pca` is enabled, the train PCA
+basis is fitted on train model-visible returns and reused for eval.
 
-## Universe
+## Train/Eval Split
 
-The first public universe is a static, sector-stratified 50-stock list recorded
-by the downloader metadata under `universe_id:
-sp500_50_liquid_sector_v0`. It is deliberately not scraped dynamically in the
-first pass. If a ticker materially shortens the joined panel, update the
-versioned universe rather than silently substituting another asset.
+The processed metadata records the leading train split and trailing eval split.
+The v3 local comparison uses:
 
-The downloader aligns the 50 stocks plus `SPY` and `^VIX` by date, uses an
-inner join for the first pass, and computes log returns after alignment. It
-does not forward-fill asset prices inside the benchmark panel.
+- `train_n_samples=355`;
+- `eval_n_samples=89`;
+- `n_timestep=60`;
+- train-only return standardisation;
+- train-only label standardisation;
+- `condition_mode: v3_prefix_market`.
+
+No future generated-window realised volatility, covariance, correlation,
+drawdown, or tail label is model-visible. Sector labels are metadata for
+diagnostics and universe auditing, not conditioning.
 
 ## Local Downloader
 
@@ -77,10 +123,6 @@ poetry run python scripts/smoke_sp500_50_panel_dataset.py \
   --base-data-dir data/processed \
   --output-dir outputs/sp500_50_panel_public_smoke
 ```
-
-The empirical configs under `configs/experiments/sp500_50_panel*.yaml` are
-smoke and experimental entry points. The factor-PCA RVQ q2 configs are included
-only as experimental infrastructure and are not registry-selected.
 
 ## Diagnostics
 

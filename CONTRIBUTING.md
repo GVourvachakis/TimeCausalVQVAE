@@ -156,6 +156,10 @@ local-output-only checkpoint conventions. Until that evidence exists, multidimen
 diagnostics, and configs should remain experimental infrastructure rather than registry-selected
 models.
 
+`trained_models/multidim_profiles.yaml` is experimental profile metadata for local comparison
+labels, not a public default registry selection. Updating it must not imply promotion into
+`trained_models/model_registry.yaml`.
+
 ## Code Quality
 
 Prefer narrow, local changes. Preserve public commands and notebook workflows when refactoring.
@@ -217,8 +221,9 @@ research branches while preparing a public branch.
 Public branches should keep only the source, notebooks, configs, scripts, and documentation needed
 for the public baseline and any explicitly documented demo. Multidimensional benchmark loaders,
 diagnostics, smoke scripts, and clearly labelled experimental configs may be public when they do
-not claim a selected model. Multidimensional non-smoke evidence, seed grids, sampling ablations,
-hierarchy ablations, generated summaries, and empirical result logs belong on research branches.
+not claim a selected model. Multidimensional non-smoke documentation, generated evidence, seed
+grids, sampling ablations, hierarchy ablations, generated summaries, and empirical result logs
+belong on research branches.
 RVQ q2, hidden128 variants, diffusion, signature-kernel experiments, and other exploratory paths
 should remain on research branches unless they are deliberately promoted.
 

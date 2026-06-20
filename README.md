@@ -6,10 +6,12 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](https://www.python.org)
 
+Time-causal financial generative models: refactored TC-VAE baselines with
+causal VQ/RVQ tokenizers, token priors, S&P500/VIX, Hawkes/SVMHJD,
+multi-dimensional benchmarks, and path-risk diagnostics.
+
 `time-causal-vae` is a research package for time-causal financial generative
-modelling. It provides continuous TC-VAE baselines, causal VQ/RVQ tokenizers,
-autoregressive token priors, registry metadata, and path-risk diagnostics for
-synthetic and empirical market time series.
+modelling across synthetic and empirical market time series.
 
 The Python distribution is `time-causal-vae`; the import package is
 `time_causal_vae`. The GitHub repository remains `TimeCausalVQVAE` because it
@@ -106,6 +108,8 @@ Hawkes/SVMHJD is an optional research benchmark with research-candidate
 metadata. Multidimensional benchmarks are experimental infrastructure, and no
 multidimensional model is selected in
 [`trained_models/model_registry.yaml`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/trained_models/model_registry.yaml).
+Experimental multidimensional profile metadata is kept in
+[`trained_models/multidim_profiles.yaml`](trained_models/multidim_profiles.yaml).
 
 No downloaded data, trained weights, checkpoints, token tensors, generated
 paths, W&B runs, notebooks with outputs, or local result summaries are shipped
@@ -115,10 +119,10 @@ with the package.
 
 | Benchmark | Role | Public status |
 | --- | --- | --- |
-| S&P500/VIX | Empirical one-dimensional market workflow with VIX conditioning and a local processed data convention. | Public default. Uses local-only processed data and selected continuous/discrete registry metadata. |
-| Black-Scholes | Synthetic baseline for smoke tests and one-dimensional generation checks. | Stable baseline config and registry metadata. |
-| Heston | Synthetic stochastic-volatility baseline. | Stable baseline config and registry metadata. |
-| Path-dependent volatility | Conditional synthetic volatility baseline. | Stable baseline config and registry metadata. |
+| [S&P500/VIX](docs/benchmarks/sp500_vix.md) | Empirical one-dimensional market workflow with VIX conditioning and a local processed data convention. | Public default. Uses local-only processed data and selected continuous/discrete registry metadata. |
+| [Black-Scholes](docs/benchmarks/black_scholes.md) | Synthetic geometric Brownian motion baseline for smoke tests and one-dimensional generation checks. | Stable baseline config and registry metadata. |
+| [Heston](docs/benchmarks/heston.md) | Synthetic stochastic-volatility baseline with a latent variance channel. | Stable baseline config and registry metadata. |
+| [Path-dependent volatility](docs/benchmarks/path_dependent_volatility.md) | Conditional synthetic volatility baseline with a prefix volatility feature. | Stable baseline config and registry metadata. |
 
 The selected public S&P500/VIX discrete baseline is a standard causal VQ
 tokenizer plus an additive scalar-conditioned causal autoregressive token
@@ -133,14 +137,14 @@ configs/experiments/sp500_vix_causal_token_prior_additive.yaml
 
 | Benchmark | Description | Public status |
 | --- | --- | --- |
-| Hawkes/SVMHJD | Marked Hawkes jump-diffusion benchmark with Ogata event simulation and fixed-grid observation. | Optional rare-event research benchmark with `public_default: false`. No weights or generated outputs are committed. |
+| [Hawkes/SVMHJD](docs/benchmarks/hawkes_jump.md) | Marked Hawkes jump-diffusion benchmark with Ogata event simulation and fixed-grid observation. | Optional rare-event research benchmark with `public_default: false`. No weights or generated outputs are committed. |
 
 ## Experimental Benchmarks
 
 | Benchmark | Description | Public status |
 | --- | --- | --- |
-| Multifactor market | 50-dimensional low-rank factor market with sector structure and optional common/sector jumps. | Experimental infrastructure for shape, covariance, and no-leakage checks. |
-| S&P500 50-stock panel | Local-only `yfinance`/Yahoo-backed daily 50-stock equity panel. | Experimental infrastructure. Downloaded Yahoo-backed data must remain local and is not redistributed. |
+| [Multifactor market](docs/benchmarks/multifactor_market.md) | 50-dimensional low-rank factor market with sector structure and optional common/sector jumps. | Experimental infrastructure for shape, covariance, and no-leakage checks. |
+| [S&P500 50-stock panel](docs/benchmarks/sp500_50_panel.md) | Local-only `yfinance`/Yahoo-backed daily 50-stock equity panel. | Experimental infrastructure. Downloaded Yahoo-backed data must remain local and is not redistributed. |
 
 The benchmark notes live under
 [`docs/benchmarks`](https://github.com/GVourvachakis/TimeCausalVQVAE/tree/main/docs/benchmarks).
@@ -149,10 +153,10 @@ The benchmark notes live under
 
 | Benchmark | Data convention |
 | --- | --- |
-| S&P500/VIX | Local processed benchmark data is expected at `data/processed/sp500vix/sp500vix_normalized.npy`. |
-| Hawkes/SVMHJD | Synthetic paths are generated locally from the marked Hawkes jump-diffusion simulator. |
-| Multifactor market | Synthetic 50D panels are generated locally from the low-rank sector-factor simulator. |
-| S&P500 50-stock panel | Daily panels are downloaded locally through optional `yfinance` access and must not be redistributed. |
+| [S&P500/VIX](docs/benchmarks/sp500_vix.md) | Local processed benchmark data is expected at `data/processed/sp500vix/sp500vix_normalized.npy`. |
+| [Hawkes/SVMHJD](docs/benchmarks/hawkes_jump.md) | Synthetic paths are generated locally from the marked Hawkes jump-diffusion simulator. |
+| [Multifactor market](docs/benchmarks/multifactor_market.md) | Synthetic 50D panels are generated locally from the low-rank sector-factor simulator. |
+| [S&P500 50-stock panel](docs/benchmarks/sp500_50_panel.md) | Daily panels are downloaded locally through optional `yfinance` access and must not be redistributed. |
 
 ## Models And Features
 
