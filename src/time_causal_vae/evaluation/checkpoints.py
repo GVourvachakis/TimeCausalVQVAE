@@ -56,15 +56,19 @@ class TargetModelEvaluator:
         exp_config: Any | None = None,
         model: Any | None = None,
         base_data_dir: str | None = None,
+        device: torch.device | str | None = None,
         *args,
         **kwargs,
     ) -> None:
+        self.device = None if device is None else torch.device(device)
         if model_dir:
             self.exp_config = self.load_from_folder(Path(model_dir), base_data_dir)
             self.load_model()
         else:
             self.exp_config = deepcopy(exp_config)
             self.model = model
+            if self.device is not None and self.model is not None:
+                self._move_model_to_device()
 
         self.data_ppl = DataPipeline()
         self.compatibility = compatibility_summary(self.exp_config)
@@ -82,6 +86,13 @@ class TargetModelEvaluator:
         self.network_ppl = ModelFactory()
         self.model = self.network_ppl(self.exp_config)
         self.model.load_from_folder(self.model_dir)
+        if self.device is not None:
+            self._move_model_to_device()
+
+    def _move_model_to_device(self) -> None:
+        """Move the evaluator model to the configured device."""
+        self.model = self.model.to(self.device)
+        self.model.device = self.device
 
     def load_data(
         self,
@@ -95,7 +106,12 @@ class TargetModelEvaluator:
         exp_config.n_sample = n_sample_test
         _, test_dataset = self.data_ppl(exp_config)
 
-        dataset_output = DatasetOutput(data=test_dataset.data, labels=test_dataset.labels)
+        data = test_dataset.data
+        labels = test_dataset.labels
+        if self.device is not None:
+            data = data.to(self.device)
+            labels = labels.to(self.device)
+        dataset_output = DatasetOutput(data=data, labels=labels)
 
         with torch.no_grad():
             model_output = self.model(dataset_output)

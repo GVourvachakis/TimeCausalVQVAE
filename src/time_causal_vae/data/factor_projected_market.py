@@ -329,21 +329,19 @@ def factor_projection_metadata(
 ) -> dict[str, Any]:
     """Return metadata describing the factor projection view."""
     metadata = dict(state.metadata)
-    metadata.update(
-        {
-            "mode": state.mode,
-            "state_source": state_source,
-            "n_factors": int(state.n_factors),
-            "input_dim": int(state.input_dim),
-            "input_scale": state.input_scale,
-            "is_oracle": bool(state.is_oracle),
-            "basis_shape": list(state.basis.shape),
-            "mean_shape": list(state.mean.shape),
-            "factor_returns_shape": list(factor_returns.shape),
-            "basis": state.basis,
-            "mean": state.mean,
-        }
-    )
+    metadata.update({
+        "mode": state.mode,
+        "state_source": state_source,
+        "n_factors": int(state.n_factors),
+        "input_dim": int(state.input_dim),
+        "input_scale": state.input_scale,
+        "is_oracle": bool(state.is_oracle),
+        "basis_shape": list(state.basis.shape),
+        "mean_shape": list(state.mean.shape),
+        "factor_returns_shape": list(factor_returns.shape),
+        "basis": state.basis,
+        "mean": state.mean,
+    })
     return metadata
 
 

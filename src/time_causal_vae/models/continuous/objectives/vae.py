@@ -98,7 +98,8 @@ class VAE(BaseModel):
         return mu + eps * std, eps
 
     def generation(self, n_sample: int, **kwargs):
-        z = self.prior.sample(n_sample, device=self.device)
+        device = torch.device(kwargs.pop("device", self.infer_device()))
+        z = self.prior.sample(n_sample, device=device)
         recon_x = self.decoder(z)["reconstruction"]
         recon_x0 = self.inv_transform(recon_x)
         return recon_x0
@@ -145,7 +146,10 @@ class CVAE(VAE):
 
     def generation(self, n_sample: int, **kwargs):
         c = kwargs.pop("c")
-        z = self.prior.sample(n_sample, device=self.device)
+        device = torch.device(kwargs.pop("device", self.infer_device()))
+        if torch.is_tensor(c):
+            c = c.to(device)
+        z = self.prior.sample(n_sample, device=device)
         recon_x = self.decoder(z, c)["reconstruction"]
         recon_x0 = self.inv_transform(recon_x)
         return recon_x0

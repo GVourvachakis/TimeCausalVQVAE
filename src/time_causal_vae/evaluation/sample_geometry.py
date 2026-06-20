@@ -89,24 +89,20 @@ def path_feature_matrix(
     if dataset_type == "hawkes_jump":
         jump_indicators = _detect_jumps_from_return_matrix(returns).float()
         jump_counts = jump_indicators.sum(dim=1)
-        feature_columns.extend(
-            [
-                jump_counts,
-                jump_indicators.mean(dim=1),
-                _value_at_risk_per_path(returns, level=0.01),
-                _expected_shortfall_per_path(returns, level=0.01),
-                paths_2d[:, -1] - paths_2d[:, 0],
-            ]
-        )
-        feature_names.extend(
-            [
-                "detected_jump_count",
-                "detected_jump_fraction",
-                "return_var_01",
-                "return_expected_shortfall_01",
-                "path_increment",
-            ]
-        )
+        feature_columns.extend([
+            jump_counts,
+            jump_indicators.mean(dim=1),
+            _value_at_risk_per_path(returns, level=0.01),
+            _expected_shortfall_per_path(returns, level=0.01),
+            paths_2d[:, -1] - paths_2d[:, 0],
+        ])
+        feature_names.extend([
+            "detected_jump_count",
+            "detected_jump_fraction",
+            "return_var_01",
+            "return_expected_shortfall_01",
+            "path_increment",
+        ])
 
     values = torch.stack([column.detach().float().cpu() for column in feature_columns], dim=1)
     values = torch.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0)

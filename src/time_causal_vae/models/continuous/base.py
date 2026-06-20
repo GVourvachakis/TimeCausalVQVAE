@@ -36,6 +36,16 @@ class BaseModel(Module):
         """Generate samples from the model."""
         raise NotImplementedError()
 
+    def infer_device(self) -> torch.device:
+        """Return the device used by model parameters or buffers."""
+        for parameter in self.parameters():
+            return parameter.device
+        for buffer in self.buffers():
+            return buffer.device
+        if self.device is not None:
+            return torch.device(self.device)
+        return torch.device("cpu")
+
     def load_from_folder(self, dir_path: str) -> None:
         """Load ``model.pt`` weights from a legacy-compatible folder."""
         model_weights = BaseModel._load_model_weights_from_folder(dir_path)
