@@ -106,3 +106,73 @@ notebooks:
     required_local_outputs:
       - outputs/hawkes_jump_logreturn_robustness/
     fallback_behavior: Generate lightweight synthetic/token diagnostics and print guarded tokenizer and prior commands.
+  - path: notebooks/continuous/black_scholes.ipynb
+    priority: 90
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/black_scholes_continuous/beta_cvae/
+    fallback_behavior: Print guarded dry-run and evaluation commands without requiring local checkpoints.
+  - path: notebooks/discrete/black_scholes.ipynb
+    priority: 100
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/per_experiment_selection/black_scholes/hidden128_conv_transformer_k3/
+    fallback_behavior: Print guarded tokenizer, prior, and evaluation commands; skip missing checkpoint-dependent plots.
+  - path: notebooks/continuous/heston.ipynb
+    priority: 110
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/heston_continuous/info_cvae/
+    fallback_behavior: Print guarded dry-run and evaluation commands without requiring local checkpoints.
+  - path: notebooks/discrete/heston.ipynb
+    priority: 120
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/per_experiment_selection/heston/standard_vq_additive_ar/
+    fallback_behavior: Print guarded tokenizer, prior, and evaluation commands; skip missing checkpoint-dependent plots.
+  - path: notebooks/continuous/pdv.ipynb
+    priority: 130
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/pdv_continuous/info_cvae/
+    fallback_behavior: Print guarded dry-run and evaluation commands without requiring local checkpoints.
+  - path: notebooks/discrete/pdv.ipynb
+    priority: 140
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/per_experiment_selection/pdv/conditional_standard_vq_additive_ar/
+    fallback_behavior: Print guarded tokenizer, prior, and evaluation commands; skip missing checkpoint-dependent plots.
+  - path: notebooks/discrete/discrete_latent_geometry.ipynb
+    priority: 150
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/sp500_vix_discrete/
+    fallback_behavior: Print guarded latent-geometry commands and skip missing checkpoint-dependent analysis.
