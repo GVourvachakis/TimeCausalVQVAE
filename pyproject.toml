@@ -1,7 +1,7 @@
 [project]
 name = "time-causal-vae"
 version = "0.1.1.dev0"
-description = "Time-causal financial generative models with TC-VAE baselines, causal VQ/RVQ tokenizers, token priors, and path-risk diagnostics."
+description = "Time-causal financial generative models: refactored TC-VAE baselines with causal VQ/RVQ tokenizers, token priors, S&P500/VIX, Hawkes/SVMHJD, multi-dimensional benchmarks, and path-risk diagnostics."
 authors = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
 maintainers = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
 readme = "README.md"
