@@ -160,6 +160,10 @@ The benchmark notes live under
 | Registry metadata | Selected configs, local checkpoint conventions, metrics, caveats, and no-leakage status. | Metadata only. It does not contain weights. |
 | Notebook demos | Output-stripped notebooks that print guarded commands and read local outputs when available. | Demonstration only. They should not train or evaluate by default. |
 
+Executed notebook previews are available on the `docs/executed-notebook-previews` branch. The
+`main` branch keeps notebooks output-stripped for reproducibility and package size. Preview outputs
+depend on local artefacts and checkpoints and are not the package source of truth.
+
 ## Diagnostics
 
 | Diagnostic family | Examples | Notes |
