@@ -1,24 +1,28 @@
 # Device Acceleration Audit
 
-This note records a static audit of GPU and device handling after the `0.1.0` PyPI release. It
-does not change model code and does not train models.
+This note records the post-release device-handling audit and selective hardening pass for
+`time-causal-vae`. It does not report trained-model results and does not require notebook
+execution.
 
 ## Summary
 
-The project admits GPU acceleration in the main training paths, but it is not uniformly device
-agnostic across all model and evaluation surfaces.
+The project now supports selective single-device CPU/CUDA execution across the main public model
+surfaces.
 
-- Continuous TC-VAE training selects CUDA automatically when available and no CUDA-disabling option
-  is active.
+- Continuous TC-VAE training selects CUDA automatically when available, unless CUDA is disabled or
+  an explicit device override is supplied.
+- Continuous evaluation now accepts a device override and can move the loaded model and evaluation
+  tensors to the selected device.
+- Continuous generation now infers the active model device from parameters or buffers instead of
+  relying only on mutable `model.device` state.
 - Causal VQ tokenizer training/evaluation and token-prior training/evaluation accept `--device`,
-  default to CUDA when available, move the model to the selected device, and move input batches to
-  that device.
-- The discrete tokenizer and token-prior model internals are mostly device-local: tensors created
-  during forward/sampling use the input or requested sample device, and CPU transfers are mainly for
-  diagnostics, serialisation, and plotting.
-- Continuous evaluation is CPU-oriented: `tcvae-evaluate` has no `--device` option, and continuous
-  checkpoint loading maps weights to CPU.
-- At least one continuous decoder implementation is not fully device agnostic under `model.to(...)`.
+  default to CUDA when available, move models to the selected device, and move batch tensors to the
+  same device.
+- `NeuralSDEDecoder` and `CRSigDecoder` fixed random matrices are registered as non-persistent
+  buffers so they move with `model.to(device)` without changing checkpoint payloads.
+
+The goal is single-GPU CUDA support when it is expected to improve training or sampling throughput.
+This pass does not claim distributed training, MPS, or arbitrary accelerator support.
 
 Local runtime probe:
 
@@ -30,181 +34,132 @@ mps_available False
 ```
 
 PyTorch emitted warnings that the installed NVIDIA driver is too old for the installed CUDA wheel.
-Therefore this audit did not perform a live CUDA forward pass.
+Therefore this audit could verify CPU behaviour and static CUDA placement logic, but not a live CUDA
+forward pass on this machine.
 
-## Evidence
+## Current Behaviour
 
 ### Continuous Training
 
-The continuous trainer chooses CUDA by default when CUDA is available and `no_cuda` is false:
+The continuous trainer chooses CUDA by default when CUDA is available and `no_cuda` is false. An
+explicit `--device` value overrides that selection.
+
+The trainer now moves every tensor in each `DatasetOutput` to the selected device, rather than only
+moving inputs when the device string contains `cuda`. Autocast also receives the selected
+`torch.device(...).type`, which is safer for explicit devices such as `cuda:0`.
+
+Relevant implementation:
 
 ```text
-src/time_causal_vae/training/trainer.py:92-100
+src/time_causal_vae/training/trainer.py
 ```
 
-It then moves the model to the selected device and stores that device on the model:
+### Continuous Generation
+
+Continuous VAE/CVAE generation now uses `infer_device()` to select a generation device from model
+parameters or buffers. Callers may still pass an explicit `device=` argument. Conditional generation
+moves tensor conditions to the selected generation device before decoding.
+
+Relevant implementation:
 
 ```text
-src/time_causal_vae/training/trainer.py:113-117
+src/time_causal_vae/models/continuous/base.py
+src/time_causal_vae/models/continuous/objectives/vae.py
 ```
-
-Training/evaluation inputs are moved only when the selected device string contains `cuda`:
-
-```text
-src/time_causal_vae/training/trainer.py:160-174
-```
-
-This is sufficient for the current CUDA/CPU continuous trainer path, but it is not a general
-device-agnostic transfer rule for non-CUDA accelerators such as MPS or future backends.
-
-### Discrete Tokenizer
-
-Tokenizer training selects a requested device or CUDA by default:
-
-```text
-src/time_causal_vae/cli/train_tokenizer.py:95-96
-src/time_causal_vae/cli/train_tokenizer.py:408-412
-```
-
-The training loop moves batch data and optional conditions to that device:
-
-```text
-src/time_causal_vae/cli/train_tokenizer.py:589-646
-```
-
-Tokenizer evaluation also accepts `--device`, selects CUDA by default, loads checkpoints with the
-requested map location, and moves inputs to the selected device:
-
-```text
-src/time_causal_vae/cli/evaluate_tokenizer.py:47-76
-src/time_causal_vae/cli/evaluate_tokenizer.py:179-183
-src/time_causal_vae/evaluation/tokenizer.py:20-50
-```
-
-The tokenizer core creates auxiliary and diagnostic tensors on the reference/input device where
-they participate in model computations. Explicit CPU transfers are used for code-usage counting
-and persisted diagnostic payloads.
-
-### Discrete Token Prior
-
-Token-prior training selects a requested device or CUDA by default, moves the model to that device,
-and moves token/condition batches in the train and eval loops:
-
-```text
-src/time_causal_vae/cli/train_token_prior.py:80-81
-src/time_causal_vae/cli/train_token_prior.py:390-394
-src/time_causal_vae/cli/train_token_prior.py:637-671
-```
-
-Token-prior evaluation accepts `--device`, loads the prior and tokenizer on that device, and samples
-with the selected device:
-
-```text
-src/time_causal_vae/cli/evaluate_token_prior.py:57-94
-src/time_causal_vae/cli/evaluate_token_prior.py:325-329
-src/time_causal_vae/evaluation/token_prior.py:39-65
-```
-
-The token-prior model implementations allocate position indices, attention masks, BOS tokens, and
-sampled-token tensors on the active input or sample device.
 
 ### Continuous Evaluation
 
-`tcvae-evaluate` does not expose a `--device` option:
+`tcvae-evaluate` now exposes:
 
-```text
-src/time_causal_vae/cli/evaluate.py:21-52
+```bash
+tcvae-evaluate --device cpu
+tcvae-evaluate --device cuda
 ```
 
-The continuous evaluator builds the model and loads weights without moving the model or data to a
-requested accelerator:
+When omitted, the CLI prefers CUDA if `torch.cuda.is_available()` is true and otherwise uses CPU.
+The evaluator remains CPU-compatible by default for programmatic use when no device is supplied.
+
+Relevant implementation:
 
 ```text
-src/time_causal_vae/cli/evaluate.py:205-217
-src/time_causal_vae/evaluation/checkpoints.py:80-109
+src/time_causal_vae/cli/evaluate.py
+src/time_causal_vae/evaluation/checkpoints.py
 ```
 
-The underlying continuous model loader maps checkpoint weights to CPU:
+### Discrete Tokenizer
+
+Tokenizer training and evaluation already selected a requested device or CUDA by default. The model,
+inputs, optional conditions, auxiliary-loss metadata, and checkpoint loading path all use the
+selected device. CPU transfers are retained for diagnostics, plotting, and serialised payloads.
+
+Relevant implementation:
 
 ```text
-src/time_causal_vae/models/continuous/base.py:71
+src/time_causal_vae/cli/train_tokenizer.py
+src/time_causal_vae/cli/evaluate_tokenizer.py
+src/time_causal_vae/evaluation/tokenizer.py
+src/time_causal_vae/models/discrete/tokenizers/
 ```
 
-This makes the continuous evaluation path portable on CPU, but it should not be described as
-GPU-aware.
+### Discrete Token Prior
 
-## Non-Agnostic Or Fragile Areas
+Token-prior training and evaluation already selected a requested device or CUDA by default. The
+prior model, optional conditions, sampling tensors, masks, BOS tokens, position indices, and
+checkpoint loading path use the selected device. CPU transfers are retained for token diagnostics
+and persisted outputs.
 
-1. Continuous model generation relies on `model.device`.
+Relevant implementation:
 
-   The trainer sets `self.model.device = device`, but a direct user who calls `model.to("cuda")`
-   outside the trainer does not automatically update `model.device`. Continuous generation samples
-   prior noise from `self.device`, so direct programmatic usage is only device-safe if the caller
-   also sets `model.device` or uses the trainer-managed path.
+```text
+src/time_causal_vae/cli/train_token_prior.py
+src/time_causal_vae/cli/evaluate_token_prior.py
+src/time_causal_vae/evaluation/token_prior.py
+src/time_causal_vae/models/discrete/priors/
+```
 
-2. Continuous input transfer is CUDA-specific.
+### NeuralSDE/CRSig Decoder Buffers
 
-   `_set_inputs_to_device` checks for `"cuda"` in the device string before moving tensors. This
-   handles CUDA and CPU, but not arbitrary `torch.device` backends.
+`NeuralSDEDecoder` now registers `B1`, `B2`, `lambda1`, and `lambda2` as non-persistent buffers.
+This makes them move with `model.to(device)` while preserving the previous checkpoint contract,
+where these random tensors were not saved as persistent model state.
 
-3. `NeuralSDEDecoder` and `CRSigDecoder` are not fully safe under `model.to(device)`.
+Relevant implementation:
 
-   `B1`, `B2`, `lambda1`, and `lambda2` are plain tensor attributes, not registered parameters or
-   buffers:
+```text
+src/time_causal_vae/models/continuous/decoders/neural_sde.py
+```
 
-   ```text
-   src/time_causal_vae/models/continuous/decoders/neural_sde.py:54-62
-   ```
+## Remaining Boundaries
 
-   They are used with tensors on the forward input device:
-
-   ```text
-   src/time_causal_vae/models/continuous/decoders/neural_sde.py:74-80
-   src/time_causal_vae/models/continuous/decoders/neural_sde.py:100-112
-   ```
-
-   If the decoder is initialised on CPU and later moved with `model.to("cuda")`, these plain
-   tensors would remain on CPU and can cause device mismatch errors. This decoder is therefore not
-   device agnostic as implemented.
-
-4. Continuous evaluation lacks GPU selection.
-
-   Users can evaluate continuous checkpoints on CPU through `tcvae-evaluate`, but there is no
-   documented or implemented CLI switch to place continuous evaluation on CUDA.
-
-5. GPU dependency availability does not imply GPU usability.
-
-   The local environment installed a CUDA-enabled PyTorch wheel, but CUDA could not initialise
-   because the driver was too old for that wheel. Package installation can succeed while runtime GPU
-   acceleration remains unavailable.
+- CUDA support still depends on a compatible PyTorch wheel, NVIDIA driver, and local GPU runtime.
+- This pass targets one selected device, not multi-GPU training.
+- MPS and other non-CUDA accelerators are not advertised as supported release surfaces.
+- Some report scripts and plotting-heavy utilities intentionally move tensors to CPU for metrics,
+  serialisation, and Matplotlib output.
+- GPU acceleration is most likely to improve performance for model training, token-prior sampling,
+  tokenizer evaluation on larger batches, and continuous generation. Small smoke checks and
+  plotting-heavy diagnostics may be faster or simpler on CPU.
 
 ## Documentation Guidance
 
 The project documentation can safely state:
 
-- GPU acceleration is supported in the main CUDA training paths when a compatible CUDA-enabled
-  PyTorch installation and driver are available.
-- Discrete tokenizer and token-prior CLIs expose `--device` and default to CUDA when available.
-- Continuous training defaults to CUDA when available.
-- CPU remains the portable default/fallback.
+- single-device CPU/CUDA execution is supported for the main public training and evaluation CLIs;
+- `--device cpu` and `--device cuda` are accepted where long-running model work is expected;
+- CUDA is used only when PyTorch reports it is available, unless the user explicitly selects a
+  device;
+- local CPU execution remains the portable fallback.
 
 The documentation should not state:
 
-- all models are device agnostic;
-- all evaluation paths are GPU-aware;
-- MPS or non-CUDA accelerators are supported;
-- every continuous decoder is safe under arbitrary `model.to(device)` calls.
+- multi-GPU support is release-ready;
+- MPS support is release-ready;
+- CUDA acceleration is guaranteed after installation, because driver and wheel compatibility still
+  determine runtime availability.
 
 ## Suggested Future Work
 
-These are implementation recommendations only and were not applied in this audit.
-
-- Replace CUDA-string checks in the continuous trainer with unconditional tensor transfer to the
-  selected `torch.device`.
-- Register `NeuralSDEDecoder` fixed random tensors as buffers, or recreate them on the forward
-  input device.
-- Avoid relying on mutable `model.device` for continuous generation; infer the device from model
-  parameters or accept an explicit generation device.
-- Add `--device` to `tcvae-evaluate` and move the continuous evaluator model/data accordingly.
-- Add lightweight CPU/CUDA smoke tests for selected continuous and discrete forward passes, guarded
-  by `torch.cuda.is_available()`.
+- Add lightweight CPU forward/sampling smoke tests for continuous and discrete paths.
+- Add CUDA smoke tests guarded by `torch.cuda.is_available()` in CI or local release validation.
+- Consider documenting recommended CPU-only and CUDA-enabled PyTorch installation commands for
+  users who want smaller CPU installs or explicit CUDA wheel selection.
