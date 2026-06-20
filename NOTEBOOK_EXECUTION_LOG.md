@@ -30,3 +30,18 @@ Initial full-preview pass failed for notebooks/continuous/hawkes_jump.ipynb beca
 | 130 | `notebooks/report/hawkes_jump_model_comparison.ipynb` | medium | passed | 18s | 2026-06-20T02:38:45+00:00 | 2026-06-20T02:39:03+00:00 | 36s |  | skipped by manifest |  |
 | 140 | `notebooks/report/sp500_vix_report_figures.ipynb` | medium | passed | 23s | 2026-06-20T02:39:03+00:00 | 2026-06-20T02:39:25+00:00 | 20s |  | skipped by manifest |  |
 | 150 | `notebooks/report/sample_geometry_diagnostics.ipynb` | medium | passed | 21s | 2026-06-20T02:39:25+00:00 | 2026-06-20T02:39:47+00:00 | 0s |  | skipped by manifest |  |
+
+## Capped Expensive Report Diagnostics
+
+- Executed: 2026-06-20T03:00:49Z
+- Scope: report notebooks only.
+- Parameters: `RUN_EXPENSIVE_METRICS=True`, `RUN_SIGNATURE_KERNEL=True`, `RUN_ADAPTED_WASSERSTEIN=False`, `MAX_EXPENSIVE_METRIC_PATHS=128`, `MAX_AWD_PATHS=32`.
+- Adapted Wasserstein remained disabled. The `MAX_AWD_PATHS=32` cap is recorded for any future explicitly enabled run.
+- Signature MMD was attempted with `SignatureMMD(trunc=2)` and skipped in all three notebooks because the optional `signatory` dependency is not installed.
+- Gaussian path MMD was computed from cached local batches only. No training or full checkpoint evaluation was run.
+
+| Notebook | Status | Runtime | Sample cap | Metrics computed | Metrics skipped | Keep outputs? |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| `notebooks/report/hawkes_jump_model_comparison.ipynb` | passed | 18s | 128 paths, 60 time steps | Gaussian path MMD: `continuous_beta_cvae=1.216500`, `additive_ar=0.180890`, `conv_transformer_k3=0.179333` | sigMMD: missing optional `signatory`; adapted Wasserstein: disabled | Yes. The capped Gaussian values are informative as a path-space smoke diagnostic. |
+| `notebooks/report/sp500_vix_report_figures.ipynb` | passed | 23s | 128 paths, 60 time steps | Gaussian path MMD over five cached batches: range `0.166146` to `0.337948` | sigMMD: missing optional `signatory`; adapted Wasserstein: disabled | Yes. The table confirms bounded path-space diagnostics across the cached S&P 500/VIX batches. |
+| `notebooks/report/sample_geometry_diagnostics.ipynb` | passed | 21s | 128 paths, 60 time steps | Gaussian path MMD: `sp500_vix continuous=0.222710`, `sp500_vix discrete=0.349930`, `hawkes_jump continuous=1.439965`, `hawkes_jump discrete=1.663912` | sigMMD: missing optional `signatory`; adapted Wasserstein: disabled | Yes. The results are useful for visual inspection, but not for model selection. |
