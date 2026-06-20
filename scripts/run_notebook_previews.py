@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -15,6 +16,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
+import nbformat
 import yaml
 
 BUCKET_ESTIMATES_SECONDS = {
@@ -30,6 +32,28 @@ PREVIEW_ENV = {
     "MPLBACKEND": "Agg",
     "WANDB_MODE": "disabled",
     "WANDB_DISABLE_SERVICE": "true",
+}
+PARAMETER_OVERRIDES = {
+    "preview": {
+        "RUN_FULL": False,
+        "RUN_HEAVY": False,
+        "RUN_TRAINING": False,
+        "RUN_EVALUATION": False,
+        "RUN_EXPENSIVE_METRICS": False,
+        "RUN_SIGNATURE_KERNEL": False,
+        "RUN_ADAPTED_WASSERSTEIN": False,
+        "ALLOW_MISSING_OUTPUTS": True,
+    },
+    "full-preview": {
+        "RUN_FULL": True,
+        "RUN_HEAVY": True,
+        "RUN_TRAINING": False,
+        "RUN_EVALUATION": False,
+        "RUN_EXPENSIVE_METRICS": False,
+        "RUN_SIGNATURE_KERNEL": False,
+        "RUN_ADAPTED_WASSERSTEIN": False,
+        "ALLOW_MISSING_OUTPUTS": True,
+    },
 }
 
 
@@ -63,6 +87,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_SUMMARY_PATH,
         help="JSON execution summary path.",
+    )
+    parser.add_argument(
+        "--parameter-mode",
+        choices=["none", "preview", "full-preview"],
+        default="none",
+        help="Override existing notebook parameter assignments before execution.",
+    )
+    parser.add_argument(
+        "--max-total-runtime-hours",
+        type=float,
+        default=None,
+        help="Stop after a notebook if projected total runtime exceeds this limit.",
     )
     return parser.parse_args()
 
@@ -129,6 +165,8 @@ def validate_manifest(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             raise FileNotFoundError(f"Notebook listed in manifest does not exist: {path}")
         if item.get("training_allowed") is not False:
             raise ValueError(f"Preview manifest must set training_allowed: false for {path}")
+        if item.get("evaluation_allowed", False) is not False:
+            raise ValueError(f"Preview manifest must set evaluation_allowed: false for {path}")
         if item.get("expensive_metrics_allowed") is not False:
             raise ValueError(
                 f"Preview manifest must set expensive_metrics_allowed: false for {path}"
@@ -161,6 +199,77 @@ def remaining_eta_seconds(
             return None
         total += estimate
     return total
+
+
+def projected_runtime_seconds(
+    elapsed_seconds: float,
+    eta_seconds: float | None,
+) -> float | None:
+    """Return elapsed plus estimated remaining runtime."""
+    if eta_seconds is None:
+        return None
+    return elapsed_seconds + eta_seconds
+
+
+def initial_estimate_seconds(notebooks: list[dict[str, Any]]) -> float | None:
+    """Estimate total runtime before execution from manifest runtime buckets."""
+    total = 0.0
+    for item in notebooks:
+        estimate = midpoint_estimate(str(item.get("runtime_bucket", "unknown")))
+        if estimate is None:
+            return None
+        total += estimate
+    return total
+
+
+def format_reason(reason: str | None) -> str:
+    """Format a reason string for Markdown tables."""
+    if not reason:
+        return ""
+    return reason.replace("|", "\\|")
+
+
+def apply_parameter_mode(notebook_path: Path, mode: str) -> dict[str, list[str]]:
+    """Override existing top-level notebook boolean parameters in place."""
+    overrides = PARAMETER_OVERRIDES.get(mode)
+    if not overrides:
+        return {"applied": [], "missing": sorted(PARAMETER_OVERRIDES["preview"])}
+
+    notebook = nbformat.read(notebook_path, as_version=4)
+    applied: set[str] = set()
+    modified = False
+    patterns = {
+        name: re.compile(rf"^({re.escape(name)}\s*=\s*)(True|False)(\s*(?:#.*)?)$")
+        for name in overrides
+    }
+
+    for cell in notebook.cells:
+        if cell.get("cell_type") != "code":
+            continue
+        lines = cell.get("source", "").splitlines(keepends=True)
+        new_lines: list[str] = []
+        for line in lines:
+            newline = "\n" if line.endswith("\n") else ""
+            body = line[:-1] if newline else line
+            for name, pattern in patterns.items():
+                match = pattern.match(body)
+                if match is None:
+                    continue
+                replacement_value = "True" if overrides[name] else "False"
+                body = f"{match.group(1)}{replacement_value}{match.group(3)}"
+                applied.add(name)
+                modified = True
+                break
+            new_lines.append(f"{body}{newline}")
+        cell["source"] = "".join(new_lines)
+
+    if modified:
+        nbformat.write(notebook, notebook_path)
+
+    return {
+        "applied": sorted(applied),
+        "missing": sorted(set(overrides) - applied),
+    }
 
 
 def write_failure_trace(
@@ -206,28 +315,41 @@ def write_markdown_log(
     entries: list[dict[str, Any]],
     failures: list[dict[str, Any]],
     eta_seconds: float | None,
-    complete: bool,
+    run_status: str,
+    initial_eta_seconds: float | None,
+    max_total_runtime_hours: float | None,
+    parameter_mode: str,
+    message: str | None = None,
 ) -> None:
     """Write the live Markdown notebook execution log."""
-    status = "complete" if complete else "running"
     lines = [
         "# Notebook Execution Log",
         "",
         f"- Manifest: `{manifest_path}`",
+        f"- Parameter mode: `{parameter_mode}`",
         f"- Started: {started_at}",
         f"- Last update: {utc_now()}",
-        f"- Status: {status}",
+        f"- Status: {run_status}",
+        f"- Initial estimated total: {format_duration(initial_eta_seconds)}",
         f"- Remaining ETA: {format_duration(eta_seconds)}",
+        f"- Runtime guard: {max_total_runtime_hours or 'not set'} hours",
         "",
-        "| Priority | Notebook | Bucket | Status | Runtime | Started | Ended | Traceback |",
-        "| ---: | --- | --- | --- | ---: | --- | --- | --- |",
+        (
+            "| Priority | Notebook | Bucket | Status | Runtime | Started | Ended | "
+            "ETA after | Reason | Expensive metrics | Traceback |"
+        ),
+        "| ---: | --- | --- | --- | ---: | --- | --- | ---: | --- | --- | --- |",
     ]
+    if message:
+        lines.extend(["", "## Message", "", message, ""])
     for entry in entries:
         traceback_path = entry.get("traceback_path") or ""
         traceback_cell = f"`{traceback_path}`" if traceback_path else ""
+        expensive_metric_status = entry.get("expensive_metric_status", "")
+        reason = format_reason(entry.get("reason"))
         row_template = (
-            "| {priority} | `{path}` | {bucket} | {status} | {runtime} | "
-            "{started} | {ended} | {trace} |"
+            "| {priority} | `{path}` | {bucket} | {status} | {runtime} | {started} | "
+            "{ended} | {eta_after} | {reason} | {expensive_metrics} | {trace} |"
         )
         lines.append(
             row_template.format(
@@ -238,6 +360,9 @@ def write_markdown_log(
                 runtime=format_duration(entry.get("runtime_seconds")),
                 started=entry.get("started_at", ""),
                 ended=entry.get("ended_at", ""),
+                eta_after=format_duration(entry.get("remaining_eta_seconds")),
+                reason=reason,
+                expensive_metrics=expensive_metric_status,
                 trace=traceback_cell,
             )
         )
@@ -256,7 +381,11 @@ def write_summary(
     entries: list[dict[str, Any]],
     failures: list[dict[str, Any]],
     eta_seconds: float | None,
-    complete: bool,
+    run_status: str,
+    initial_eta_seconds: float | None,
+    max_total_runtime_hours: float | None,
+    parameter_mode: str,
+    message: str | None = None,
 ) -> None:
     """Write the machine-readable execution summary."""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -264,20 +393,30 @@ def write_summary(
         "manifest": str(manifest_path),
         "started_at": started_at,
         "last_update": utc_now(),
-        "complete": complete,
+        "complete": run_status == "complete",
+        "status": run_status,
         "remaining_eta_seconds": eta_seconds,
         "remaining_eta_human": format_duration(eta_seconds),
+        "initial_estimate_seconds": initial_eta_seconds,
+        "initial_estimate_human": format_duration(initial_eta_seconds),
+        "max_total_runtime_hours": max_total_runtime_hours,
+        "parameter_mode": parameter_mode,
+        "message": message,
         "entries": entries,
         "failures": failures,
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def run_notebook(notebook: dict[str, Any]) -> dict[str, Any]:
+def run_notebook(notebook: dict[str, Any], parameter_mode: str) -> dict[str, Any]:
     """Execute one notebook with nbconvert and return its log entry."""
     path = str(notebook["path"])
+    parameter_result = apply_parameter_mode(Path(path), parameter_mode)
     command = ["jupyter", "nbconvert", "--execute", "--inplace", path]
     timeout = int(notebook.get("timeout_seconds") or DEFAULT_TIMEOUT_SECONDS)
+    expensive_metric_status = (
+        "allowed" if notebook.get("expensive_metrics_allowed") is True else "skipped by manifest"
+    )
     env = os.environ.copy()
     env.update(PREVIEW_ENV)
     started_at = utc_now()
@@ -286,6 +425,7 @@ def run_notebook(notebook: dict[str, Any]) -> dict[str, Any]:
     exc: BaseException | None = None
     status = "passed"
     traceback_path = None
+    reason = ""
 
     try:
         result = subprocess.run(
@@ -299,12 +439,15 @@ def run_notebook(notebook: dict[str, Any]) -> dict[str, Any]:
         )
         if result.returncode != 0:
             status = "failed"
+            reason = "nbconvert returned a non-zero exit code"
     except subprocess.TimeoutExpired as err:
         status = "timeout"
         exc = err
+        reason = f"timeout_seconds={timeout} exceeded"
     except Exception as err:  # pragma: no cover - defensive logging for unexpected launch errors.
         status = "failed"
         exc = err
+        reason = "unexpected runner failure"
     ended_at = utc_now()
     runtime_seconds = time.monotonic() - started
 
@@ -322,22 +465,21 @@ def run_notebook(notebook: dict[str, Any]) -> dict[str, Any]:
         "started_at": started_at,
         "ended_at": ended_at,
         "runtime_seconds": runtime_seconds,
+        "remaining_eta_seconds": None,
+        "reason": reason,
+        "expensive_metric_status": expensive_metric_status,
+        "parameter_mode": parameter_mode,
+        "parameters_applied": parameter_result["applied"],
+        "parameters_missing": parameter_result["missing"],
         "traceback_path": traceback_path,
     }
 
 
-def print_estimates(notebooks: list[dict[str, Any]]) -> None:
+def print_estimates(notebooks: list[dict[str, Any]]) -> float | None:
     """Print preflight runtime estimates without executing notebooks."""
     print("Estimate-only preflight: no notebooks will be executed.")
-    total = 0.0
-    unknown = False
     for item in notebooks:
         bucket = str(item.get("runtime_bucket", "unknown"))
-        estimate = midpoint_estimate(bucket)
-        if estimate is None:
-            unknown = True
-        else:
-            total += estimate
         print(
             "[{priority:>3}] {path} ({bucket}): {estimate}".format(
                 priority=item.get("priority", ""),
@@ -346,10 +488,10 @@ def print_estimates(notebooks: list[dict[str, Any]]) -> None:
                 estimate=estimate_label(bucket),
             )
         )
-    total_label = (
-        format_duration(total) if not unknown else f"{format_duration(total)} plus unknowns"
-    )
+    total = initial_estimate_seconds(notebooks)
+    total_label = format_duration(total)
     print(f"Estimated total runtime: {total_label}")
+    return total
 
 
 def main() -> int:
@@ -357,16 +499,47 @@ def main() -> int:
     args = parse_args()
     manifest = load_manifest(args.manifest)
     notebooks = validate_manifest(manifest)
+    initial_eta_seconds = initial_estimate_seconds(notebooks)
 
     if args.estimate_only:
         print_estimates(notebooks)
+        message = "Estimate-only preflight: no notebooks were executed."
+        write_markdown_log(
+            args.log_path,
+            manifest_path=args.manifest,
+            started_at=utc_now(),
+            entries=[],
+            failures=[],
+            eta_seconds=initial_eta_seconds,
+            run_status="estimate_only",
+            initial_eta_seconds=initial_eta_seconds,
+            max_total_runtime_hours=args.max_total_runtime_hours,
+            parameter_mode=args.parameter_mode,
+            message=message,
+        )
+        write_summary(
+            args.summary_path,
+            manifest_path=args.manifest,
+            started_at=utc_now(),
+            entries=[],
+            failures=[],
+            eta_seconds=initial_eta_seconds,
+            run_status="estimate_only",
+            initial_eta_seconds=initial_eta_seconds,
+            max_total_runtime_hours=args.max_total_runtime_hours,
+            parameter_mode=args.parameter_mode,
+            message=message,
+        )
         return 0
 
     started_at = utc_now()
+    started_monotonic = time.monotonic()
     entries: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     observed_by_bucket: dict[str, list[float]] = defaultdict(list)
     observed_all: list[float] = []
+    run_status = "running"
+    message: str | None = None
 
     for index, notebook in enumerate(notebooks):
         bucket = str(notebook.get("runtime_bucket", "unknown"))
@@ -378,7 +551,7 @@ def main() -> int:
             ),
             flush=True,
         )
-        entry = run_notebook(notebook)
+        entry = run_notebook(notebook, args.parameter_mode)
         entries.append(entry)
         if entry["status"] == "passed":
             observed_by_bucket[bucket].append(float(entry["runtime_seconds"]))
@@ -392,7 +565,59 @@ def main() -> int:
 
         remaining = notebooks[index + 1 :]
         eta_seconds = remaining_eta_seconds(remaining, observed_by_bucket, observed_all)
-        complete = not remaining or (bool(failures) and not args.continue_on_error)
+        entry["remaining_eta_seconds"] = eta_seconds
+        elapsed_seconds = time.monotonic() - started_monotonic
+        projected_seconds = projected_runtime_seconds(elapsed_seconds, eta_seconds)
+        runtime_limit_seconds = (
+            args.max_total_runtime_hours * 3600 if args.max_total_runtime_hours else None
+        )
+        should_stop_for_runtime = (
+            runtime_limit_seconds is not None
+            and projected_seconds is not None
+            and projected_seconds > runtime_limit_seconds
+            and bool(remaining)
+        )
+        if should_stop_for_runtime:
+            run_status = "stopped_by_runtime_guard"
+            message = (
+                "Stopped because elapsed plus estimated remaining runtime "
+                f"({format_duration(projected_seconds)}) exceeds "
+                f"{args.max_total_runtime_hours} hours."
+            )
+            for skipped in remaining:
+                entries.append({
+                    "priority": skipped.get("priority"),
+                    "path": skipped["path"],
+                    "category": skipped.get("category"),
+                    "runtime_bucket": skipped.get("runtime_bucket", "unknown"),
+                    "estimated_runtime": estimate_label(
+                        str(skipped.get("runtime_bucket", "unknown"))
+                    ),
+                    "timeout_seconds": int(
+                        skipped.get("timeout_seconds") or DEFAULT_TIMEOUT_SECONDS
+                    ),
+                    "status": "skipped",
+                    "started_at": "",
+                    "ended_at": "",
+                    "runtime_seconds": None,
+                    "remaining_eta_seconds": eta_seconds,
+                    "reason": "stopped_by_runtime_guard",
+                    "expensive_metric_status": (
+                        "allowed"
+                        if skipped.get("expensive_metrics_allowed") is True
+                        else "skipped by manifest"
+                    ),
+                    "parameter_mode": args.parameter_mode,
+                    "parameters_applied": [],
+                    "parameters_missing": [],
+                    "traceback_path": None,
+                })
+        elif not remaining:
+            run_status = "complete"
+        elif bool(failures) and not args.continue_on_error:
+            run_status = "failed"
+        else:
+            run_status = "running"
         write_markdown_log(
             args.log_path,
             manifest_path=args.manifest,
@@ -400,7 +625,11 @@ def main() -> int:
             entries=entries,
             failures=failures,
             eta_seconds=eta_seconds,
-            complete=complete,
+            run_status=run_status,
+            initial_eta_seconds=initial_eta_seconds,
+            max_total_runtime_hours=args.max_total_runtime_hours,
+            parameter_mode=args.parameter_mode,
+            message=message,
         )
         write_summary(
             args.summary_path,
@@ -409,7 +638,11 @@ def main() -> int:
             entries=entries,
             failures=failures,
             eta_seconds=eta_seconds,
-            complete=complete,
+            run_status=run_status,
+            initial_eta_seconds=initial_eta_seconds,
+            max_total_runtime_hours=args.max_total_runtime_hours,
+            parameter_mode=args.parameter_mode,
+            message=message,
         )
 
         print(
@@ -421,6 +654,8 @@ def main() -> int:
             ),
             flush=True,
         )
+        if should_stop_for_runtime:
+            return 2
         if failures and not args.continue_on_error:
             return 1
 

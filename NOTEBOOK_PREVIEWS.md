@@ -27,3 +27,21 @@ notebooks/preview_notebook_manifest.yaml --continue-on-error` on 2026-06-20.
 | `notebooks/discrete/hawkes_jump.ipynb` | Executed | Guarded discrete Hawkes/SVMHJD research-candidate demo path. |
 
 No multidimensional notebooks were executed in this pass.
+
+## Full-Output Preview Set
+
+Executed with `poetry run python scripts/run_notebook_previews.py --manifest
+notebooks/full_preview_notebook_manifest.yaml --parameter-mode full-preview
+--max-total-runtime-hours 6 --continue-on-error` on 2026-06-20.
+
+This pass covers all non-multidimensional notebooks currently under `notebooks/`. The runner
+overrides existing preview parameters to enable full/heavy preview cells while keeping
+`RUN_TRAINING=False`, `RUN_EVALUATION=False`, `RUN_EXPENSIVE_METRICS=False`,
+`RUN_SIGNATURE_KERNEL=False`, `RUN_ADAPTED_WASSERSTEIN=False`, and
+`ALLOW_MISSING_OUTPUTS=True`.
+
+All notebooks in `notebooks/full_preview_notebook_manifest.yaml` passed. The initial pass exposed
+a tensor truth-value issue in `notebooks/continuous/hawkes_jump.ipynb` when a local
+`evaluation_batch.pt` was present; the notebook now selects optional tensors without boolean
+coercion and passed when rerun alone. Expensive signature-kernel and adapted-Wasserstein metrics
+remain disabled and documented in `NOTEBOOK_EXPENSIVE_METRIC_RECOMMENDATIONS.md`.

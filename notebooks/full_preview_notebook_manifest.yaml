@@ -1,0 +1,210 @@
+schema_version: 1
+description: Controlled full-output preview pass for all non-multidimensional notebooks.
+policy:
+  branch: docs/executed-notebook-previews
+  intended_for_merge_to_main: false
+  training_allowed: false
+  evaluation_allowed: false
+  full_output_preview: true
+  expensive_metrics_allowed: false
+  commit_notebook_outputs_only: true
+  excluded_committed_paths:
+    - outputs/
+    - wandb/
+    - data/raw/
+    - data/processed/
+    - checkpoints/
+    - "*.pt"
+    - "*.pkl"
+    - "*.npy"
+    - "*.npz"
+runtime_buckets:
+  short: 1-5 minutes
+  medium: 5-15 minutes
+  long: 15-45 minutes
+  unknown: estimate after first observed run
+notebooks:
+  - path: notebooks/benchmarks/hawkes_jump_dataset.ipynb
+    priority: 10
+    category: benchmark
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs: []
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/continuous/black_scholes.ipynb
+    priority: 20
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/black_scholes_continuous/beta_cvae/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/continuous/heston.ipynb
+    priority: 30
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/heston_continuous/info_cvae/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/continuous/pdv.ipynb
+    priority: 40
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/pdv_continuous/info_cvae/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/continuous/sp500_vix.ipynb
+    priority: 50
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - data/processed/sp500vix/sp500vix_normalized.npy
+      - outputs/sp500_vix_continuous/beta_cvae/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/continuous/hawkes_jump.ipynb
+    priority: 60
+    category: continuous
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/hawkes_jump_continuous_logreturn_identity/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/discrete/black_scholes.ipynb
+    priority: 70
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/per_experiment_selection/black_scholes/hidden128_conv_transformer_k3/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/discrete/heston.ipynb
+    priority: 80
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/per_experiment_selection/heston/standard_vq_additive_ar/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/discrete/pdv.ipynb
+    priority: 90
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/per_experiment_selection/pdv/conditional_standard_vq_additive_ar/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/discrete/sp500_vix.ipynb
+    priority: 100
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - data/processed/sp500vix/sp500vix_normalized.npy
+      - outputs/sp500_vix_discrete/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/discrete/hawkes_jump.ipynb
+    priority: 110
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/hawkes_jump_logreturn_robustness/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/discrete/discrete_latent_geometry.ipynb
+    priority: 120
+    category: discrete
+    runtime_bucket: short
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 3600
+    required_local_outputs:
+      - outputs/sp500_vix_discrete/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/report/hawkes_jump_model_comparison.ipynb
+    priority: 130
+    category: report
+    runtime_bucket: medium
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 5400
+    required_local_outputs:
+      - outputs/hawkes_jump_continuous_ablation_comparison/aggregate_summary.json
+      - outputs/hawkes_jump_matched_continuous_comparison/aggregate_summary.json
+      - outputs/cs673_report_resources/hawkes_jump_metrics.csv
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/report/sp500_vix_report_figures.ipynb
+    priority: 140
+    category: report
+    runtime_bucket: medium
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 5400
+    required_local_outputs:
+      - outputs/per_experiment_final_evaluation/sp500_vix/conditional_standard_vq_additive_ar/path_metrics/paper_style_summary.json
+      - outputs/cs673_report_resources/sp500_vix_metrics.csv
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
+  - path: notebooks/report/sample_geometry_diagnostics.ipynb
+    priority: 150
+    category: report
+    runtime_bucket: medium
+    training_allowed: false
+    evaluation_allowed: false
+    full_output_preview: true
+    expensive_metrics_allowed: false
+    timeout_seconds: 5400
+    required_local_outputs:
+      - outputs/final_sample_geometry_report/
+    fallback_behavior: Skip missing local outputs gracefully and print commands.
