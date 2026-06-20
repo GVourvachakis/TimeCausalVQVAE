@@ -1,132 +1,351 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="390" viewBox="0 0 1120 390" role="img" aria-labelledby="title desc">
-  <title id="title">Time-causal VQ-VAE architecture sketch</title>
-  <desc id="desc">Minimal original schematic of the package default time-causal VQ-VAE: input path, dilated causal encoder, vector quantizer codebook, causal token prior, decoder, output path, and diagnostics.</desc>
-  <defs>
-    <marker id="arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L9,3.5 L0,7 Z" fill="#333333" />
-    </marker>
-    <linearGradient id="panelBlue" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#67a0e8" />
-      <stop offset="1" stop-color="#2f62b4" />
-    </linearGradient>
-    <linearGradient id="pathGradient" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#2b145f" />
-      <stop offset="0.35" stop-color="#156e91" />
-      <stop offset="0.7" stop-color="#4bb06b" />
-      <stop offset="1" stop-color="#d5d84e" />
-    </linearGradient>
-    <style>
-      .label { font: 700 14px Arial, sans-serif; fill: #1f1f1f; }
-      .small { font: 12px Arial, sans-serif; fill: #333333; }
-      .tiny { font: 11px Arial, sans-serif; fill: #4d4d4d; }
-      .math { font: italic 16px Georgia, serif; fill: #333333; }
-      .box { fill: #ffffff; stroke: #333333; stroke-width: 1.5; }
-      .prior { fill: #f1e5f7; stroke: #7b3294; stroke-width: 2; }
-      .cyan { fill: #d7ecff; stroke: #0072b2; stroke-width: 1.8; }
-      .quantizer { fill: #fff2cc; stroke: #e69f00; stroke-width: 2; }
-      .orange { fill: #e69f00; stroke: #a66100; stroke-width: 1.4; }
-      .green { fill: #009e73; stroke: #006b4f; stroke-width: 1; }
-      .grey { fill: #f4f5f7; stroke: #7a7a7a; stroke-width: 1.4; }
-      .line { stroke: #333333; stroke-width: 1.8; fill: none; marker-end: url(#arrow); }
-      .dash { stroke: #5f6b75; stroke-width: 1.5; stroke-dasharray: 5 5; fill: none; marker-end: url(#arrow); }
-      .axis { stroke: #c6c6c6; stroke-width: 1; }
-      .dot { fill: #6a9631; stroke: #4e7124; stroke-width: 1; }
-      .selected { fill: #ef7d2d; stroke: #b95a1f; stroke-width: 1.2; }
-    </style>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="1820" height="750" viewBox="0 120 1820 750" font-family="'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">Discrete time-causal VQ-VAE architecture</title>
+<desc id="d">Encoder-quantizer-decoder pipeline of the causal VQ tokenizer with dilated causal convolutions, VIX conditioning, and a no-anticipation receptive-field schematic.</desc>
 
-  <rect x="0" y="0" width="1120" height="390" fill="#ffffff" />
+<defs>
+  <marker id="arrow" markerWidth="9" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L9,4 L0,8 Z" fill="#475569"/>
+  </marker>
+  <marker id="arrowAmber" markerWidth="9" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L9,4 L0,8 Z" fill="#b45309"/>
+  </marker>
+  <marker id="arrowDashed" markerWidth="9" markerHeight="8" refX="7.5" refY="4" orient="auto" markerUnits="strokeWidth">
+    <path d="M0,0 L9,4 L0,8 Z" fill="#ea580c"/>
+  </marker>
+  <linearGradient id="encFront" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#0d9488"/>
+  </linearGradient>
+  <linearGradient id="decFront" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#818cf8"/><stop offset="1" stop-color="#4f46e5"/>
+  </linearGradient>
+  <pattern id="hatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <rect width="8" height="8" fill="#eef1f5"/>
+    <line x1="0" y1="0" x2="0" y2="8" stroke="#cbd5e1" stroke-width="2.5"/>
+  </pattern>
+</defs>
 
-  <rect class="box" x="34" y="34" width="74" height="31" />
-  <text class="label" x="51" y="55">Input</text>
-  <rect x="40" y="92" width="96" height="44" fill="url(#pathGradient)" stroke="#222222" stroke-width="1" />
-  <polyline points="44,128 54,123 64,124 74,111 84,114 94,102 104,107 114,96 124,100 132,94" fill="none" stroke="#c8ff6a" stroke-width="2.1" />
-  <text class="math" x="62" y="166">X<tspan baseline-shift="sub" font-size="12">t:T</tspan></text>
-
-  <path class="line" d="M150,115 H196" />
-
-  <rect class="cyan" x="196" y="56" width="188" height="46" rx="7" />
-  <text class="label" x="234" y="76">Causal Encoder</text>
-  <text class="tiny" x="218" y="93">dilated causal conv encoder</text>
-  <g transform="translate(217 124)">
-    <polygon points="0,25 18,10 62,10 44,25" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.2" />
-    <polygon points="44,25 62,10 62,66 44,81" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.2" />
-    <rect x="0" y="25" width="44" height="56" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.3" />
-    <text class="tiny" x="1" y="101">dilation 1,2</text>
-  </g>
-  <g transform="translate(310 137)">
-    <polygon points="0,20 14,8 47,8 33,20" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.1" />
-    <polygon points="33,20 47,8 47,50 33,62" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.1" />
-    <rect x="0" y="20" width="33" height="42" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.2" />
-    <text class="tiny" x="-5" y="82">dilation 4,8</text>
-  </g>
-
-  <path class="line" d="M384,115 H423" />
-  <rect class="orange" x="423" y="101" width="42" height="28" rx="4" />
-  <text class="math" x="419" y="83">zₑ(x)</text>
-
-  <path class="line" d="M465,115 H510" />
-
-  <rect class="quantizer" x="510" y="49" width="156" height="132" />
-  <text class="label" x="519" y="39">Vector Quantizer Layer</text>
-  <g transform="translate(536 67)">
-    <rect class="green" x="0" y="0" width="20" height="11" />
-    <rect class="green" x="35" y="0" width="20" height="11" />
-    <rect class="green" x="70" y="0" width="20" height="11" />
-    <rect class="green" x="0" y="25" width="20" height="11" />
-    <rect class="green" x="35" y="25" width="20" height="11" />
-    <rect class="green" x="70" y="25" width="20" height="11" />
-    <rect class="green" x="0" y="50" width="20" height="11" />
-    <rect class="green" x="35" y="50" width="20" height="11" />
-    <rect class="green" x="70" y="50" width="20" height="11" />
-  </g>
-  <g transform="translate(611 92)">
-    <line class="axis" x1="-30" y1="52" x2="36" y2="52" />
-    <line class="axis" x1="-30" y1="52" x2="-30" y2="-8" />
-    <circle class="dot" cx="-16" cy="37" r="4" />
-    <circle class="dot" cx="1" cy="19" r="4" />
-    <circle class="dot" cx="19" cy="33" r="4" />
-    <circle class="dot" cx="25" cy="4" r="4" />
-    <circle class="selected" cx="5" cy="31" r="5.5" />
-  </g>
-  <text class="small" x="534" y="164">qₜ = nearest code</text>
-
-  <path class="line" d="M666,115 H708" />
-  <rect class="orange" x="708" y="101" width="42" height="28" rx="4" />
-  <text class="math" x="704" y="83">z<tspan baseline-shift="sub" font-size="12">q</tspan>(x)</text>
-
-  <path class="line" d="M750,115 H795" />
-
-  <rect class="cyan" x="795" y="56" width="188" height="46" rx="7" />
-  <text class="label" x="840" y="76">Causal Decoder</text>
-  <text class="tiny" x="817" y="93">dilated causal conv decoder</text>
-  <g transform="translate(810 124)">
-    <polygon points="0,25 18,10 62,10 44,25" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.2" />
-    <polygon points="44,25 62,10 62,66 44,81" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.2" />
-    <rect x="0" y="25" width="44" height="56" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.3" />
-  </g>
-  <g transform="translate(903 137)">
-    <polygon points="0,20 14,8 47,8 33,20" fill="#75a7eb" stroke="#2f62b4" stroke-width="1.1" />
-    <polygon points="33,20 47,8 47,50 33,62" fill="#2d5ca9" stroke="#2f62b4" stroke-width="1.1" />
-    <rect x="0" y="20" width="33" height="42" fill="url(#panelBlue)" stroke="#2f62b4" stroke-width="1.2" />
-  </g>
-
-  <path class="line" d="M983,115 H1027" />
-  <rect class="box" x="1018" y="34" width="80" height="31" />
-  <text class="label" x="1035" y="55">Output</text>
-  <rect x="988" y="92" width="96" height="44" fill="url(#pathGradient)" stroke="#222222" stroke-width="1" />
-  <polyline points="992,128 1002,123 1012,124 1022,111 1032,114 1042,102 1052,107 1062,96 1072,100 1080,94" fill="none" stroke="#c8ff6a" stroke-width="2.1" />
-  <text class="math" x="1010" y="166">X̂<tspan baseline-shift="sub" font-size="12">t:T</tspan></text>
-
-  <rect class="prior" x="363" y="238" width="360" height="88" rx="14" />
-  <text class="label" x="476" y="266">Causal Token Prior</text>
-  <text class="math" x="429" y="294">p<tspan baseline-shift="sub" font-size="12">θ</tspan>(q<tspan baseline-shift="sub" font-size="12">t</tspan> | q<tspan baseline-shift="sub" font-size="12">&lt;t</tspan>, c<tspan baseline-shift="sub" font-size="12">≤t</tspan>)</text>
-  <text class="tiny" x="448" y="314">sample token sequence before decoding</text>
-  <path class="dash" d="M588,181 V238" />
-  <path class="dash" d="M723,282 C786,282 862,226 866,181" />
-
-  <rect class="grey" x="789" y="260" width="206" height="48" rx="8" />
-  <text class="label" x="820" y="281">Diagnostics</text>
-  <text class="tiny" x="812" y="300">paths, VIX buckets, no-leakage</text>
-  <path class="dash" d="M1038,170 C1038,230 997,276 995,283" />
+<rect width="1820" height="1040" fill="#ffffff"/>
+<rect x="50" y="150" width="210" height="300" rx="16" ry="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" opacity="1"/>
+<text x="68" y="180" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" font-style="normal" font-weight="700" fill="#1e293b" text-anchor="start" >Input window</text>
+<rect x="66" y="192" width="178" height="100" rx="6" ry="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" opacity="1"/>
+<g clip-path="none"><path d="M68.0,216.4 L70.9,216.0 L73.9,210.7 L76.8,214.6 L79.8,210.5 L82.7,211.5 L85.7,212.6 L88.6,204.6 L91.6,204.0 L94.5,204.2 L97.5,201.1 L100.4,196.3 L103.4,196.5 L106.3,194.0 L109.3,198.1 L112.2,199.6 L115.2,201.5 L118.1,207.1 L121.1,213.5 L124.0,220.3 L127.0,221.3 L129.9,222.0 L132.9,223.4 L135.8,223.1 L138.8,228.7 L141.7,229.0 L144.7,228.0 L147.6,224.9 L150.6,228.4 L153.5,230.1 L156.5,238.6 L159.4,240.7 L162.4,250.0 L165.3,256.0 L168.3,251.3 L171.2,260.6 L174.2,257.2 L177.1,255.9 L180.1,257.2 L183.0,255.2 L186.0,253.0 L188.9,248.6 L191.9,249.6 L194.8,252.1 L197.8,254.6 L200.7,258.8 L203.7,259.0 L206.6,262.3 L209.6,257.8 L212.5,265.6 L215.5,270.3 L218.4,274.3 L221.4,283.1 L224.3,275.1 L227.3,285.2 L230.2,286.4 L233.2,288.6 L236.1,281.6 L239.1,290.0 L242.0,285.5 L242.0,290.0 L68.0,290.0 Z" fill="#0d9488" stroke="none" opacity="0.18"/>
+<path d="M68.0,216.4 L70.9,216.0 L73.9,210.7 L76.8,214.6 L79.8,210.5 L82.7,211.5 L85.7,212.6 L88.6,204.6 L91.6,204.0 L94.5,204.2 L97.5,201.1 L100.4,196.3 L103.4,196.5 L106.3,194.0 L109.3,198.1 L112.2,199.6 L115.2,201.5 L118.1,207.1 L121.1,213.5 L124.0,220.3 L127.0,221.3 L129.9,222.0 L132.9,223.4 L135.8,223.1 L138.8,228.7 L141.7,229.0 L144.7,228.0 L147.6,224.9 L150.6,228.4 L153.5,230.1 L156.5,238.6 L159.4,240.7 L162.4,250.0 L165.3,256.0 L168.3,251.3 L171.2,260.6 L174.2,257.2 L177.1,255.9 L180.1,257.2 L183.0,255.2 L186.0,253.0 L188.9,248.6 L191.9,249.6 L194.8,252.1 L197.8,254.6 L200.7,258.8 L203.7,259.0 L206.6,262.3 L209.6,257.8 L212.5,265.6 L215.5,270.3 L218.4,274.3 L221.4,283.1 L224.3,275.1 L227.3,285.2 L230.2,286.4 L233.2,288.6 L236.1,281.6 L239.1,290.0 L242.0,285.5" stroke="#0d9488" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round"/></g>
+<text x="68" y="315" font-family="Georgia, 'Times New Roman', serif" font-size="15.5" font-style="italic" font-weight="normal" fill="#3f4a5a" text-anchor="start" >X = (X<tspan baseline-shift="-28%" font-size="10.2">1</tspan>, X<tspan baseline-shift="-28%" font-size="10.2">2</tspan>, …, X<tspan baseline-shift="-28%" font-size="10.2">T</tspan>) ~ μ<tspan baseline-shift="-28%" font-size="10.2">data</tspan></text>
+<line x1="66" y1="328" x2="244" y2="328" stroke="#e2e8f0" stroke-width="1"/>
+<text x="68" y="348" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="normal" fill="#b45309" text-anchor="start" >condition  c = VIX</text>
+<path d="M68.0,382.2 L70.9,387.6 L73.9,385.9 L76.8,381.5 L79.8,383.8 L82.7,389.6 L85.7,389.9 L88.6,387.8 L91.6,383.0 L94.5,388.3 L97.5,394.0 L100.4,390.9 L103.4,388.8 L106.3,382.1 L109.3,377.8 L112.2,378.2 L115.2,379.4 L118.1,368.1 L121.1,369.4 L124.0,372.8 L127.0,377.8 L129.9,377.4 L132.9,376.8 L135.8,378.3 L138.8,378.6 L141.7,377.4 L144.7,374.3 L147.6,369.5 L150.6,368.6 L153.5,376.4 L156.5,373.4 L159.4,379.6 L162.4,380.4 L165.3,386.8 L168.3,386.8 L171.2,390.2 L174.2,389.3 L177.1,374.8 L180.1,375.0 L183.0,371.3 L186.0,377.1 L188.9,378.4 L191.9,375.5 L194.8,375.9 L197.8,374.3 L200.7,373.8 L203.7,378.2 L206.6,375.8 L209.6,379.3 L212.5,371.1 L215.5,373.3 L218.4,370.3 L221.4,370.3 L224.3,366.1 L227.3,368.8 L230.2,364.4 L233.2,364.9 L236.1,359.4 L239.1,356.6 L242.0,356.0" stroke="#d97706" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="68" y="414" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="start" >T = 60 timesteps</text>
+<text x="68" y="430" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="start" >data_dim = 1 · condition_dim = 1</text>
+<path d="M260,300 L296,300" stroke="#475569" stroke-width="2.2" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<rect x="1600" y="150" width="210" height="300" rx="16" ry="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" opacity="1"/>
+<text x="1618" y="180" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15" font-style="normal" font-weight="700" fill="#1e293b" text-anchor="start" >Reconstruction</text>
+<rect x="1616" y="192" width="178" height="100" rx="6" ry="6" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" opacity="1"/>
+<path d="M1618.0,216.4 L1620.9,216.0 L1623.9,210.7 L1626.8,214.6 L1629.8,210.5 L1632.7,211.5 L1635.7,212.6 L1638.6,204.6 L1641.6,204.0 L1644.5,204.2 L1647.5,201.1 L1650.4,196.3 L1653.4,196.5 L1656.3,194.0 L1659.3,198.1 L1662.2,199.6 L1665.2,201.5 L1668.1,207.1 L1671.1,213.5 L1674.0,220.3 L1677.0,221.3 L1679.9,222.0 L1682.9,223.4 L1685.8,223.1 L1688.8,228.7 L1691.7,229.0 L1694.7,228.0 L1697.6,224.9 L1700.6,228.4 L1703.5,230.1 L1706.5,238.6 L1709.4,240.7 L1712.4,250.0 L1715.3,256.0 L1718.3,251.3 L1721.2,260.6 L1724.2,257.2 L1727.1,255.9 L1730.1,257.2 L1733.0,255.2 L1736.0,253.0 L1738.9,248.6 L1741.9,249.6 L1744.8,252.1 L1747.8,254.6 L1750.7,258.8 L1753.7,259.0 L1756.6,262.3 L1759.6,257.8 L1762.5,265.6 L1765.5,270.3 L1768.4,274.3 L1771.4,283.1 L1774.3,275.1 L1777.3,285.2 L1780.2,286.4 L1783.2,288.6 L1786.1,281.6 L1789.1,290.0 L1792.0,285.5" stroke="#cbd5e1" stroke-width="1.8" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M1618.0,216.4 L1620.9,216.0 L1623.9,210.7 L1626.8,214.6 L1629.8,210.5 L1632.7,211.5 L1635.7,212.6 L1638.6,204.6 L1641.6,204.0 L1644.5,204.2 L1647.5,201.1 L1650.4,196.3 L1653.4,196.5 L1656.3,194.0 L1659.3,198.1 L1662.2,199.6 L1665.2,201.5 L1668.1,207.1 L1671.1,213.5 L1674.0,220.3 L1677.0,221.3 L1679.9,222.0 L1682.9,223.4 L1685.8,223.1 L1688.8,228.7 L1691.7,229.0 L1694.7,228.0 L1697.6,224.9 L1700.6,228.4 L1703.5,230.1 L1706.5,238.6 L1709.4,240.7 L1712.4,250.0 L1715.3,256.0 L1718.3,251.3 L1721.2,260.6 L1724.2,257.2 L1727.1,255.9 L1730.1,257.2 L1733.0,255.2 L1736.0,253.0 L1738.9,248.6 L1741.9,249.6 L1744.8,252.1 L1747.8,254.6 L1750.7,258.8 L1753.7,259.0 L1756.6,262.3 L1759.6,257.8 L1762.5,265.6 L1765.5,270.3 L1768.4,274.3 L1771.4,283.1 L1774.3,275.1 L1777.3,285.2 L1780.2,286.4 L1783.2,288.6 L1786.1,281.6 L1789.1,290.0 L1792.0,285.5" stroke="#dc2626" stroke-width="2.0" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="1618" y="315" font-family="Georgia, 'Times New Roman', serif" font-size="15.5" font-style="italic" font-weight="normal" fill="#3f4a5a" text-anchor="start" >Y = (Y<tspan baseline-shift="-28%" font-size="10.2">1</tspan>, …, Y<tspan baseline-shift="-28%" font-size="10.2">T</tspan>) ~ μ<tspan baseline-shift="-28%" font-size="10.2">rec</tspan></text>
+<line x1="1616" y1="328" x2="1794" y2="328" stroke="#e2e8f0" stroke-width="1"/>
+<text x="1618" y="348" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-style="normal" font-weight="normal" fill="#94a3b8" text-anchor="start" >gray = input</text>
+<text x="1618" y="363" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-style="normal" font-weight="normal" fill="#dc2626" text-anchor="start" >red = reconstruction</text>
+<text x="1618" y="414" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="start" >T = 60 timesteps</text>
+<text x="465" y="196" font-family="'Helvetica Neue', Arial, sans-serif" font-size="16" font-style="normal" font-weight="700" fill="#1e293b" text-anchor="middle" >Causal Encoder</text>
+<text x="465" y="213" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >CausalConvStack · in: data+cond = 2ch</text>
+<polygon points="366,255.0 379,242.0 379,332.0 366,345.0" fill="#0f766e" stroke="#0f766e" stroke-width="1.1"/>
+<polygon points="320,255.0 333,242.0 379,242.0 366,255.0" fill="#5eead4" stroke="#0f766e" stroke-width="1.1"/>
+<rect x="320" y="255.0" width="46" height="90" fill="url(#encFront)" stroke="#0f766e" stroke-width="1.2"/>
+<text x="343.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#0f766e" text-anchor="middle" >d=1</text>
+<path d="M368,300 L394,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="443,255.0 456,242.0 456,332.0 443,345.0" fill="#0f766e" stroke="#0f766e" stroke-width="1.1"/>
+<polygon points="397,255.0 410,242.0 456,242.0 443,255.0" fill="#5eead4" stroke="#0f766e" stroke-width="1.1"/>
+<rect x="397" y="255.0" width="46" height="90" fill="url(#encFront)" stroke="#0f766e" stroke-width="1.2"/>
+<text x="420.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#0f766e" text-anchor="middle" >d=2</text>
+<path d="M445,300 L471,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="520,255.0 533,242.0 533,332.0 520,345.0" fill="#0f766e" stroke="#0f766e" stroke-width="1.1"/>
+<polygon points="474,255.0 487,242.0 533,242.0 520,255.0" fill="#5eead4" stroke="#0f766e" stroke-width="1.1"/>
+<rect x="474" y="255.0" width="46" height="90" fill="url(#encFront)" stroke="#0f766e" stroke-width="1.2"/>
+<text x="497.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#0f766e" text-anchor="middle" >d=4</text>
+<path d="M522,300 L548,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="597,255.0 610,242.0 610,332.0 597,345.0" fill="#0f766e" stroke="#0f766e" stroke-width="1.1"/>
+<polygon points="551,255.0 564,242.0 610,242.0 597,255.0" fill="#5eead4" stroke="#0f766e" stroke-width="1.1"/>
+<rect x="551" y="255.0" width="46" height="90" fill="url(#encFront)" stroke="#0f766e" stroke-width="1.2"/>
+<text x="574.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#0f766e" text-anchor="middle" >d=8</text>
+<text x="465" y="383.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >kernel=3 · hidden=64 · GELU</text>
+<text x="465" y="399.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >residual where channels match</text>
+<text x="465" y="415.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#0f766e" text-anchor="middle" >left-pad only → no future leakage</text>
+<path d="M614,300 L656,300" stroke="#475569" stroke-width="2.2" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="742,255.0 752,245.0 752,335.0 742,345.0" fill="#b45309" stroke="#b45309" stroke-width="1.1"/>
+<polygon points="662,255.0 672,245.0 752,245.0 742,255.0" fill="#fde68a" stroke="#b45309" stroke-width="1.1"/>
+<rect x="662" y="255.0" width="80" height="90" fill="#fbbf24" stroke="#b45309" stroke-width="1.2"/>
+<text x="683.8984" y="379.0" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" font-weight="700" fill="#92400e" text-anchor="start" >z<tspan baseline-shift="-28%" font-size="11.2">e</tspan>(x)</text>
+<text x="686.000832" y="397.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="start" >∈ ℝ<tspan baseline-shift="38%" font-size="7.9">T×64</tspan></text>
+<path d="M742,300 L776,300" stroke="#475569" stroke-width="2.2" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<rect x="780" y="150" width="240" height="300" rx="16" ry="16" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" opacity="1"/>
+<text x="900.0" y="180" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15.5" font-style="normal" font-weight="700" fill="#1e293b" text-anchor="middle" >Vector Quantizer</text>
+<rect x="833.4" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="206.0" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="223.1" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="240.2" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="257.3" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="274.4" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="291.5" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="308.6" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="833.4" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="850.5" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="867.6" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="884.7" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="901.8" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="918.9" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="936.0" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="953.1" y="325.7" width="13.5" height="13.5" rx="2.5" fill="#4ade80" stroke="#15803d" stroke-width="0.8"/>
+<rect x="917.3" y="255.7" width="16.7" height="16.7" rx="3" fill="#fb923c" stroke="#c2410c" stroke-width="2"/>
+<path d="M744,300 C740,300 770,264.05 915.9,264.05" stroke="#ea580c" stroke-width="1.8" fill="none" stroke-dasharray="5 4" marker-end="url(#arrow)" opacity="1"/>
+<text x="817.5008" y="368.8" font-family="Georgia, 'Times New Roman', serif" font-size="14.5" font-style="italic" font-weight="normal" fill="#3f4a5a" text-anchor="start" >q<tspan baseline-shift="-28%" font-size="9.6">t</tspan> = argmin<tspan baseline-shift="-28%" font-size="9.6">j</tspan>  ∥z<tspan baseline-shift="-28%" font-size="9.6">e,t</tspan> − e<tspan baseline-shift="-28%" font-size="9.6">j</tspan>∥²</text>
+<text x="900.0" y="390.8" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >codebook size = 64 · code dim = 16</text>
+<text x="900.0" y="406.8" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >k-means init · commitment β = 0.1</text>
+<path d="M1020,300 L1054,300" stroke="#475569" stroke-width="2.2" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="1138,255.0 1148,245.0 1148,335.0 1138,345.0" fill="#b45309" stroke="#b45309" stroke-width="1.1"/>
+<polygon points="1058,255.0 1068,245.0 1148,245.0 1138,255.0" fill="#fde68a" stroke="#b45309" stroke-width="1.1"/>
+<rect x="1058" y="255.0" width="80" height="90" fill="#fbbf24" stroke="#b45309" stroke-width="1.2"/>
+<text x="1079.8984" y="379.0" font-family="Georgia, 'Times New Roman', serif" font-size="17" font-style="italic" font-weight="700" fill="#92400e" text-anchor="start" >z<tspan baseline-shift="-28%" font-size="11.2">q</tspan>(x)</text>
+<text x="1098.0" y="397.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >straight-through</text>
+<path d="M1138,300 L1166,300" stroke="#475569" stroke-width="2.2" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<text x="1340" y="196" font-family="'Helvetica Neue', Arial, sans-serif" font-size="16" font-style="normal" font-weight="700" fill="#1e293b" text-anchor="middle" >Causal Decoder</text>
+<text x="1340" y="213" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >CausalConvStack · in: z_q+cond = 65ch</text>
+<polygon points="1236,255.0 1249,242.0 1249,332.0 1236,345.0" fill="#4338ca" stroke="#4338ca" stroke-width="1.1"/>
+<polygon points="1190,255.0 1203,242.0 1249,242.0 1236,255.0" fill="#c7d2fe" stroke="#4338ca" stroke-width="1.1"/>
+<rect x="1190" y="255.0" width="46" height="90" fill="url(#decFront)" stroke="#4338ca" stroke-width="1.2"/>
+<text x="1213.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#4338ca" text-anchor="middle" >d=1</text>
+<path d="M1238,300 L1264,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="1313,255.0 1326,242.0 1326,332.0 1313,345.0" fill="#4338ca" stroke="#4338ca" stroke-width="1.1"/>
+<polygon points="1267,255.0 1280,242.0 1326,242.0 1313,255.0" fill="#c7d2fe" stroke="#4338ca" stroke-width="1.1"/>
+<rect x="1267" y="255.0" width="46" height="90" fill="url(#decFront)" stroke="#4338ca" stroke-width="1.2"/>
+<text x="1290.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#4338ca" text-anchor="middle" >d=2</text>
+<path d="M1315,300 L1341,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="1390,255.0 1403,242.0 1403,332.0 1390,345.0" fill="#4338ca" stroke="#4338ca" stroke-width="1.1"/>
+<polygon points="1344,255.0 1357,242.0 1403,242.0 1390,255.0" fill="#c7d2fe" stroke="#4338ca" stroke-width="1.1"/>
+<rect x="1344" y="255.0" width="46" height="90" fill="url(#decFront)" stroke="#4338ca" stroke-width="1.2"/>
+<text x="1367.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#4338ca" text-anchor="middle" >d=4</text>
+<path d="M1392,300 L1418,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="1467,255.0 1480,242.0 1480,332.0 1467,345.0" fill="#4338ca" stroke="#4338ca" stroke-width="1.1"/>
+<polygon points="1421,255.0 1434,242.0 1480,242.0 1467,255.0" fill="#c7d2fe" stroke="#4338ca" stroke-width="1.1"/>
+<rect x="1421" y="255.0" width="46" height="90" fill="url(#decFront)" stroke="#4338ca" stroke-width="1.2"/>
+<text x="1444.0" y="363.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="700" fill="#4338ca" text-anchor="middle" >d=8</text>
+<path d="M1482,300 L1503,300" stroke="#475569" stroke-width="1.8" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<polygon points="1540,268.0 1548,260.0 1548,324.0 1540,332.0" fill="#5b6b85" stroke="#5b6b85" stroke-width="1.1"/>
+<polygon points="1506,268.0 1514,260.0 1548,260.0 1540,268.0" fill="#dbe3ef" stroke="#5b6b85" stroke-width="1.1"/>
+<rect x="1506" y="268.0" width="34" height="64" fill="#a3b3cc" stroke="#5b6b85" stroke-width="1.2"/>
+<text x="1523.0" y="350.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >1×1 conv</text>
+<text x="1523.0" y="364.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >64→1ch</text>
+<text x="1340" y="383.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >kernel=3 · hidden=64 · GELU</text>
+<text x="1340" y="399.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >residual where channels match</text>
+<text x="1340" y="415.0" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#4338ca" text-anchor="middle" >left-pad only → no future leakage</text>
+<path d="M1552,300 L1596,300" stroke="#475569" stroke-width="2.2" fill="none" marker-end="url(#arrow)" opacity="1"/>
+<path d="M262,375 C312,375 312,478 320,478" stroke="#d97706" stroke-width="1.8" fill="none" stroke-dasharray="5 4" opacity="1"/>
+<path d="M320,478 L1225,478" stroke="#d97706" stroke-width="1.8" fill="none" stroke-dasharray="5 4" opacity="1"/>
+<path d="M320,478 L320,347.0" stroke="#d97706" stroke-width="1.8" fill="none" stroke-dasharray="5 4" marker-end="url(#arrow)" opacity="1"/>
+<circle cx="320" cy="452" r="8.5" fill="#fff7ed" stroke="#d97706" stroke-width="1.6"/>
+<path d="M315.5,452 H324.5 M320,447.5 V456.5" stroke="#d97706" stroke-width="1.4"/>
+<path d="M1190,478 L1190,347.0" stroke="#d97706" stroke-width="1.8" fill="none" stroke-dasharray="5 4" marker-end="url(#arrow)" opacity="1"/>
+<circle cx="1190" cy="452" r="8.5" fill="#fff7ed" stroke="#d97706" stroke-width="1.6"/>
+<path d="M1185.5,452 H1194.5 M1190,447.5 V456.5" stroke="#d97706" stroke-width="1.4"/>
+<text x="541.1980000000001" y="497" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="italic" font-weight="normal" fill="#b45309" text-anchor="start" >condition c (VIX) — broadcast over T, concatenated channel-wise at ⊕</text>
+<rect x="460" y="548" width="900" height="256" rx="16" ry="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4 3" opacity="1"/>
+<text x="910.0" y="578" font-family="'Helvetica Neue', Arial, sans-serif" font-size="15.5" font-style="normal" font-weight="700" fill="#1e293b" text-anchor="middle" >No-Anticipation Receptive Field (dilated causal convolution)</text>
+<text x="910.0" y="596" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#64748b" text-anchor="middle" >left-padding = dilation × (kernel−1)  —  output at time t depends only on inputs ≤ t</text>
+<path d="M1194.2666666666667,615 L1194.2666666666667,633" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,615 L811.3333333333334,633" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,651 L1002.8,671" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,651 L1194.2666666666667,671" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M811.3333333333334,651 L619.8666666666667,671" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M811.3333333333334,651 L811.3333333333334,671" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1002.8,689 L1002.8,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1002.8,689 L907.0666666666666,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M619.8666666666667,689 L619.8666666666667,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M619.8666666666667,689 L572.0,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,689 L1098.5333333333333,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,689 L1194.2666666666667,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M811.3333333333334,689 L715.6,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M811.3333333333334,689 L811.3333333333334,709" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M619.8666666666667,727 L619.8666666666667,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M619.8666666666667,727 L572.0,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M715.6,727 L667.7333333333333,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M715.6,727 L715.6,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M811.3333333333334,727 L763.4666666666667,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M811.3333333333334,727 L811.3333333333334,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M907.0666666666666,727 L859.2,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M907.0666666666666,727 L907.0666666666666,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1002.8,727 L1002.8,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1002.8,727 L954.9333333333334,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1098.5333333333333,727 L1050.6666666666667,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1098.5333333333333,727 L1098.5333333333333,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,727 L1146.4,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M1194.2666666666667,727 L1194.2666666666667,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<path d="M572.0,727 L572.0,747" stroke="#94a3b8" stroke-width="1.6" fill="none" opacity="1"/>
+<circle cx="572.0" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="619.9" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="667.7" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="715.6" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="763.5" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="811.3" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="859.2" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="907.1" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="954.9" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="1002.8" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="1050.7" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="1098.5" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="1146.4" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="1194.3" cy="756" r="3.6" fill="#e2e8f0"/>
+<circle cx="572.0" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="619.9" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="667.7" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="715.6" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="763.5" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="811.3" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="859.2" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="907.1" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="954.9" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="1002.8" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="1050.7" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="1098.5" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="1146.4" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="1194.3" cy="718" r="3.6" fill="#e2e8f0"/>
+<circle cx="572.0" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="619.9" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="667.7" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="715.6" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="763.5" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="811.3" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="859.2" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="907.1" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="954.9" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="1002.8" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="1050.7" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="1098.5" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="1146.4" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="1194.3" cy="680" r="3.6" fill="#e2e8f0"/>
+<circle cx="572.0" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="619.9" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="667.7" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="715.6" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="763.5" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="811.3" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="859.2" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="907.1" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="954.9" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="1002.8" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="1050.7" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="1098.5" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="1146.4" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="1194.3" cy="642" r="3.6" fill="#e2e8f0"/>
+<circle cx="572.0" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="619.9" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="667.7" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="715.6" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="763.5" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="811.3" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="859.2" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="907.1" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="954.9" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="1002.8" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="1050.7" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="1098.5" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="1146.4" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="1194.3" cy="606" r="3.6" fill="#e2e8f0"/>
+<circle cx="1194.3" cy="606" r="5.6" fill="#fb923c" stroke="white" stroke-width="1.2"/>
+<circle cx="1194.3" cy="642" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="811.3" cy="642" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="1002.8" cy="680" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="619.9" cy="680" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="1194.3" cy="680" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="811.3" cy="680" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="619.9" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="715.6" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="811.3" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="907.1" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="1002.8" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="1098.5" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<circle cx="1194.3" cy="718" r="5.6" fill="#0d9488" stroke="white" stroke-width="1.2"/>
+<rect x="567.0" y="713.0" width="10" height="10" fill="url(#hatch)" stroke="#94a3b8" stroke-width="1"/>
+<circle cx="619.9" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="667.7" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="715.6" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="763.5" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="811.3" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="859.2" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="907.1" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="954.9" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="1002.8" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="1050.7" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="1098.5" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="1146.4" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<circle cx="1194.3" cy="756" r="5.6" fill="#0f766e" stroke="white" stroke-width="1.2"/>
+<rect x="567.0" y="751.0" width="10" height="10" fill="url(#hatch)" stroke="#94a3b8" stroke-width="1"/>
+<text x="478" y="760" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#475569" text-anchor="start" >input x</text>
+<text x="478" y="722" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#475569" text-anchor="start" >layer 1 (d=1)</text>
+<text x="478" y="684" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#475569" text-anchor="start" >layer 2 (d=2)</text>
+<text x="478" y="646" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#475569" text-anchor="start" >layer 3 (d=4)</text>
+<text x="478" y="610" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="700" fill="#475569" text-anchor="start" >layer 4 (d=8)</text>
+<rect x="1220.6" y="584" width="165.1" height="194" fill="url(#hatch)" opacity="0.55"/>
+<path d="M1194.2666666666667,584 L1194.2666666666667,778" stroke="#dc2626" stroke-width="1.6" fill="none" stroke-dasharray="3 3" opacity="1"/>
+<text x="1201.2666666666667" y="646" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" font-style="italic" font-weight="normal" fill="#dc2626" text-anchor="start" >now (t)</text>
+<text x="1303.1633333333334" y="674" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#94a3b8" text-anchor="middle" >future</text>
+<text x="1303.1633333333334" y="690" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11.5" font-style="normal" font-weight="normal" fill="#94a3b8" text-anchor="middle" >never used</text>
+<text x="910.0" y="790" font-family="'Helvetica Neue', Arial, sans-serif" font-size="11" font-style="italic" font-weight="normal" fill="#64748b" text-anchor="middle" >schematic (2 taps shown per node for legibility; actual kernel=3) · true receptive field = 1+2·Σd = 31 timesteps for d=1,2,4,8</text>
+<line x1="50" y1="816" x2="1770" y2="816" stroke="#e2e8f0" stroke-width="1.2"/>
+<rect x="50" y="832" width="16" height="16" rx="3" fill="#0d9488"/>
+<text x="74" y="845" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="normal" fill="#334155" text-anchor="start" >Causal encoder block (dilated, causal)</text>
+<rect x="359.79999999999995" y="832" width="16" height="16" rx="3" fill="#4f46e5"/>
+<text x="383.79999999999995" y="845" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="normal" fill="#334155" text-anchor="start" >Causal decoder block (dilated, causal)</text>
+<rect x="669.5999999999999" y="832" width="16" height="16" rx="3" fill="#f59e0b"/>
+<text x="693.5999999999999" y="845" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="normal" fill="#334155" text-anchor="start" >Continuous embedding  z_e / z_q</text>
+<rect x="933.1999999999999" y="832" width="16" height="16" rx="3" fill="#22c55e"/>
+<text x="957.1999999999999" y="845" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="normal" fill="#334155" text-anchor="start" >Codebook entry  e_j  (64 × 16)</text>
+<path d="M1190.1999999999998,840 L1220.1999999999998,840" stroke="#d97706" stroke-width="1.8" fill="none" stroke-dasharray="5 4" opacity="1"/>
+<text x="1226.1999999999998" y="845" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12.5" font-style="normal" font-weight="normal" fill="#334155" text-anchor="start" >Condition branch (VIX, concatenated)</text>
 </svg>

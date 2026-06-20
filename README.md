@@ -17,7 +17,12 @@ also hosts the discrete VQ extension work.
 
 Release notes: [`0.1.0`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/docs/release/0.1.0.md).
 
-![Time-causal VQ-VAE architecture sketch](https://raw.githubusercontent.com/GVourvachakis/TimeCausalVQVAE/main/assets/figures/time_causal_vqvae_pipeline.svg)
+![Discrete time-causal VQ-VAE architecture](https://raw.githubusercontent.com/GVourvachakis/TimeCausalVQVAE/main/assets/figures/time_causal_vqvae_pipeline.svg)
+
+*Discrete time-causal VQ-VAE architecture. The diagram shows the S&P 500/VIX
+input window, causal convolutional encoder and decoder stacks, vector
+quantization, the VIX conditioning branch, and the receptive-field structure
+used to preserve no-anticipation behaviour.*
 
 ## Installation
 
