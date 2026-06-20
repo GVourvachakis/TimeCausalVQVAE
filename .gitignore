@@ -31,6 +31,7 @@ trained_models/*
 !trained_models/
 !trained_models/README.md
 !trained_models/model_registry.yaml
+!trained_models/multidim_profiles.yaml
 !trained_models/*/
 !trained_models/*/model_card.md
 wandb/

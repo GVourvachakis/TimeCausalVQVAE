@@ -1,0 +1,184 @@
+multifactor_market:
+  status: experimental
+  public_default: false
+  benchmark_role: synthetic_50d_multifactor
+  source_of_truth: docs/experiments/multidim_v3_final_decision.md
+  local_output_policy:
+    weights_committed: false
+    checkpoint_placeholder: local_outputs_only
+    data_committed: false
+    generated_outputs_committed: false
+  profiles:
+    correlation_sector:
+      family: continuous
+      candidate: beta_cvae_latent8_hidden64
+      config: configs/experiments/multifactor_market_standardized_beta_cvae_latent8_hidden64.yaml
+      checkpoint_path: local_outputs_only
+      checkpoint_convention: outputs/multifactor_market_continuous_seed_robustness/<seed>/<training-run>/final_model
+      public_default: false
+      status: experimental_profile
+      evidence:
+        primary_docs:
+          - docs/experiments/multifactor_market_continuous_seed_robustness.md
+          - docs/experiments/multifactor_jump_stress_decision.md
+          - docs/experiments/multidim_v3_final_decision.md
+        profile_summary: Stronger synthetic correlation, eigenspectrum, sector-block, and jump-window conditional-correlation profile.
+        nojump_seed_status: seed_robust
+        jump_status: common_and_sector_jumps_tested
+        representative_metrics:
+          nojump_corr_rel_frobenius_mean: 0.2987
+          nojump_corr_spectrum_mean: 0.1074
+          nojump_sector_mae_mean: 0.0942
+          nojump_equal_weight_vol_ratio_mean: 0.8265
+          jump_corr_rel_frobenius_mean: 0.294396
+          jump_corr_spectrum_mean: 0.119427
+          jump_sector_mae_mean: 0.107234
+      caveats:
+        - Portfolio-volatility compression remains material on synthetic data.
+        - Not a public default or registry-selected multidimensional model.
+        - Checkpoints and generated paths remain local-only.
+
+    portfolio_tail:
+      family: discrete
+      candidate: factor_pca_rvq_q2_cb64_factorised
+      tokenizer_config: configs/experiments/multifactor_market_factor_pca_causal_rvq_tokenizer_q2_cb64_auxloss.yaml
+      prior_config: configs/experiments/multifactor_market_factor_pca_rvq_q2_cb64_prior_factorised_additive.yaml
+      tokenizer_checkpoint_path: local_outputs_only
+      prior_checkpoint_path: local_outputs_only
+      token_data_path: local_outputs_only
+      checkpoint_convention: outputs/multifactor_factor_rvq_seed_robustness/
+      public_default: false
+      status: experimental_profile
+      sampling:
+        temperature: 1.0
+        top_k: null
+        selection_split: synthetic_nojump
+      evidence:
+        primary_docs:
+          - docs/experiments/multifactor_factor_rvq_seed_robustness.md
+          - docs/experiments/multifactor_jump_stress_decision.md
+          - docs/experiments/multidim_v3_final_decision.md
+        profile_summary: Seed-robust synthetic discrete candidate for MMD/SWD, covariance scale, portfolio volatility, and portfolio tail-risk retention.
+        nojump_seed_status: seed_robust
+        jump_status: common_and_sector_jumps_tested
+        representative_metrics:
+          nojump_mmd_mean: 0.2236
+          nojump_swd_mean: 0.002677
+          nojump_cov_rel_frobenius_mean: 0.1301
+          nojump_corr_rel_frobenius_mean: 0.3605
+          nojump_sector_mae_mean: 0.1391
+          nojump_equal_weight_vol_ratio_mean: 0.9587
+          nojump_equal_weight_var_q01_error_mean: 0.000997
+          nojump_equal_weight_es_q01_error_mean: 0.002694
+          nojump_q0_active_codes: 64
+          nojump_q1_active_codes: 64
+          jump_cov_rel_frobenius_mean: 0.124248
+          jump_equal_weight_vol_ratio_mean: 0.962416
+      caveats:
+        - Trails BetaCVAE on correlation, eigenspectrum, sector structure, and jump-window conditional correlation.
+        - Factorised prior only; hierarchical q0-to-q1 prior remains research-only.
+        - Not a public default or registry-selected multidimensional model.
+        - Checkpoints, token tensors, and generated paths remain local-only.
+
+sp500_50_panel:
+  status: experimental
+  public_default: false
+  benchmark_role: local_empirical_50d_panel
+  source_of_truth: docs/experiments/multidim_v3_final_decision.md
+  local_output_policy:
+    weights_committed: false
+    checkpoint_placeholder: local_outputs_only
+    downloaded_data_committed: false
+    processed_data_committed: false
+    generated_outputs_committed: false
+  profiles:
+    balanced_empirical:
+      family: continuous
+      candidate: beta_cvae_latent8_hidden64_v3
+      config: configs/experiments/sp500_50_panel_v3_beta_cvae_latent8_hidden64.yaml
+      checkpoint_path: local_outputs_only
+      checkpoint_convention: outputs/sp500_50_panel_v3_first_model_comparison/continuous_beta_cvae_latent8_hidden64/<training-run>/final_model
+      public_default: false
+      status: experimental_profile
+      evidence:
+        primary_docs:
+          - docs/experiments/sp500_50_panel_v3_condition_smoke.md
+          - docs/experiments/sp500_50_panel_v3_model_comparison.md
+          - docs/experiments/multidim_v3_final_decision.md
+        profile_summary: Best current one-seed empirical v3 candidate after prefix-safe conditioning.
+        protocol:
+          train_windows: 355
+          eval_windows: 89
+          condition_mode: v3_prefix_market
+          train_only_return_standardisation: true
+          train_only_label_standardisation: true
+        representative_metrics:
+          mmd: 0.413115
+          swd: 0.005034
+          cov_rel_frobenius: 0.421567
+          corr_rel_frobenius: 0.838303
+          corr_spectrum: 0.236516
+          sector_mae: 0.223918
+          equal_weight_vol_ratio: 1.071880
+          random_portfolio_vol_ratio: 1.063057
+          equal_weight_var_q01_error: 0.000311
+          equal_weight_es_q01_error: 0.000647
+          parameter_count: 644898
+      caveats:
+        - one_seed_local
+        - Not seed-robust on empirical v3.
+        - MMD/SWD and pooled q01 left-tail error did not improve over empirical v2.
+        - Not a public default or registry-selected multidimensional model.
+        - Local S&P500 panel data and generated outputs are not committed.
+
+    discrete_reporting:
+      family: discrete
+      candidate: factor_pca_rvq_q2_cb64_factorised
+      tokenizer_config: configs/experiments/sp500_50_panel_v3_factor_pca_rvq_q2_cb64_tokenizer_auxloss.yaml
+      prior_config: configs/experiments/sp500_50_panel_v3_factor_pca_rvq_q2_cb64_prior_factorised_additive.yaml
+      tokenizer_checkpoint_path: local_outputs_only
+      prior_checkpoint_path: local_outputs_only
+      token_data_path: local_outputs_only
+      checkpoint_convention: outputs/sp500_50_panel_v3_first_model_comparison/
+      public_default: false
+      status: experimental_profile
+      sampling:
+        temperature: 0.7
+        top_k: 20
+        selection_split: empirical_v2_reporting_policy_reused_for_v3
+      evidence:
+        primary_docs:
+          - docs/experiments/sp500_50_panel_v3_model_comparison.md
+          - docs/experiments/sp500_50_panel_v2_final_decision.md
+          - docs/experiments/multidim_v3_final_decision.md
+        profile_summary: Empirical discrete reporting variant only; calibrated sampling improves default RVQ but remains weaker than BetaCVAE v3.
+        protocol:
+          train_windows: 355
+          eval_windows: 89
+          condition_mode: v3_prefix_market
+          projection_mode: train_pca
+          projection_n_factors: 5
+        representative_metrics:
+          mmd: 0.296044
+          swd: 0.004152
+          cov_rel_frobenius: 1.105872
+          corr_rel_frobenius: 1.345099
+          corr_spectrum: 0.414596
+          sector_mae: 0.430765
+          equal_weight_vol_ratio: 1.581380
+          random_portfolio_vol_ratio: 1.566198
+          equal_weight_var_q01_error: 0.018045
+          equal_weight_es_q01_error: 0.031749
+          q0_active_codes: 63
+          q1_active_codes: 54
+          eval_pair_l1: 1.614607
+          eval_absent_pair_mass: 0.719850
+          tokenizer_parameter_count: 92245
+          prior_parameter_count: 306688
+      caveats:
+        - pair_and_regime_miscalibration
+        - over_dispersed_portfolio_volatility
+        - one_seed_local
+        - Not seed-robust on empirical v3.
+        - Not a public default or registry-selected multidimensional model.
+        - Token tensors, prior checkpoints, and generated paths remain local-only.

@@ -1,40 +1,83 @@
 # Hawkes/SVMHJD Synthetic Benchmark
 
-The Hawkes/SVMHJD benchmark provides synthetic one-dimensional market paths with clustered,
-asymmetric jumps. It is intended for rare-event dataset smoke tests, leakage checks, and future
-discrete-latent benchmark studies where jump timing and tail behaviour matter.
+The Hawkes/SVMHJD benchmark provides synthetic one-dimensional market paths
+with clustered, asymmetric jumps. It is intended for rare-event dataset smoke
+tests, leakage checks, and discrete-latent benchmark studies where jump timing
+and tail behaviour matter.
 
-Two simulator backends are available through `HawkesJumpDataset`:
+## Formulation
 
-- `simulation_scheme: fixed_grid` uses a fast discrete-time Hawkes approximation. It is useful for
-  quick smoke tests and local debugging.
-- `simulation_scheme: ogata` simulates continuous-time marked Hawkes arrivals by Ogata thinning and
-  then observes the jump-diffusion path on the requested fixed grid.
+The fixed-grid approximation uses log returns
 
-The Ogata backend is preferred for research-quality event timing because jump arrivals are sampled
-in continuous time before projection to the observation grid. This avoids making the Hawkes process
-depend on the arbitrary grid step used by the model input tensor, while retaining the same
-batch-time-channel tensor interface.
+```text
+r_t = drift dt + sigma_t sqrt(dt) z_t + Y_t,
+S_t = S_{t-1} exp(r_t),
+```
 
-The dataset exposes the following tensors:
+where `z_t` is standard normal noise and `Y_t` is the aggregate marked jump
+size in the grid cell. The jump count is sampled from a clipped Poisson rate
+based on the current Hawkes intensity:
 
-- `data`: configured model-visible tensor, either normalised prices or log returns, with shape
-  `[n_sample, n_timestep, 1]`;
-- `labels`: constant scalar labels with shape `[n_sample, 1]`;
-- `prices` and `log_returns`: full simulated path tensors with shape `[n_sample, n_timestep, 1]`;
-- `jump_indicators`, `jump_counts`, `jump_sizes`, `intensities`, and `volatilities`: oracle
-  simulator metadata tensors with shape `[n_sample, n_timestep, 1]`;
-- `metadata`: aggregate simulator diagnostics such as total jumps and jump fractions.
+```text
+N_t ~ Poisson(lambda_t dt),
+Y_t = sum_{j=1}^{N_t} mark_{t,j}.
+```
 
-Oracle metadata is diagnostic-only. It should be used for smoke summaries, leakage checks, plots,
-and post-hoc jump diagnostics, not as a model-visible condition or target unless a later benchmark
-explicitly changes that contract.
+After observing the grid cell, intensity and optional jump-excited volatility
+are updated by
 
-This simulator is not a no-arbitrage pricing model. The generated paths are synthetic stress-test
-data for generative modelling diagnostics, not calibrated tradable dynamics or derivative-pricing
-inputs.
+```text
+lambda_{t+1}
+  = lambda_0 + (lambda_t - lambda_0) exp(-decay dt)
+    + excitation N_t + mark_excitation abs(Y_t),
 
-Smoke checks:
+vol_state_{t+1}
+  = vol_state_t exp(-volatility_decay dt)
+    + volatility_excitation_scale abs(Y_t).
+```
+
+The Ogata backend simulates continuous-time event arrivals by thinning with
+the same baseline, excitation, decay, mark-excitation, and mark distribution,
+then projects the resulting jump-diffusion path onto the regular observation
+grid. This is the preferred research-quality event-timing backend.
+
+Marks are asymmetric: negative jumps are more likely than positive jumps, with
+an additional severe-negative component. The simulator is synthetic stress-test
+data, not a calibrated no-arbitrage pricing model.
+
+## Tensor Convention
+
+`HawkesJumpDataset` exposes:
+
+- `data`: either prices or log returns, selected by `data_output`, with shape
+  `[n_sample, 60, 1]` in the public configs;
+- `labels`: constant-one scalar labels with shape `[n_sample, 1]`;
+- `prices` and `log_returns`: full simulated path tensors;
+- `jump_indicators`, `jump_counts`, `jump_sizes`, `intensities`, and
+  `volatilities`: oracle simulator metadata tensors with shape
+  `[n_sample, 60, 1]`;
+- `metadata`: aggregate simulator diagnostics such as total jumps and jump
+  fractions.
+
+The supported simulator backends are:
+
+- `simulation_scheme: fixed_grid`, a fast discrete-time Hawkes approximation;
+- `simulation_scheme: ogata`, continuous-time marked Hawkes arrivals observed
+  on the fixed model grid.
+
+## Preprocessing And No-Leakage Convention
+
+No empirical data is loaded and no train-only standardisation is applied by the
+dataset. Eval paths use a shifted seed in `DataPipeline` when a seed is
+configured, so held-out synthetic samples are independent of train samples.
+
+Oracle jump metadata is diagnostic-only. Jump counts, jump indicators, jump
+sizes, intensities, and volatility states should be used for smoke summaries,
+leakage checks, plots, and post-hoc jump diagnostics, not as model-visible
+conditions or targets unless a later benchmark explicitly changes that
+contract.
+
+## Smoke Checks
 
 ```bash
 poetry run python scripts/smoke_hawkes_jump_dataset.py \
@@ -48,10 +91,14 @@ poetry run python scripts/check_hawkes_jump_dataset_no_leakage.py \
   --config configs/experiments/hawkes_jump_causal_vq_tokenizer.yaml
 ```
 
-Hawkes/SVMHJD has an optional registry entry with `status: research_candidate` and
-`public_default: false`. The selected discrete research candidate under the balanced/smooth profile
-remains the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior. The hidden128
-log-return cb64 tokenizer + additive AR prior remains the required jump-profile ablation. The tiny
-conv-transformer is an optional efficiency candidate: it improves mean jump-count and inter-arrival
-distances in the compact-prior follow-up, but it loses the balanced smooth profile and is not the
-registered selected model.
+## Public Status
+
+Hawkes/SVMHJD has an optional registry entry with `status:
+research_candidate` and `public_default: false`. The selected discrete research
+candidate under the balanced/smooth profile remains the hidden128 log-return
+cb64 tokenizer plus causal conv-transformer k3 prior. The hidden128 log-return
+cb64 tokenizer plus additive AR prior remains the required jump-profile
+ablation.
+
+No weights, token tensors, generated paths, W&B artefacts, or local result grids
+are committed.
