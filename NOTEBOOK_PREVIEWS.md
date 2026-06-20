@@ -12,7 +12,8 @@ Large embedded notebook outputs should be avoided so this preview branch remains
 
 ## First Preview Set
 
-Executed with `poetry run jupyter nbconvert --execute --inplace` on 2026-06-20.
+Executed with `poetry run python scripts/run_notebook_previews.py --manifest
+notebooks/preview_notebook_manifest.yaml --continue-on-error` on 2026-06-20.
 
 | Notebook | Status | Notes |
 | --- | --- | --- |
@@ -22,5 +23,7 @@ Executed with `poetry run jupyter nbconvert --execute --inplace` on 2026-06-20.
 | `notebooks/report/sample_geometry_diagnostics.ipynb` | Executed | Uses local sample-geometry artefacts where available. |
 | `notebooks/continuous/sp500_vix.ipynb` | Executed | Guarded continuous S&P500/VIX demo path. |
 | `notebooks/discrete/sp500_vix.ipynb` | Executed | Guarded discrete S&P500/VIX demo path. |
+| `notebooks/continuous/hawkes_jump.ipynb` | Executed | Guarded continuous Hawkes/SVMHJD research-candidate demo path. |
+| `notebooks/discrete/hawkes_jump.ipynb` | Executed | Guarded discrete Hawkes/SVMHJD research-candidate demo path. |
 
 No multidimensional notebooks were executed in this pass.
