@@ -21,14 +21,12 @@ def main() -> int:
 
     batch_size = 8
     cutoff = 29
-    data_config = ConfigDict(
-        {
-            "dataset": "black_scholes",
-            "n_sample": 64,
-            "n_timestep": 60,
-            "data_params": {},
-        }
-    )
+    data_config = ConfigDict({
+        "dataset": "black_scholes",
+        "n_sample": 64,
+        "n_timestep": 60,
+        "data_params": {},
+    })
     train_dataset, _ = DataPipeline()(data_config)
     inputs = train_dataset.data[:batch_size].to(dtype=torch.float32)
 

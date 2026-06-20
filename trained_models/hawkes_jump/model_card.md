@@ -13,6 +13,7 @@ weights, token tensors, generated paths, or output summaries are committed.
 | Continuous | Comparator | `beta_cvae_logreturn_identity` | `configs/experiments/hawkes_jump_beta_cvae_logreturn_identity.yaml` |
 | Discrete | Required ablation | `hidden128_logreturn_cb64_additive_ar` | `configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml`; `configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_additive.yaml` |
 | Discrete | Selected research candidate | `hidden128_logreturn_cb64_conv_transformer_k3` | `configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml`; `configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer.yaml` |
+| Discrete | Efficiency candidate | `hidden128_logreturn_cb64_conv_transformer_tiny` | `configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml`; `configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer_tiny.yaml` |
 
 Sampling uses `temperature=1.0` and `top_k=null`. Evaluation uses the Ogata
 backend, `data_output: log_return`, `n_sample=1024`, and seeds `0/1/2`.
@@ -22,6 +23,28 @@ Hawkes/SVMHJD discrete research candidate under the balanced/smooth profile.
 `hidden128_logreturn_cb64_additive_ar` remains the required ablation and is
 slightly stronger on jump-count and inter-arrival diagnostics. This selection
 does not imply that either prior dominates every metric.
+
+The compact-prior follow-up confirms that
+`hidden128_logreturn_cb64_conv_transformer_tiny` is an efficiency candidate,
+not the selected balanced model. Tiny uses 91,712 parameters versus 388,544 for
+k3 and trains in about 52% of the k3 local CPU wall-clock time. Tiny has the
+best mean jump-count and inter-arrival W1 in the compact-prior robustness
+comparison, but k3 remains better on MMD, SWD, terminal W1, and volatility W1.
+The tail profile is materially aligned with k3, so the decision is driven by
+smooth-profile robustness rather than VaR/ES failure. The registry therefore
+remains selected on `hidden128_logreturn_cb64_conv_transformer_k3`.
+
+## Compact-Prior Follow-Up
+
+Mean / std across seeds. Lower is better. Reference evaluation runtimes for
+additive AR and k3 are unavailable because the existing robustness summaries
+pre-date evaluator runtime recording.
+
+| Candidate | Parameters | Train s | Eval s | MMD | SWD | Terminal W1 | Volatility W1 | Jump-count W1 | Inter-arrival W1 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Additive AR ablation | 289,472 | 93.19 / 0.26 | n/a | 0.1567 / 0.0644 | 0.0238 / 0.0085 | 0.0320 / 0.0152 | 0.0011 / 0.0008 | 0.0469 / 0.0319 | 12.7327 / 8.2921 |
+| Conv-transformer k3 | 388,544 | 109.69 / 0.20 | n/a | 0.1141 / 0.0355 | 0.0186 / 0.0060 | 0.0217 / 0.0120 | 0.0010 / 0.0010 | 0.0576 / 0.0324 | 16.2591 / 10.3617 |
+| Tiny conv-transformer | 91,712 | 56.95 / 4.59 | 23.91 / 2.92 | 0.1567 / 0.0688 | 0.0245 / 0.0103 | 0.0308 / 0.0151 | 0.0011 / 0.0009 | 0.0368 / 0.0258 | 12.3557 / 9.0570 |
 
 ## Smooth Metrics
 

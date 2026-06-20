@@ -40,16 +40,30 @@ def build_tokenizer_datasets(
     sample_count = int(n_sample if n_sample is not None else data["n_samples"])
     if sample_count <= 0:
         raise ValueError("n_sample must be positive.")
+    train_sample_count = optional_split_sample_count(data.get("train_n_samples"))
+    eval_sample_count = optional_split_sample_count(data.get("eval_n_samples"))
 
     exp_config = ml_collections.ConfigDict()
     exp_config.dataset = str(experiment["dataset"])
     exp_config.n_sample = sample_count
+    exp_config.train_n_sample = sample_count if n_sample is not None else train_sample_count
+    exp_config.eval_n_sample = sample_count if n_sample is not None else eval_sample_count
     exp_config.n_timestep = int(data["n_timesteps"])
     exp_config.base_data_dir = base_data_dir
     exp_config.data_params = dict(cast(Mapping[str, Any], data.get("data_params", {})))
     if "rho" in data:
         exp_config.rho = data["rho"]
     return cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+
+
+def optional_split_sample_count(value: Any) -> int | None:
+    """Return ``None`` or a validated split-specific sample count."""
+    if value is None:
+        return None
+    count = int(value)
+    if count <= 0:
+        raise ValueError("split-specific sample counts must be positive when provided.")
+    return count
 
 
 def require_mapping(raw_config: Mapping[str, Any], key: str) -> dict[str, Any]:
@@ -205,12 +219,10 @@ def component_code_usage(indices: Tensor, codebook_size: int) -> dict[str, Any]:
                 component.reshape(-1),
                 minlength=codebook_size,
             )[:codebook_size]
-            per_quantizer.append(
-                {
-                    "quantizer_index": quantizer_index,
-                    **summarise_code_usage(code_counts),
-                }
-            )
+            per_quantizer.append({
+                "quantizer_index": quantizer_index,
+                **summarise_code_usage(code_counts),
+            })
         return {"per_quantizer": per_quantizer}
     if indices.ndim == 4:
         per_group = []
@@ -220,12 +232,10 @@ def component_code_usage(indices: Tensor, codebook_size: int) -> dict[str, Any]:
                 component.reshape(-1),
                 minlength=codebook_size,
             )[:codebook_size]
-            per_group.append(
-                {
-                    "group_index": group_index,
-                    **summarise_code_usage(code_counts),
-                }
-            )
+            per_group.append({
+                "group_index": group_index,
+                **summarise_code_usage(code_counts),
+            })
         per_group_quantizer = []
         for group_index in range(indices.shape[2]):
             for quantizer_index in range(indices.shape[3]):
@@ -234,13 +244,11 @@ def component_code_usage(indices: Tensor, codebook_size: int) -> dict[str, Any]:
                     component.reshape(-1),
                     minlength=codebook_size,
                 )[:codebook_size]
-                per_group_quantizer.append(
-                    {
-                        "group_index": group_index,
-                        "quantizer_index": quantizer_index,
-                        **summarise_code_usage(code_counts),
-                    }
-                )
+                per_group_quantizer.append({
+                    "group_index": group_index,
+                    "quantizer_index": quantizer_index,
+                    **summarise_code_usage(code_counts),
+                })
         return {
             "per_group": per_group,
             "per_group_quantizer": per_group_quantizer,
@@ -312,24 +320,22 @@ def condition_bucket_code_usage(
         )[:codebook_size]
         usage = summarise_code_usage(code_counts)
         component_usage = component_code_usage(bucket_indices, codebook_size)
-        buckets.append(
-            {
-                "bucket_index": bucket_index,
-                "bucket_label": bucket_labels[bucket_index]
-                if bucket_index < len(bucket_labels)
-                else f"bucket_{bucket_index}",
-                "n_samples": int(bucket_positions.numel()),
-                "condition_min": float(bucket_values.min().item()),
-                "condition_max": float(bucket_values.max().item()),
-                "condition_mean": float(bucket_values.mean().item()),
-                "active_code_count": usage["active_code_count"],
-                "active_code_ratio": usage["active_code_ratio"],
-                "codebook_perplexity": usage["codebook_perplexity"],
-                "index_entropy": usage["index_entropy"],
-                "active_code_indices": usage["active_code_indices"],
-                **component_usage,
-            }
-        )
+        buckets.append({
+            "bucket_index": bucket_index,
+            "bucket_label": bucket_labels[bucket_index]
+            if bucket_index < len(bucket_labels)
+            else f"bucket_{bucket_index}",
+            "n_samples": int(bucket_positions.numel()),
+            "condition_min": float(bucket_values.min().item()),
+            "condition_max": float(bucket_values.max().item()),
+            "condition_mean": float(bucket_values.mean().item()),
+            "active_code_count": usage["active_code_count"],
+            "active_code_ratio": usage["active_code_ratio"],
+            "codebook_perplexity": usage["codebook_perplexity"],
+            "index_entropy": usage["index_entropy"],
+            "active_code_indices": usage["active_code_indices"],
+            **component_usage,
+        })
     return buckets
 
 

@@ -50,6 +50,8 @@ poetry run python scripts/check_hawkes_jump_dataset_no_leakage.py \
 
 Hawkes/SVMHJD has an optional registry entry with `status: research_candidate` and
 `public_default: false`. The selected discrete research candidate under the balanced/smooth profile
-is the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior. The hidden128
-log-return cb64 tokenizer + additive AR prior remains the required ablation and is slightly
-stronger on jump-count and inter-arrival diagnostics.
+remains the hidden128 log-return cb64 tokenizer + causal conv-transformer k3 prior. The hidden128
+log-return cb64 tokenizer + additive AR prior remains the required jump-profile ablation. The tiny
+conv-transformer is an optional efficiency candidate: it improves mean jump-count and inter-arrival
+distances in the compact-prior follow-up, but it loses the balanced smooth profile and is not the
+registered selected model.

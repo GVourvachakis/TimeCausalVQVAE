@@ -16,7 +16,15 @@ Prerequisites:
 Install the full development environment:
 
 ```bash
-poetry install
+poetry install --with dev
+```
+
+Add optional groups only when they are needed:
+
+```bash
+poetry install --with notebooks
+poetry install --with data
+poetry install --with tracking
 ```
 
 Install pre-commit hooks when you are doing regular development:
@@ -41,9 +49,9 @@ Common commands:
 - Build the package: `poetry build`
 - Check package metadata: `poetry check`
 
-Dependency groups are declared in `pyproject.toml` for `dev`, `notebooks`, and `tracking`.
-Before adding a dependency, prefer existing scientific Python packages already used in the
-project, and keep optional tooling out of the core runtime when possible.
+Dependency groups are declared in `pyproject.toml` for `dev`, `notebooks`, `tracking`, and
+optional `data` access. Before adding a dependency, prefer existing scientific Python packages
+already used in the project, and keep optional tooling out of the core runtime when possible.
 
 ## Running Checks
 
@@ -101,6 +109,7 @@ Do not commit:
 
 - `outputs/`
 - `wandb/`
+- `data/raw/`
 - `data/processed/`
 - model checkpoints or weights
 - `.pt`, `.npy`, `.npz`, `.pkl`, `.pyc`, or cache files
@@ -108,6 +117,10 @@ Do not commit:
 - local logs and paper-style JSON summaries
 
 The `outputs/` directory is for local training and evaluation results. It should stay out of Git.
+Downloaded financial data must remain local under `data/raw`, `data/processed`, or `outputs`.
+Empirical benchmark downloaders may use optional data dependencies, but raw Yahoo-backed or
+yfinance-backed data, processed tensors, local metadata exports, and redistributed price files
+must not be committed.
 
 Small curated public images may be committed under `assets/figures/` when they are intentionally
 selected for the README or a demo. Trained model directories should contain only lightweight
@@ -137,6 +150,12 @@ poetry run python scripts/select_registered_model.py --experiment sp500_vix --fa
 Do not change public defaults unless the registry contains explicit metadata justifying the
 selection and the corresponding documentation explains the trade-off.
 
+Multidimensional registry promotion has a higher evidence bar. It requires seed-robust empirical
+evidence, no-leakage preprocessing, an explicit selection profile, a model card, and
+local-output-only checkpoint conventions. Until that evidence exists, multidimensional loaders,
+diagnostics, and configs should remain experimental infrastructure rather than registry-selected
+models.
+
 ## Code Quality
 
 Prefer narrow, local changes. Preserve public commands and notebook workflows when refactoring.
@@ -152,9 +171,11 @@ Guidelines:
 
 ## Versioning / Branches
 
-The package version is configured in `pyproject.toml`, and Commitizen is configured for
-conventional commits. Public branches should be release-oriented and minimal. Research branches
-may contain fuller experiment history, verification notes, and candidate configs.
+The package version is configured in `pyproject.toml` and
+`src/time_causal_vae/version.py`; keep them synchronised. Commitizen is configured for
+conventional commits and should update both version files. Public branches should be
+release-oriented and minimal. Research branches may contain fuller experiment history,
+verification notes, and candidate configs.
 
 Suggested branch roles:
 
@@ -184,7 +205,7 @@ Before committing, inspect the diff and check that no generated artefacts are st
 ```bash
 git status --short
 git diff --stat
-git ls-files | grep -E '(^outputs/|^wandb/|^data/processed/|\.npy$|\.npz$|\.pt$|\.pkl$|\.pyc$|__pycache__)' || true
+git ls-files | grep -E '(^outputs/|^wandb/|^data/raw/|^data/processed/|\.npy$|\.npz$|\.pt$|\.pkl$|\.pyc$|__pycache__)' || true
 ```
 
 ## Research Branch Policy
@@ -194,9 +215,12 @@ evidence summaries when they are useful for ongoing analysis. Do not remove rese
 research branches while preparing a public branch.
 
 Public branches should keep only the source, notebooks, configs, scripts, and documentation needed
-for the public baseline and any explicitly documented demo. RVQ q2, hidden128 variants, diffusion,
-signature-kernel experiments, and other exploratory paths should remain on research branches
-unless they are deliberately promoted.
+for the public baseline and any explicitly documented demo. Multidimensional benchmark loaders,
+diagnostics, smoke scripts, and clearly labelled experimental configs may be public when they do
+not claim a selected model. Multidimensional non-smoke evidence, seed grids, sampling ablations,
+hierarchy ablations, generated summaries, and empirical result logs belong on research branches.
+RVQ q2, hidden128 variants, diffusion, signature-kernel experiments, and other exploratory paths
+should remain on research branches unless they are deliberately promoted.
 
 ## Future Directions
 
@@ -206,7 +230,12 @@ ready for review. Useful directions include:
 - Per-experiment model selection and periodic registry refreshes, with clear metrics, caveats, and model cards.
 - Pytest coverage: add unit and smoke tests for causal no-leakage checks, dataset tensor contracts, Ogata Hawkes simulation invariants, log-return-to-price conversion, model-registry selection, token-prior sampling shapes, and notebook-safe command generation. Integration tests should remain lightweight and should not require trained checkpoints.
 - Stronger causal priors for hidden128 tokens, including more robust conv-transformer variants. Mamba or selective-SSM priors should wait for CUDA/package compatibility and strict stepwise-causality checks.
-- Continuous-latent prior extensions such as LSGM, score-based, or flow-based alternatives to RealNVP, kept separate from the discrete branch.
+- Continuous-latent prior extensions should remain research-branch work until they are
+  promotion-competitive. A continuous latent score-prior / LSGM v1 branch explored frozen TC-VAE
+  encoders and decoders, a latent VP-DDPM prior, and causal TCN and causal Transformer denoisers,
+  but it did not outperform the registered S&P500/VIX continuous RealNVP baseline and no registry
+  update was made. Future LSGM work should focus on representation-aware v2 directions such as
+  higher latent dimension or end-to-end score-compatible continuous VAE training.
 - VQ-family tokenizer experiments such as GroupedResidualVQ and MGVQ, only after prior-calibration bottlenecks are controlled.
 - Causal low/high-frequency decomposition inspired by TimeVQVAE, without introducing bidirectional priors.
 - Optional signature and path-space diagnostics, including log-signature conditioning and signature-kernel metrics, without making them public defaults.

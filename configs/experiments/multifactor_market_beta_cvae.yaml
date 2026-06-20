@@ -1,0 +1,44 @@
+experiment:
+  name: multifactor_market_beta_cvae
+  dataset: multifactor_market
+  seed: 0
+data:
+  n_samples: 256
+  n_timesteps: 60
+  data_dim: 50
+  condition_dim: 1
+  transform: id
+  inverse_transform: id
+  condition_feature: constant
+  params:
+    n_assets: 50
+    n_factors: 5
+    n_sectors: 5
+    seed: 0
+    condition_mode: constant
+    with_jumps: true
+model:
+  objective: beta_cvae
+  encoder: conditional_residual_lstm
+  decoder: conditional_residual_lstm
+  conditioner: identity
+  prior: real_nvp
+  data_dim: 50
+  data_length: 60
+  latent_dim: 8
+  latent_length: 60
+  beta: 0.04
+  encoder_hidden_dim: 32
+  encoder_num_layers: 2
+  decoder_hidden_dim: 32
+  decoder_num_layers: 2
+  prior_num_flows: 3
+  prior_hidden_dim: 128
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 64
+  eval_batch_size: 64
+  epochs: 1
+  steps_saving: 1
+  steps_predict: 1

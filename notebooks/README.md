@@ -63,10 +63,21 @@ conv-transformer k3 research candidate. Both report notebooks also profile the s
 architectures by parameter count and CPU generation time using randomly initialised weights, so
 the timing tables measure architecture cost rather than checkpoint quality.
 
+The final sample-geometry report notebook is registry-aware and output-stripped. It can compare
+Black-Scholes, Heston, PDV4, S&P500/VIX, and Hawkes/SVMHJD continuous/discrete candidates when
+local output batches exist. It creates t-SNE and KDE/ECDF diagnostics under local `outputs/`
+paths, and it does not train or evaluate models by default.
+
 - `report/sp500_vix_report_figures.ipynb`
 - `report/hawkes_jump_model_comparison.ipynb`
+- `report/final_sample_geometry_report.ipynb`
 
 ## Output Policy
+
+Executed notebook previews are available on the `docs/executed-notebook-previews` branch. The
+`main` branch keeps notebooks output-stripped for reproducibility and package size. Preview outputs
+depend on local artefacts and checkpoints, are not the package source of truth, and the preview
+branch is not intended to merge into `main`.
 
 Committed notebooks should remain output-stripped. Generated figures, executed notebooks,
 checkpoints, tensors, JSON summaries, logs, and local data belong under local `outputs/` or

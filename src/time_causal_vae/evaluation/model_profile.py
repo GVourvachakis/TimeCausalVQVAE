@@ -8,7 +8,7 @@ import warnings
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, Protocol, cast
 
 import ml_collections
 import torch
@@ -38,6 +38,14 @@ _CONTINUOUS_PRIOR_NAMES = {
     "gaussian": "Gaussian",
     "real_nvp": "RealNVP",
 }
+
+
+class _ContinuousGenerationProtocol(Protocol):
+    """Structural type for continuous models that expose generation."""
+
+    def generation(self, n_sample: int, **kwargs: Any) -> torch.Tensor:
+        """Generate a batch of paths."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -157,9 +165,9 @@ def _profile_continuous_spec(
     raw_config = _load_yaml_mapping(_resolve_path(spec.config, repo_root))
     model = _build_continuous_model(raw_config)
     model.to(device)
-    generation_model = cast(Any, model)
     model.eval()
-    generation_model.device = device
+    model.__dict__["device"] = device
+    generation_model = cast(_ContinuousGenerationProtocol, model)
     condition_dim = int(cast(Mapping[str, Any], raw_config["data"]).get("condition_dim", 0))
     conditions = _zero_conditions(
         batch_size=batch_size,
@@ -169,8 +177,8 @@ def _profile_continuous_spec(
 
     def run_generation() -> torch.Tensor:
         if conditions is None:
-            return cast(torch.Tensor, generation_model.generation(batch_size))
-        return cast(torch.Tensor, generation_model.generation(batch_size, c=conditions))
+            return generation_model.generation(batch_size)
+        return generation_model.generation(batch_size, c=conditions)
 
     mean_seconds, std_seconds = _time_inference(
         run_generation,
@@ -279,41 +287,39 @@ def _build_continuous_model(raw_config: Mapping[str, Any]) -> nn.Module:
     data = _required_mapping(raw_config, "data")
     model = _required_mapping(raw_config, "model")
     training = _required_mapping(raw_config, "training")
-    exp_config = ml_collections.ConfigDict(
-        {
-            "experiment_name": str(experiment["name"]),
-            "model": _mapped_name(model, "objective", _CONTINUOUS_MODEL_NAMES),
-            "dataset": str(experiment["dataset"]),
-            "encoder": _mapped_name(model, "encoder", _CONTINUOUS_ENCODER_NAMES),
-            "decoder": _mapped_name(model, "decoder", _CONTINUOUS_DECODER_NAMES),
-            "conditioner": _mapped_name(model, "conditioner", _CONTINUOUS_CONDITIONER_NAMES),
-            "prior": _mapped_name(model, "prior", _CONTINUOUS_PRIOR_NAMES),
-            "n_sample": int(data["n_samples"]),
-            "n_timestep": int(data["n_timesteps"]),
-            "data_dim": int(model["data_dim"]),
-            "data_length": int(model["data_length"]),
-            "latent_dim": int(model["latent_dim"]),
-            "latent_length": int(model["latent_length"]),
-            "condition_dim": int(data.get("condition_dim", 0)),
-            "beta": float(model.get("beta", 1.0)),
-            "alpha": float(model.get("alpha", 1.0)),
-            "E_hidden_dim": int(model["encoder_hidden_dim"]),
-            "E_num_layers": int(model["encoder_num_layers"]),
-            "D_hidden_dim": int(model["decoder_hidden_dim"]),
-            "D_num_layers": int(model["decoder_num_layers"]),
-            "P_num_flows": int(model.get("prior_num_flows", 0)),
-            "P_hidden_dim": int(model.get("prior_hidden_dim", 1)),
-            "lr": float(training.get("learning_rate", 1e-3)),
-            "train_batch_size": int(training.get("train_batch_size", 64)),
-            "eval_batch_size": int(training.get("eval_batch_size", 64)),
-            "epochs": int(training.get("epochs", 1)),
-            "transform": str(data.get("transform", "")),
-            "inv_transform": str(data.get("inverse_transform", "")),
-            "seed": int(experiment.get("seed", 0)),
-            "steps_predict": int(training.get("steps_predict", 1)),
-            "steps_saving": int(training.get("steps_saving", 1)),
-        }
-    )
+    exp_config = ml_collections.ConfigDict({
+        "experiment_name": str(experiment["name"]),
+        "model": _mapped_name(model, "objective", _CONTINUOUS_MODEL_NAMES),
+        "dataset": str(experiment["dataset"]),
+        "encoder": _mapped_name(model, "encoder", _CONTINUOUS_ENCODER_NAMES),
+        "decoder": _mapped_name(model, "decoder", _CONTINUOUS_DECODER_NAMES),
+        "conditioner": _mapped_name(model, "conditioner", _CONTINUOUS_CONDITIONER_NAMES),
+        "prior": _mapped_name(model, "prior", _CONTINUOUS_PRIOR_NAMES),
+        "n_sample": int(data["n_samples"]),
+        "n_timestep": int(data["n_timesteps"]),
+        "data_dim": int(model["data_dim"]),
+        "data_length": int(model["data_length"]),
+        "latent_dim": int(model["latent_dim"]),
+        "latent_length": int(model["latent_length"]),
+        "condition_dim": int(data.get("condition_dim", 0)),
+        "beta": float(model.get("beta", 1.0)),
+        "alpha": float(model.get("alpha", 1.0)),
+        "E_hidden_dim": int(model["encoder_hidden_dim"]),
+        "E_num_layers": int(model["encoder_num_layers"]),
+        "D_hidden_dim": int(model["decoder_hidden_dim"]),
+        "D_num_layers": int(model["decoder_num_layers"]),
+        "P_num_flows": int(model.get("prior_num_flows", 0)),
+        "P_hidden_dim": int(model.get("prior_hidden_dim", 1)),
+        "lr": float(training.get("learning_rate", 1e-3)),
+        "train_batch_size": int(training.get("train_batch_size", 64)),
+        "eval_batch_size": int(training.get("eval_batch_size", 64)),
+        "epochs": int(training.get("epochs", 1)),
+        "transform": str(data.get("transform", "")),
+        "inv_transform": str(data.get("inverse_transform", "")),
+        "seed": int(experiment.get("seed", 0)),
+        "steps_predict": int(training.get("steps_predict", 1)),
+        "steps_saving": int(training.get("steps_saving", 1)),
+    })
     return cast(nn.Module, ModelFactory()(exp_config))
 
 

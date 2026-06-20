@@ -375,6 +375,75 @@ experiments:
             causal_conv: passed
             tokenizer: passed
             token_prior: passed
+        hidden128_logreturn_cb64_conv_transformer_tiny:
+          description: Optional compact conv-transformer efficiency candidate; not selected because it loses the balanced smooth profile.
+          tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
+          prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer_tiny.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_compact_conv_transformer/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: constant_condition_log_return_prior
+          selection_profile: efficiency_candidate
+          status: efficiency_candidate
+          selected: false
+          public_default: false
+          source: hawkes_jump_compact_prior_robustness
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+          parameter_count: 91712
+          runtime:
+            train_seconds: 56.95
+            train_seconds_std: 4.59
+            eval_seconds: 23.91
+            eval_seconds_std: 2.92
+            relative_train_runtime_vs_k3: 0.52
+          metrics:
+            mmd: 0.1567
+            mmd_std: 0.0688
+            swd: 0.0245
+            swd_std: 0.0103
+            terminal_wasserstein: 0.0308
+            terminal_wasserstein_std: 0.0151
+            volatility_wasserstein: 0.0011
+            volatility_wasserstein_std: 0.0009
+            drawdown_wasserstein: 0.0100
+            drawdown_wasserstein_std: 0.0029
+            jump_count_wasserstein: 0.0368
+            jump_count_wasserstein_std: 0.0258
+            inter_arrival_wasserstein: 12.3557
+            inter_arrival_wasserstein_std: 9.0570
+            jump_size_wasserstein: 0.0184
+            jump_size_wasserstein_std: 0.0096
+            negative_jump_fraction: 0.9988
+            negative_jump_fraction_std: 0.0021
+            var_01: -0.0747
+            var_01_std: 0.0018
+            es_01: -0.1074
+            es_01_std: 0.0075
+            sampled_active_codes: 64.00
+            sampled_active_codes_std: 0.00
+            sampled_codebook_perplexity: 44.24
+            sampled_codebook_perplexity_std: 0.77
+            transition_matrix_l1: 0.4170
+            transition_matrix_l1_std: 0.0123
+            run_length_wasserstein: 0.0032
+            run_length_wasserstein_std: 0.0012
+          no_leakage:
+            dataset: passed
+            causal_conv: passed
+            tokenizer: passed
+            token_prior: passed
+          caveats:
+            - Efficiency candidate only; selected Hawkes discrete model remains hidden128_logreturn_cb64_conv_transformer_k3.
+            - Loses the balanced smooth profile despite better mean jump-count and inter-arrival distances.
+            - Public default remains false.
 
   pdv:
     display_name: PDV4

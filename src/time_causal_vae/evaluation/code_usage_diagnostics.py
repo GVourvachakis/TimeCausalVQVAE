@@ -86,13 +86,11 @@ def top_code_frequencies(counts: Tensor, *, top_k: int) -> list[dict[str, float 
     for code, count in zip(indices.tolist(), values.tolist(), strict=True):
         if count <= 0.0:
             continue
-        rows.append(
-            {
-                "code": int(code),
-                "count": int(count),
-                "probability": float(count / total),
-            }
-        )
+        rows.append({
+            "code": int(code),
+            "count": int(count),
+            "probability": float(count / total),
+        })
     return rows
 
 
@@ -169,14 +167,12 @@ def top_transition_pairs(
     for flat_index, count in zip(flat_indices.tolist(), values.tolist(), strict=True):
         if count <= 0.0:
             continue
-        pairs.append(
-            {
-                "from": int(flat_index // codebook_size),
-                "to": int(flat_index % codebook_size),
-                "count": int(count),
-                "probability": float(count / total),
-            }
-        )
+        pairs.append({
+            "from": int(flat_index // codebook_size),
+            "to": int(flat_index % codebook_size),
+            "count": int(count),
+            "probability": float(count / total),
+        })
     return pairs
 
 

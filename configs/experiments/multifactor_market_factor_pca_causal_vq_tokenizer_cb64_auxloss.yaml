@@ -1,0 +1,51 @@
+experiment:
+  name: multifactor_market_factor_pca_causal_vq_tokenizer_cb64_auxloss
+  dataset: multifactor_market_factor_projected
+  seed: 0
+data:
+  n_samples: 2048
+  n_timesteps: 60
+  data_dim: 5
+  condition_dim: 1
+  condition_feature: constant
+  data_params:
+    n_assets: 50
+    n_factors: 5
+    n_sectors: 5
+    structure_seed: 0
+    path_seed: 0
+    condition_mode: constant
+    with_jumps: false
+    standardize_returns: true
+    projection_mode: train_pca
+    projection_n_factors: 5
+model:
+  family: causal_vq_tokenizer
+  data_dim: 5
+  data_length: 60
+  embedding_dim: 64
+  codebook_size: 64
+  commitment_weight: 0.1
+  encoder_hidden_dim: 64
+  decoder_hidden_dim: 64
+  num_layers: 4
+  dilations: [1, 2, 4, 8]
+  dropout: 0.0
+  condition_dim: 1
+  kmeans_init: true
+  kmeans_iters: 10
+  use_cosine_sim: false
+  codebook_dim: 16
+  factor_reconstruction_loss_weight: 1.0
+  factor_covariance_loss_weight: 0.0
+  factor_correlation_loss_weight: 0.1
+  inverse_projected_covariance_loss_weight: 0.0
+  inverse_projected_correlation_loss_weight: 0.1
+  sector_block_loss_weight: 0.1
+  equal_weight_portfolio_vol_loss_weight: 0.05
+training:
+  optimizer: adam
+  learning_rate: 0.001
+  train_batch_size: 128
+  eval_batch_size: 128
+  epochs: 3
