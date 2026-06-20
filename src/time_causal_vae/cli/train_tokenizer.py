@@ -6,7 +6,7 @@ import argparse
 import json
 import time
 from collections.abc import Iterable, Mapping
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -19,8 +19,21 @@ from torch.utils.data import DataLoader
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
 from time_causal_vae.data.pipeline import DataPipeline
-from time_causal_vae.tokenization import CausalVQTokenizer, VQTokenizerConfig
+from time_causal_vae.models.discrete.tokenizers import (
+    CausalVQTokenizer,
+    TokenizerAuxiliaryLossContext,
+    VQTokenizerConfig,
+)
 from time_causal_vae.utils.random import set_seed
+
+
+@dataclass(frozen=True)
+class TokenizerDatasetBundle:
+    """Datasets and optional raw train dataset metadata for tokenizer training."""
+
+    train: BaseDataset
+    eval: BaseDataset
+    raw_train_dataset: Any | None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -76,20 +89,27 @@ def main() -> None:
     run_config = build_run_config(raw_config, args=args, output_dir=output_dir)
     set_seed(cast(int, run_config["seed"]))
 
-    train_dataset, eval_dataset = build_datasets(run_config)
+    dataset_bundle = build_datasets(run_config)
     tokenizer_config = build_tokenizer_config(run_config)
     tokenizer = CausalVQTokenizer(tokenizer_config)
     device = select_device(cast(str | None, run_config["device"]))
     tokenizer.to(device)
+    auxiliary_loss_context = build_auxiliary_loss_context(
+        tokenizer_config,
+        dataset_bundle.raw_train_dataset,
+        device=device,
+    )
+    validate_requested_auxiliary_context(tokenizer_config, auxiliary_loss_context)
 
     if args.dry_run:
         print_dry_run_summary(
             run_config=run_config,
             tokenizer_config=tokenizer_config,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
+            train_dataset=dataset_bundle.train,
+            eval_dataset=dataset_bundle.eval,
             tokenizer=tokenizer,
             device=device,
+            auxiliary_loss_context=auxiliary_loss_context,
         )
         return
 
@@ -97,8 +117,9 @@ def main() -> None:
         tokenizer=tokenizer,
         tokenizer_config=tokenizer_config,
         run_config=run_config,
-        train_dataset=train_dataset,
+        train_dataset=dataset_bundle.train,
         device=device,
+        auxiliary_loss_context=auxiliary_loss_context,
     )
 
 
@@ -186,7 +207,7 @@ def validate_positive_int(name: str, value: int) -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that tokenizer artifacts stay below ignored outputs/."""
+    """Validate that tokenizer artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -194,23 +215,31 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 
 
-def build_datasets(run_config: Mapping[str, Any]) -> tuple[BaseDataset, BaseDataset]:
+def build_datasets(run_config: Mapping[str, Any]) -> TokenizerDatasetBundle:
     """Build train and eval datasets with the target data pipeline."""
     data_config = cast(Mapping[str, Any], run_config["data"])
     exp_config = ml_collections.ConfigDict()
     exp_config.dataset = run_config["dataset"]
     exp_config.n_sample = int(data_config["n_samples"])
+    exp_config.train_n_sample = optional_positive_int(data_config.get("train_n_samples"))
+    exp_config.eval_n_sample = optional_positive_int(data_config.get("eval_n_samples"))
     exp_config.n_timestep = int(data_config["n_timesteps"])
     exp_config.base_data_dir = run_config["base_data_dir"]
     exp_config.data_params = dict(cast(Mapping[str, Any], data_config.get("data_params", {})))
     if "rho" in data_config:
         exp_config.rho = data_config["rho"]
-    return cast(tuple[BaseDataset, BaseDataset], DataPipeline()(exp_config))
+    pipeline = DataPipeline()
+    train_dataset, eval_dataset = cast(tuple[BaseDataset, BaseDataset], pipeline(exp_config))
+    return TokenizerDatasetBundle(
+        train=train_dataset,
+        eval=eval_dataset,
+        raw_train_dataset=pipeline.base_dataset,
+    )
 
 
 def build_tokenizer_config(run_config: Mapping[str, Any]) -> VQTokenizerConfig:
@@ -241,7 +270,7 @@ def build_tokenizer_config(run_config: Mapping[str, Any]) -> VQTokenizerConfig:
             str(model_config.get("usage_regularization_type", "none")),
         ),
         quantizer_type=cast(
-            Literal["vector", "residual_vq", "grouped_residual_vq"],
+            Literal["vector", "standard_vq", "residual_vq", "grouped_residual_vq"],
             str(model_config.get("quantizer_type", "vector")),
         ),
         num_quantizers=int(model_config.get("num_quantizers", 1)),
@@ -249,6 +278,23 @@ def build_tokenizer_config(run_config: Mapping[str, Any]) -> VQTokenizerConfig:
         shared_codebook=bool(model_config.get("shared_codebook", False)),
         stochastic_sample_codes=bool(model_config.get("stochastic_sample_codes", False)),
         sample_codebook_temp=float(model_config.get("sample_codebook_temp", 0.0)),
+        factor_reconstruction_loss_weight=float(
+            model_config.get("factor_reconstruction_loss_weight", 0.0)
+        ),
+        factor_covariance_loss_weight=float(model_config.get("factor_covariance_loss_weight", 0.0)),
+        factor_correlation_loss_weight=float(
+            model_config.get("factor_correlation_loss_weight", 0.0)
+        ),
+        inverse_projected_covariance_loss_weight=float(
+            model_config.get("inverse_projected_covariance_loss_weight", 0.0)
+        ),
+        inverse_projected_correlation_loss_weight=float(
+            model_config.get("inverse_projected_correlation_loss_weight", 0.0)
+        ),
+        sector_block_loss_weight=float(model_config.get("sector_block_loss_weight", 0.0)),
+        equal_weight_portfolio_vol_loss_weight=float(
+            model_config.get("equal_weight_portfolio_vol_loss_weight", 0.0)
+        ),
     )
 
 
@@ -257,6 +303,106 @@ def optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def optional_positive_int(value: Any) -> int | None:
+    """Return ``None`` or a validated positive integer config value."""
+    if value is None:
+        return None
+    count = int(value)
+    if count <= 0:
+        raise SystemExit("split-specific sample counts must be positive when provided.")
+    return count
+
+
+def build_auxiliary_loss_context(
+    tokenizer_config: VQTokenizerConfig,
+    raw_train_dataset: Any | None,
+    *,
+    device: torch.device,
+) -> TokenizerAuxiliaryLossContext | None:
+    """Build optional factor-projection auxiliary loss metadata."""
+    if not has_requested_auxiliary_losses(tokenizer_config):
+        return None
+    projection_state = getattr(raw_train_dataset, "projection_state", None)
+    if projection_state is None:
+        return None
+
+    standardization_stats = getattr(raw_train_dataset, "standardization_stats", None)
+    standardization_mean = None
+    standardization_std = None
+    if isinstance(standardization_stats, Mapping):
+        standardization_mean = torch.as_tensor(standardization_stats["mean"]).detach().to(device)
+        standardization_std = torch.as_tensor(standardization_stats["std"]).detach().to(device)
+
+    return TokenizerAuxiliaryLossContext(
+        projection_basis=torch.as_tensor(projection_state.basis).detach().to(device),
+        projection_mean=torch.as_tensor(projection_state.mean).detach().to(device),
+        standardization_mean=standardization_mean,
+        standardization_std=standardization_std,
+        sector_labels=maybe_tensor_to_device(
+            getattr(raw_train_dataset, "sector_labels", None), device
+        ),
+        inverse_project_to_raw=standardization_mean is not None and standardization_std is not None,
+    )
+
+
+def maybe_tensor_to_device(value: Any, device: torch.device) -> Tensor | None:
+    """Convert an optional tensor-like value to a detached tensor on ``device``."""
+    if value is None:
+        return None
+    return torch.as_tensor(value).detach().to(device)
+
+
+def validate_requested_auxiliary_context(
+    tokenizer_config: VQTokenizerConfig,
+    auxiliary_loss_context: TokenizerAuxiliaryLossContext | None,
+) -> None:
+    """Fail clearly when requested auxiliary losses cannot be computed in training."""
+    if not has_requested_auxiliary_losses(tokenizer_config):
+        return
+    if needs_inverse_projection_context(tokenizer_config) and auxiliary_loss_context is None:
+        raise SystemExit(
+            "Tokenizer auxiliary losses requiring inverse projection were requested, "
+            "but the dataset did not expose factor-projection metadata."
+        )
+    if (
+        tokenizer_config.sector_block_loss_weight > 0.0
+        and auxiliary_loss_context is not None
+        and auxiliary_loss_context.sector_labels is None
+    ):
+        raise SystemExit(
+            "sector_block_loss_weight requires sector labels from the factor-projected dataset."
+        )
+
+
+def has_requested_auxiliary_losses(tokenizer_config: VQTokenizerConfig) -> bool:
+    """Return whether any tokenizer auxiliary loss has a positive weight."""
+    return any(
+        weight > 0.0
+        for weight in (
+            tokenizer_config.factor_reconstruction_loss_weight,
+            tokenizer_config.factor_covariance_loss_weight,
+            tokenizer_config.factor_correlation_loss_weight,
+            tokenizer_config.inverse_projected_covariance_loss_weight,
+            tokenizer_config.inverse_projected_correlation_loss_weight,
+            tokenizer_config.sector_block_loss_weight,
+            tokenizer_config.equal_weight_portfolio_vol_loss_weight,
+        )
+    )
+
+
+def needs_inverse_projection_context(tokenizer_config: VQTokenizerConfig) -> bool:
+    """Return whether the requested auxiliary losses require projection metadata."""
+    return any(
+        weight > 0.0
+        for weight in (
+            tokenizer_config.inverse_projected_covariance_loss_weight,
+            tokenizer_config.inverse_projected_correlation_loss_weight,
+            tokenizer_config.sector_block_loss_weight,
+            tokenizer_config.equal_weight_portfolio_vol_loss_weight,
+        )
+    )
 
 
 def select_device(device_name: str | None) -> torch.device:
@@ -274,6 +420,7 @@ def print_dry_run_summary(
     eval_dataset: BaseDataset,
     tokenizer: CausalVQTokenizer,
     device: torch.device,
+    auxiliary_loss_context: TokenizerAuxiliaryLossContext | None,
 ) -> None:
     """Print a compact summary without training."""
     n_parameters = sum(parameter.numel() for parameter in tokenizer.parameters())
@@ -290,6 +437,7 @@ def print_dry_run_summary(
     print(f"learning_rate: {run_config['learning_rate']}")
     print(f"device: {device}")
     print(f"wandb: {run_config['wandb']}")
+    print(f"auxiliary_loss_context: {auxiliary_loss_context is not None}")
 
 
 def run_training(
@@ -299,6 +447,7 @@ def run_training(
     run_config: Mapping[str, Any],
     train_dataset: BaseDataset,
     device: torch.device,
+    auxiliary_loss_context: TokenizerAuxiliaryLossContext | None,
 ) -> None:
     """Train the tokenizer and write checkpoint, config, and metric artifacts."""
     run_dir = Path(cast(str, run_config["run_dir"]))
@@ -327,6 +476,7 @@ def run_training(
                 device=device,
                 codebook_size=tokenizer_config.codebook_size,
                 epoch=epoch,
+                auxiliary_loss_context=auxiliary_loss_context,
             )
             log_handle.write(json.dumps(final_epoch_summary, sort_keys=True) + "\n")
             log_handle.flush()
@@ -414,6 +564,7 @@ def train_one_epoch(
     device: torch.device,
     codebook_size: int,
     epoch: int,
+    auxiliary_loss_context: TokenizerAuxiliaryLossContext | None = None,
 ) -> dict[str, Any]:
     """Train one epoch and return aggregate loss and codebook statistics."""
     tokenizer.train()
@@ -422,6 +573,16 @@ def train_one_epoch(
     commitment_loss_total = 0.0
     codebook_loss_total = 0.0
     usage_loss_total = 0.0
+    auxiliary_loss_total = 0.0
+    auxiliary_component_totals: dict[str, float] = {
+        "factor_reconstruction_aux_loss": 0.0,
+        "factor_covariance_loss": 0.0,
+        "factor_correlation_loss": 0.0,
+        "inverse_projected_covariance_loss": 0.0,
+        "inverse_projected_correlation_loss": 0.0,
+        "sector_block_loss": 0.0,
+        "equal_weight_portfolio_vol_loss": 0.0,
+    }
     total_loss_total = 0.0
     code_counts = torch.zeros(codebook_size, dtype=torch.long)
 
@@ -429,7 +590,7 @@ def train_one_epoch(
         inputs = cast(Tensor, batch["data"]).to(device)
         conditions = condition_tensor_from_batch(batch, tokenizer.config.condition_dim, device)
         optimizer.zero_grad(set_to_none=True)
-        output = tokenizer(inputs, conditions)
+        output = tokenizer(inputs, conditions, auxiliary_loss_context)
         loss = cast(Tensor, output.loss)
         loss.backward()
         optimizer.step()
@@ -442,6 +603,13 @@ def train_one_epoch(
         )
         codebook_loss_total += float(cast(Tensor, output.codebook_loss).detach().cpu()) * batch_size
         usage_loss_total += float(cast(Tensor, output.usage_loss).detach().cpu()) * batch_size
+        auxiliary_loss_total += (
+            float(cast(Tensor, output.auxiliary_loss).detach().cpu()) * batch_size
+        )
+        for key in auxiliary_component_totals:
+            auxiliary_component_totals[key] += (
+                float(cast(Tensor, output[key]).detach().cpu()) * batch_size
+            )
         total_loss_total += float(loss.detach().cpu()) * batch_size
         code_counts += torch.bincount(
             cast(Tensor, output.indices).detach().cpu().reshape(-1),
@@ -459,6 +627,8 @@ def train_one_epoch(
         "mean_commitment_loss": commitment_loss_total / n_samples,
         "mean_codebook_loss": codebook_loss_total / n_samples,
         "mean_usage_loss": usage_loss_total / n_samples,
+        "mean_auxiliary_loss": auxiliary_loss_total / n_samples,
+        **{f"mean_{key}": value / n_samples for key, value in auxiliary_component_totals.items()},
         "usage_regularization_applied": False,
         "mean_total_loss": total_loss_total / n_samples,
         **code_stats,
@@ -517,6 +687,26 @@ def build_codebook_summary(
         "mean_commitment_loss": epoch_summary["mean_commitment_loss"],
         "mean_codebook_loss": epoch_summary["mean_codebook_loss"],
         "mean_usage_loss": epoch_summary["mean_usage_loss"],
+        "mean_auxiliary_loss": epoch_summary.get("mean_auxiliary_loss", 0.0),
+        "mean_factor_reconstruction_aux_loss": epoch_summary.get(
+            "mean_factor_reconstruction_aux_loss",
+            0.0,
+        ),
+        "mean_factor_covariance_loss": epoch_summary.get("mean_factor_covariance_loss", 0.0),
+        "mean_factor_correlation_loss": epoch_summary.get("mean_factor_correlation_loss", 0.0),
+        "mean_inverse_projected_covariance_loss": epoch_summary.get(
+            "mean_inverse_projected_covariance_loss",
+            0.0,
+        ),
+        "mean_inverse_projected_correlation_loss": epoch_summary.get(
+            "mean_inverse_projected_correlation_loss",
+            0.0,
+        ),
+        "mean_sector_block_loss": epoch_summary.get("mean_sector_block_loss", 0.0),
+        "mean_equal_weight_portfolio_vol_loss": epoch_summary.get(
+            "mean_equal_weight_portfolio_vol_loss",
+            0.0,
+        ),
         "usage_regularization_applied": epoch_summary["usage_regularization_applied"],
         "mean_total_loss": epoch_summary["mean_total_loss"],
         "source_epoch": epoch_summary["epoch"],

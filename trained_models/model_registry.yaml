@@ -1,0 +1,621 @@
+schema_version: 1
+generated:
+  branch: cleanup/public-final-registry-namespaces
+  timestamp_utc: "2026-05-17"
+  source:
+    - trained_models/README.md
+    - trained_models/black_scholes/model_card.md
+    - trained_models/heston/model_card.md
+    - trained_models/hawkes_jump/model_card.md
+    - trained_models/pdv/model_card.md
+    - trained_models/sp500_vix/model_card.md
+  note: >
+    Metadata registry only. Checkpoints, token tensors, generated paths, processed data,
+    W&B artefacts, and output summaries are local or external and are not committed.
+    Selected entries are current registry selections for public workflows, not universal
+    mathematical optima.
+path_policy:
+  weights_committed: false
+  checkpoint_placeholder: local_outputs_only
+  allowed_committed_paths:
+    - configs/experiments
+    - trained_models
+  local_output_root: outputs
+selection_policy:
+  default_profile: balanced_market
+  lower_is_better: true
+  do_not_select_from_mmd_alone: true
+  public_defaults_change_requires_explicit_metadata: true
+  selector_supports:
+    - family
+    - profile
+    - metric
+
+experiments:
+  black_scholes:
+    display_name: Black-Scholes
+    continuous:
+      selected: beta_cvae
+      candidates:
+        beta_cvae:
+          description: Selected continuous TC-VAE baseline from the cloned optimal TC-VAE run.
+          config: configs/experiments/black_scholes_beta_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/black_scholes_continuous/beta_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: supplemental_cloned_time_causal_vae_evaluation
+          metrics:
+            mmd: 0.089052
+            swd: 0.056371
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - notebook_reproduction
+          caveats:
+            - Supplemental continuous evaluator produced only legacy MMD and SWD.
+            - Cloned checkpoint path is intentionally not committed because it is machine-local.
+    discrete:
+      selected: hidden128_conv_transformer_k3
+      candidates:
+        hidden128_conv_transformer_k3:
+          description: Provisional best approved Black-Scholes discrete candidate.
+          tokenizer_config: configs/experiments/black_scholes_causal_vq_tokenizer_hidden128.yaml
+          prior_config: configs/experiments/black_scholes_causal_token_prior_hidden128_conv_transformer.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/black_scholes/hidden128_conv_transformer_k3/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: unconditioned_discrete_prior
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.085255
+            swd: 0.056371
+            terminal_wasserstein: 0.067674
+            volatility_wasserstein: 0.004042
+            balanced_score: 0.053335
+            prior_eval_cross_entropy: 2.419572
+            prior_eval_perplexity: 11.241549
+            prior_eval_accuracy: 0.181267
+            tokenizer_perplexity: 54.278244
+            tokenizer_active_codes: 64
+            token_dataset_perplexity: 53.104866
+            token_dataset_active_codes: 64
+          missing_metrics:
+            - returns_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - trained_unconditioned_tokenizer_no_leakage
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: not_available
+          caveats:
+            - Public standard discrete artefacts were unavailable in the final evaluation pass.
+
+  heston:
+    display_name: Heston
+    continuous:
+      selected: info_cvae
+      candidates:
+        info_cvae:
+          description: Selected continuous TC-VAE baseline from the cloned optimal TC-VAE run.
+          config: configs/experiments/heston_info_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/heston_continuous/info_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: supplemental_cloned_time_causal_vae_evaluation
+          metrics:
+            mmd: 0.071840
+            swd: 0.066884
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - notebook_reproduction
+          caveats:
+            - Supplemental continuous evaluator produced only legacy MMD and SWD.
+    discrete:
+      selected: standard_vq_additive_ar
+      candidates:
+        standard_vq_additive_ar:
+          description: Standard VQ plus additive AR comparison candidate.
+          tokenizer_config: configs/experiments/heston_causal_vq_tokenizer.yaml
+          prior_config: configs/experiments/heston_causal_token_prior_additive.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/heston/standard_vq_additive_ar/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: unconditioned_discrete_prior
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.049702
+            swd: 0.074397
+            terminal_wasserstein: 0.051078
+            volatility_wasserstein: 0.019140
+            balanced_score: 0.048579
+            prior_eval_cross_entropy: 2.652545
+            prior_eval_perplexity: 14.195220
+            prior_eval_accuracy: 0.167333
+            tokenizer_perplexity: 50.723011
+            tokenizer_active_codes: 64
+            token_dataset_perplexity: 51.004353
+            token_dataset_active_codes: 64
+          missing_metrics:
+            - returns_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - trained_unconditioned_tokenizer_no_leakage
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: not_available
+
+  hawkes_jump:
+    display_name: Hawkes/SVMHJD
+    status: research_candidate
+    public_default: false
+    benchmark_role: scenario_data
+    source_branches:
+      - research/hawkes-jump-discrete-benchmark
+      - research/hawkes-continuous-ablation
+    sampling_policy:
+      temperature: 1.0
+      top_k: null
+      applies_to: discrete_token_prior
+    no_leakage:
+      dataset: passed
+      causal_conv: passed
+      tokenizer: passed
+      token_prior: passed
+      model_visible_fields: data_and_constant_labels_only
+    caveats:
+      - No Hawkes weights, token tensors, generated paths, or output summaries are committed.
+      - No LSGM or score-prior continuous comparator has been run yet.
+      - This is a scenario-data benchmark, not an arbitrage-free pricing model.
+      - Hawkes/SVMHJD is not a public default experiment.
+    continuous:
+      selected: beta_cvae_logreturn_identity
+      candidates:
+        beta_cvae_logreturn_identity:
+          description: Repaired signed-log-return continuous comparator with identity transform.
+          config: configs/experiments/hawkes_jump_beta_cvae_logreturn_identity.yaml
+          seed_configs:
+            - configs/experiments/hawkes_jump_beta_cvae_logreturn_identity.yaml
+            - configs/experiments/hawkes_jump_beta_cvae_logreturn_identity_seed1.yaml
+            - configs/experiments/hawkes_jump_beta_cvae_logreturn_identity_seed2.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_continuous_logreturn_identity/seed<seed>/<training-run>/final_model
+          selection_profile: research_candidate
+          status: research_candidate
+          public_default: false
+          source: hawkes_jump_continuous_ablation
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+            transform: id
+            inverse_transform: id
+          metrics:
+            mmd: 1.3153
+            mmd_std: 0.1405
+            swd: 0.1320
+            swd_std: 0.0231
+            terminal_wasserstein: 0.1682
+            terminal_wasserstein_std: 0.0316
+            volatility_wasserstein: 0.0243
+            volatility_wasserstein_std: 0.0003
+            drawdown_wasserstein: 0.1486
+            drawdown_wasserstein_std: 0.0754
+            jump_count_wasserstein: 0.2236
+            jump_count_wasserstein_std: 0.0144
+            inter_arrival_wasserstein: 15.6138
+            inter_arrival_wasserstein_std: 2.9303
+            jump_size_wasserstein: 0.0844
+            jump_size_wasserstein_std: 0.0775
+            negative_jump_fraction: 0.6667
+            negative_jump_fraction_std: 0.5774
+            generated_jump_count_mean: 0.0026
+            generated_jump_count_mean_std: 0.0030
+            var_01: -0.0061
+            var_01_std: 0.0020
+            es_01: -0.0113
+            es_01_std: 0.0018
+          missing_metrics:
+            - token_diagnostics
+            - lsgm_or_score_prior_comparator
+          caveats:
+            - Continuous comparator is valid but weak on jump and lower-tail diagnostics.
+            - Identity transform is used because log returns are signed.
+    discrete:
+      selected: hidden128_logreturn_cb64_conv_transformer_k3
+      required_ablation: hidden128_logreturn_cb64_additive_ar
+      candidates:
+        hidden128_logreturn_cb64_conv_transformer_k3:
+          description: Selected discrete Hawkes/SVMHJD research candidate by balanced/smooth profile.
+          tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
+          prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_logreturn_robustness/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: constant_condition_log_return_prior
+          selection_profile: research_candidate
+          status: research_candidate
+          public_default: false
+          source: hawkes_jump_seed_robust_logreturn_results
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+          metrics:
+            mmd: 0.1141
+            mmd_std: 0.0355
+            swd: 0.0186
+            swd_std: 0.0060
+            terminal_wasserstein: 0.0217
+            terminal_wasserstein_std: 0.0120
+            volatility_wasserstein: 0.0010
+            volatility_wasserstein_std: 0.0010
+            drawdown_wasserstein: 0.0111
+            drawdown_wasserstein_std: 0.0052
+            jump_count_wasserstein: 0.0576
+            jump_count_wasserstein_std: 0.0324
+            inter_arrival_wasserstein: 8.1888
+            inter_arrival_wasserstein_std: 6.7270
+            jump_size_wasserstein: 0.0177
+            jump_size_wasserstein_std: 0.0101
+            negative_jump_fraction: 0.9989
+            negative_jump_fraction_std: 0.0019
+            generated_jump_count_mean: 0.2357
+            generated_jump_count_mean_std: 0.0555
+            var_01: -0.0748
+            var_01_std: 0.0026
+            es_01: -0.1069
+            es_01_std: 0.0080
+            sampled_active_codes: 64.00
+            sampled_active_codes_std: 0.00
+            sampled_codebook_perplexity: 44.42
+            sampled_codebook_perplexity_std: 0.80
+            transition_matrix_l1: 0.4345
+            transition_matrix_l1_std: 0.0177
+            run_length_wasserstein: 0.0037
+            run_length_wasserstein_std: 0.0022
+          missing_metrics:
+            - lsgm_or_score_prior_comparator
+          no_leakage:
+            dataset: passed
+            causal_conv: passed
+            tokenizer: passed
+            token_prior: passed
+          caveats:
+            - Selected as a research candidate, not as a public default.
+            - Additive AR remains the required ablation and is slightly stronger on jump-count and inter-arrival diagnostics.
+        hidden128_logreturn_cb64_additive_ar:
+          description: Required additive AR ablation, slightly stronger on jump-count and inter-arrival diagnostics.
+          tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
+          prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_additive.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_logreturn_robustness/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: constant_condition_log_return_prior
+          selection_profile: research_candidate_ablation
+          status: research_candidate
+          public_default: false
+          source: hawkes_jump_seed_robust_logreturn_results
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+          metrics:
+            mmd: 0.1567
+            mmd_std: 0.0644
+            swd: 0.0238
+            swd_std: 0.0085
+            terminal_wasserstein: 0.0320
+            terminal_wasserstein_std: 0.0152
+            volatility_wasserstein: 0.0011
+            volatility_wasserstein_std: 0.0008
+            drawdown_wasserstein: 0.0106
+            drawdown_wasserstein_std: 0.0059
+            jump_count_wasserstein: 0.0469
+            jump_count_wasserstein_std: 0.0319
+            inter_arrival_wasserstein: 6.3080
+            inter_arrival_wasserstein_std: 4.2239
+            jump_size_wasserstein: 0.0180
+            jump_size_wasserstein_std: 0.0101
+            negative_jump_fraction: 0.9955
+            negative_jump_fraction_std: 0.0078
+            generated_jump_count_mean: 0.2314
+            generated_jump_count_mean_std: 0.0492
+            var_01: -0.0745
+            var_01_std: 0.0028
+            es_01: -0.1068
+            es_01_std: 0.0080
+            sampled_active_codes: 64.00
+            sampled_active_codes_std: 0.00
+            sampled_codebook_perplexity: 44.36
+            sampled_codebook_perplexity_std: 0.70
+            transition_matrix_l1: 0.4341
+            transition_matrix_l1_std: 0.0153
+            run_length_wasserstein: 0.0031
+            run_length_wasserstein_std: 0.0033
+          missing_metrics:
+            - lsgm_or_score_prior_comparator
+          no_leakage:
+            dataset: passed
+            causal_conv: passed
+            tokenizer: passed
+            token_prior: passed
+        hidden128_logreturn_cb64_conv_transformer_tiny:
+          description: Optional compact conv-transformer efficiency candidate; not selected because it loses the balanced smooth profile.
+          tokenizer_config: configs/experiments/hawkes_jump_causal_vq_tokenizer_hidden128_logreturn_cb64.yaml
+          prior_config: configs/experiments/hawkes_jump_causal_token_prior_hidden128_logreturn_cb64_conv_transformer_tiny.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/hawkes_jump_compact_conv_transformer/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: constant_condition_log_return_prior
+          selection_profile: efficiency_candidate
+          status: efficiency_candidate
+          selected: false
+          public_default: false
+          source: hawkes_jump_compact_prior_robustness
+          evaluation:
+            simulation_scheme: ogata
+            data_output: log_return
+            n_sample: 1024
+            seeds: [0, 1, 2]
+          parameter_count: 91712
+          runtime:
+            train_seconds: 56.95
+            train_seconds_std: 4.59
+            eval_seconds: 23.91
+            eval_seconds_std: 2.92
+            relative_train_runtime_vs_k3: 0.52
+          metrics:
+            mmd: 0.1567
+            mmd_std: 0.0688
+            swd: 0.0245
+            swd_std: 0.0103
+            terminal_wasserstein: 0.0308
+            terminal_wasserstein_std: 0.0151
+            volatility_wasserstein: 0.0011
+            volatility_wasserstein_std: 0.0009
+            drawdown_wasserstein: 0.0100
+            drawdown_wasserstein_std: 0.0029
+            jump_count_wasserstein: 0.0368
+            jump_count_wasserstein_std: 0.0258
+            inter_arrival_wasserstein: 12.3557
+            inter_arrival_wasserstein_std: 9.0570
+            jump_size_wasserstein: 0.0184
+            jump_size_wasserstein_std: 0.0096
+            negative_jump_fraction: 0.9988
+            negative_jump_fraction_std: 0.0021
+            var_01: -0.0747
+            var_01_std: 0.0018
+            es_01: -0.1074
+            es_01_std: 0.0075
+            sampled_active_codes: 64.00
+            sampled_active_codes_std: 0.00
+            sampled_codebook_perplexity: 44.24
+            sampled_codebook_perplexity_std: 0.77
+            transition_matrix_l1: 0.4170
+            transition_matrix_l1_std: 0.0123
+            run_length_wasserstein: 0.0032
+            run_length_wasserstein_std: 0.0012
+          no_leakage:
+            dataset: passed
+            causal_conv: passed
+            tokenizer: passed
+            token_prior: passed
+          caveats:
+            - Efficiency candidate only; selected Hawkes discrete model remains hidden128_logreturn_cb64_conv_transformer_k3.
+            - Loses the balanced smooth profile despite better mean jump-count and inter-arrival distances.
+            - Public default remains false.
+
+  pdv:
+    display_name: PDV4
+    continuous:
+      selected: info_cvae
+      candidates:
+        info_cvae:
+          description: Conditional continuous TC-VAE baseline with r2 volatility feature.
+          config: configs/experiments/pdv_info_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/pdv_continuous/info_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: supplemental_cloned_time_causal_vae_evaluation
+          metrics:
+            mmd: 0.165295
+            swd: 0.010630
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - condition_bucket_path_metrics
+            - notebook_reproduction
+          caveats:
+            - Supplemental continuous evaluator produced only legacy MMD and SWD.
+    discrete:
+      selected: conditional_standard_vq_additive_ar
+      candidates:
+        conditional_standard_vq_additive_ar:
+          description: Conditional standard VQ plus additive AR candidate.
+          tokenizer_config: configs/experiments/pdv_causal_vq_tokenizer_codebook64_codebookdim16.yaml
+          prior_config: configs/experiments/pdv_causal_token_prior_additive_seed1.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/pdv/conditional_standard_vq_additive_ar/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: r2_volatility_feature_additive
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 1.170725
+            swd: 0.051673
+            terminal_wasserstein: 0.057260
+            volatility_wasserstein: 0.006154
+            balanced_score: 0.321453
+            prior_eval_cross_entropy: 1.104750
+            prior_eval_perplexity: 3.019962
+            prior_eval_accuracy: 0.566133
+            tokenizer_perplexity: 51.275726
+            tokenizer_active_codes: 57
+            token_dataset_perplexity: 50.671955
+            token_dataset_active_codes: 57
+          missing_metrics:
+            - returns_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - full_condition_bucket_path_metrics
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: passed
+
+  sp500_vix:
+    display_name: S&P500/VIX
+    continuous:
+      selected: beta_cvae
+      candidates:
+        beta_cvae:
+          description: Selected continuous TC-VAE reference baseline.
+          config: configs/experiments/sp500_vix_beta_cvae.yaml
+          checkpoint_path: local_outputs_only
+          checkpoint_convention: outputs/sp500_vix_continuous/beta_cvae/<training-run>/final_model
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.154422
+            swd: 0.008785
+            supplemental_cloned_mmd: 0.131414
+            supplemental_cloned_swd: 0.008367
+          missing_metrics:
+            - returns_wasserstein
+            - terminal_wasserstein
+            - volatility_wasserstein
+            - drawdown_wasserstein
+            - return_ac_l1
+            - squared_return_ac_l1
+            - notebook_reproduction
+          caveats:
+            - Local timestamped checkpoint and cloned optimal checkpoint both evaluated for MMD/SWD.
+    discrete:
+      selected: conditional_standard_vq_additive_ar
+      candidates:
+        conditional_standard_vq_additive_ar:
+          description: Public discrete baseline selected by the balanced-market path profile.
+          tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer.yaml
+          prior_config: configs/experiments/sp500_vix_causal_token_prior_additive.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/sp500_vix_discrete/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: observed_vix_additive
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.254177
+            swd: 0.013836
+            returns_wasserstein: 0.001012
+            terminal_wasserstein: 0.010252
+            volatility_wasserstein: 0.001504
+            drawdown_wasserstein: 0.010957
+            return_ac_l1: 0.055395
+            squared_return_ac_l1: 0.039584
+            balanced_score: 0.048340
+            prior_eval_cross_entropy: 0.914807
+            prior_eval_perplexity: 2.507927
+            prior_eval_accuracy: 0.647449
+            tokenizer_perplexity: 29.406109
+            tokenizer_active_codes: 62
+            token_dataset_perplexity: 39.055717
+            token_dataset_active_codes: 63
+          missing_metrics:
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: passed
+        conditional_hidden128_conv_transformer_k3:
+          description: Optional research candidate retained for metric-sensitive dynamic selection.
+          tokenizer_config: configs/experiments/sp500_vix_causal_vq_tokenizer_hidden128.yaml
+          prior_config: configs/experiments/sp500_vix_causal_token_prior_hidden128_conv_transformer.yaml
+          tokenizer_checkpoint_path: local_outputs_only
+          prior_checkpoint_path: local_outputs_only
+          token_data_path: local_outputs_only
+          checkpoint_convention: outputs/per_experiment_selection/sp500_vix/conditional_hidden128_conv_transformer_k3/
+          sampling:
+            temperature: 1.0
+            top_k: null
+            condition_policy: observed_vix_additive
+          selection_profile: balanced_market
+          source: per_experiment_final_evaluation
+          metrics:
+            mmd: 0.501580
+            swd: 0.013060
+            returns_wasserstein: 0.000976
+            terminal_wasserstein: 0.018768
+            volatility_wasserstein: 0.001151
+            drawdown_wasserstein: 0.003914
+            return_ac_l1: 0.051504
+            squared_return_ac_l1: 0.040645
+            balanced_score: 0.078950
+            prior_eval_cross_entropy: 0.883431
+            prior_eval_perplexity: 2.426584
+            prior_eval_accuracy: 0.659917
+            tokenizer_perplexity: 51.726196
+            tokenizer_active_codes: 64
+            token_dataset_perplexity: 43.194336
+            token_dataset_active_codes: 60
+          missing_metrics:
+            - notebook_reproduction
+          no_leakage:
+            causal_conv: passed
+            token_prior: passed
+            tokenizer: passed
+          caveats:
+            - Wins several component metrics and token CE, but loses the balanced-market profile.

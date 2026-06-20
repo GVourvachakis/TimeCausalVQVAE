@@ -31,7 +31,7 @@ from time_causal_vae.evaluation.token_prior import (
     save_token_prior_summary,
 )
 from time_causal_vae.evaluation.tokenizer import load_trained_tokenizer
-from time_causal_vae.tokenization import CausalVQTokenizer
+from time_causal_vae.models.discrete.tokenizers import CausalVQTokenizer
 from time_causal_vae.utils.random import set_seed
 
 
@@ -223,13 +223,11 @@ def main() -> None:
             codebook_size=prior_config.codebook_size,
             title="Sampled token-prior transition matrix",
         )
-        generated_figures.extend(
-            [
-                "real_vs_sampled_code_usage.png",
-                "transition_matrix_real.png",
-                "transition_matrix_sampled.png",
-            ]
-        )
+        generated_figures.extend([
+            "real_vs_sampled_code_usage.png",
+            "transition_matrix_real.png",
+            "transition_matrix_sampled.png",
+        ])
 
     print("Token-prior evaluation complete.")
     print(f"prior_dir: {prior_dir}")
@@ -282,7 +280,7 @@ def main() -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that token-prior evaluation artifacts stay below ignored outputs/."""
+    """Validate that token-prior evaluation artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -290,7 +288,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 

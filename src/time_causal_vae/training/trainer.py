@@ -19,8 +19,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from time_causal_vae.data.base import BaseDataset, DatasetOutput, collate_dataset_output
-from time_causal_vae.models.base import BaseModel
-from time_causal_vae.models.distances import GaussianMMD2
+from time_causal_vae.models.continuous.base import BaseModel
+from time_causal_vae.models.continuous.distances import GaussianMMD2
 from time_causal_vae.training.callbacks import (
     CallbackHandler,
     MetricConsolePrinterCallback,
@@ -99,9 +99,12 @@ class BaseTrainer:
         if device_name is not None:
             device = device_name
 
-        # Autocasting automatically chooses the precision for GPU
+        # Autocasting automatically chooses the precision for GPU.
+        autocast_device_type = torch.device(device).type
         self.amp_context = (
-            torch.autocast(device) if self.training_config.amp else contextlib.nullcontext()
+            torch.autocast(autocast_device_type)
+            if self.training_config.amp
+            else contextlib.nullcontext()
         )
         # Only for BCE cost
         if (
@@ -158,20 +161,10 @@ class BaseTrainer:
             return False
 
     def _set_inputs_to_device(self, inputs: Dict[str, Any]):
-        inputs_on_device = inputs
-
-        if "cuda" in self.device:
-            cuda_inputs = dict.fromkeys(inputs)
-
-            for key in inputs.keys():
-                if torch.is_tensor(inputs[key]):
-                    cuda_inputs[key] = inputs[key].to(self.device)
-
-                else:
-                    cuda_inputs[key] = inputs[key]
-            inputs_on_device = cuda_inputs
-
-        return inputs_on_device
+        return DatasetOutput(**{
+            key: value.to(self.device) if torch.is_tensor(value) else value
+            for key, value in inputs.items()
+        })
 
     def _run_model_sanity_check(self, model, loader):
         try:

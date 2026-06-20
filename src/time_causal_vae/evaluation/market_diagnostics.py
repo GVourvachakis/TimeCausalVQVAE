@@ -2,9 +2,16 @@
 
 References
 ----------
-    [tcvae_2024], [deepvol_2022], [aotnumerics] in docs/references.md.
-Borrowed idea:
-    Compare generated paths through return, volatility, autocorrelation, and downstream-risk views.
+- Time-Causal VAE: Robust Financial Time Series Generator, Acciaio, Eckstein, and Hou
+(DOI: 10.1137/24M1711650; arXiv DOI: 10.48550/arXiv.2411.02947) - adapted
+return, volatility, stylised-fact, and downstream financial diagnostic framing.
+
+- DeepVol: Volatility Forecasting from High-Frequency Data with Dilated Causal Convolutions
+(arXiv DOI: 10.48550/arXiv.2210.04797) - motivates volatility-sensitive temporal diagnostics.
+
+- aotnumerics, Eckstein
+(repository: https://github.com/stephaneckstein/aotnumerics) - adapted/causal optimal transport
+background only; no vendored implementation is used in the public baseline.
 """
 
 from __future__ import annotations
@@ -228,17 +235,15 @@ def _top_path_records(
     for rank, index_tensor in enumerate(indices):
         index = int(index_tensor.item())
         path = paths_2d[index]
-        records.append(
-            {
-                "rank": rank + 1,
-                "path_index": index,
-                score_name: float(scores[index].detach().cpu()),
-                "terminal_return": float(terminal[index].detach().cpu()),
-                "volatility": float(volatility[index].detach().cpu()),
-                "path_min": float(path.min().detach().cpu()),
-                "path_max": float(path.max().detach().cpu()),
-            }
-        )
+        records.append({
+            "rank": rank + 1,
+            "path_index": index,
+            score_name: float(scores[index].detach().cpu()),
+            "terminal_return": float(terminal[index].detach().cpu()),
+            "volatility": float(volatility[index].detach().cpu()),
+            "path_min": float(path.min().detach().cpu()),
+            "path_max": float(path.max().detach().cpu()),
+        })
     return records
 
 

@@ -11,7 +11,7 @@ import torch
 import yaml
 
 from time_causal_vae.evaluation.checkpoints import TargetModelEvaluator
-from time_causal_vae.experiments.legacy_config_adapter import (
+from time_causal_vae.experiments.config import (
     adapt_selected_config,
     load_selected_config,
 )
@@ -45,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of test samples for load_data and metric computation.",
     )
     parser.add_argument("--seed", type=int, default=0, help="Optional seed for load_data.")
+    parser.add_argument("--device", help="Device override, for example cpu or cuda.")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -62,7 +63,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 
@@ -122,11 +123,19 @@ def load_evaluation_batch(
     return real_data, fake_data, recon_data
 
 
+def select_device(device_name: str | None) -> torch.device:
+    """Select the requested device, or prefer CUDA when available."""
+    if device_name:
+        return torch.device(device_name)
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def print_summary(
     *,
     backend: str,
     model_dir: Path,
     exp_config_path: Path,
+    device: torch.device,
     n_sample_test: int,
     dry_run: bool,
     real_data: torch.Tensor,
@@ -138,6 +147,7 @@ def print_summary(
     print(f"backend: {backend}")
     print(f"model_dir: {model_dir}")
     print(f"exp_config: {exp_config_path}")
+    print(f"device: {device}")
     print(f"n_sample_test: {n_sample_test}")
     print(f"real_data: {_shape_text(real_data)}")
     print(f"fake_data: {_shape_text(fake_data)}")
@@ -154,6 +164,7 @@ def save_evaluation_outputs(
     recon_data: torch.Tensor,
     model_dir: Path,
     exp_config_path: Path,
+    device: torch.device,
     n_sample_test: int,
 ) -> None:
     """Save minimal evaluation outputs without changing metric formulas."""
@@ -171,6 +182,7 @@ def save_evaluation_outputs(
         "backend": backend,
         "model_dir": str(model_dir),
         "exp_config": str(exp_config_path),
+        "device": str(device),
         "n_sample_test": n_sample_test,
         "real_data_shape": list(real_data.shape),
         "fake_data_shape": list(fake_data.shape),
@@ -206,6 +218,7 @@ def main() -> None:
     load_selected_config(args.config)
     model_dir = validate_model_dir(args.model_dir)
     output_dir = validate_output_dir(args.output_dir)
+    device = select_device(args.device)
     n_sample_test = effective_n_sample_test(args.n_sample_test, dry_run=args.dry_run)
     exp_config_path = ensure_legacy_exp_config(
         config_path=args.config,
@@ -213,7 +226,9 @@ def main() -> None:
         base_data_dir=args.base_data_dir,
     )
 
-    evaluator = TargetModelEvaluator(str(model_dir), base_data_dir=args.base_data_dir)
+    evaluator = TargetModelEvaluator(
+        str(model_dir), base_data_dir=args.base_data_dir, device=device
+    )
     real_data, fake_data, recon_data = load_evaluation_batch(
         evaluator,
         n_sample_test=n_sample_test,
@@ -223,6 +238,7 @@ def main() -> None:
         backend="target",
         model_dir=model_dir,
         exp_config_path=exp_config_path,
+        device=device,
         n_sample_test=n_sample_test,
         dry_run=args.dry_run,
         real_data=real_data,
@@ -244,6 +260,7 @@ def main() -> None:
         recon_data=recon_data,
         model_dir=model_dir,
         exp_config_path=exp_config_path,
+        device=device,
         n_sample_test=n_sample_test,
     )
     print(f"Saved evaluation outputs to {output_dir}")

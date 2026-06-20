@@ -4,7 +4,8 @@
 Training Callbacks modified from `pythae`
 "https://github.com/clementchadebec/benchmark_VAE"
 Training Callbacks for training monitoring integrated in `pythae` (inspired from
-https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py)"""
+https://github.com/huggingface/transformers/blob/master/src/transformers/trainer_callback.py)
+"""
 
 import importlib
 import logging
@@ -12,7 +13,7 @@ import logging
 import numpy as np
 from tqdm import tqdm
 
-from time_causal_vae.models.config import BaseConfig
+from time_causal_vae.models.continuous.config import BaseConfig
 from time_causal_vae.training.config import BaseTrainerConfig
 
 import matplotlib.pyplot as plt
@@ -373,21 +374,17 @@ class WandbCallback(TrainingCallback):  # pragma: no cover
         if model_config is not None:
             model_config_dict = model_config.to_dict()
 
-            self._wandb.config.update(
-                {
-                    "exp_config": exp_config.to_dict(),
-                    "training_config": training_config_dict,
-                    "model_config": model_config_dict,
-                }
-            )
+            self._wandb.config.update({
+                "exp_config": exp_config.to_dict(),
+                "training_config": training_config_dict,
+                "model_config": model_config_dict,
+            })
 
         else:
-            self._wandb.config.update(
-                {
-                    "exp_config": exp_config.to_dict(),
-                    "training_config": training_config_dict,
-                }
-            )
+            self._wandb.config.update({
+                "exp_config": exp_config.to_dict(),
+                "training_config": training_config_dict,
+            })
 
         self._wandb.define_metric("train/global_step")
         self._wandb.define_metric("*", step_metric="train/global_step", step_sync=True)

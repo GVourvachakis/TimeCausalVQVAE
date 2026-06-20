@@ -13,8 +13,13 @@ import yaml
 from torch import Tensor
 
 from time_causal_vae.evaluation.token_prior import load_trained_token_prior
-from time_causal_vae.token_prior import CausalTokenPriorConfig, CausalTokenTransformerPrior
-from time_causal_vae.token_prior.causal_transformer import assert_token_prior_no_future_leakage
+from time_causal_vae.models.discrete.priors import (
+    CausalTokenPriorConfig,
+    CausalTokenTransformerPrior,
+)
+from time_causal_vae.models.discrete.priors.causal_transformer import (
+    assert_token_prior_no_future_leakage,
+)
 from time_causal_vae.utils.random import set_seed
 
 

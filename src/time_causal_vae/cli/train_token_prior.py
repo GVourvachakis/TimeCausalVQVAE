@@ -16,7 +16,7 @@ import yaml
 from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 
-from time_causal_vae.token_prior import CausalTokenPriorConfig, build_token_prior_model
+from time_causal_vae.models.discrete.priors import CausalTokenPriorConfig, build_token_prior_model
 from time_causal_vae.utils.random import set_seed
 
 
@@ -188,7 +188,7 @@ def validate_positive_int(name: str, value: int) -> None:
 
 
 def validate_output_dir(output_dir: str) -> Path:
-    """Validate that token-prior artifacts stay below ignored outputs/."""
+    """Validate that token-prior artifacts stay below local outputs/."""
     path = Path(output_dir)
     resolved = path.resolve()
     outputs_root = (Path.cwd() / "outputs").resolve()
@@ -196,7 +196,7 @@ def validate_output_dir(output_dir: str) -> Path:
         resolved.relative_to(outputs_root)
     except ValueError as exc:
         raise SystemExit(
-            f"--output-dir must be under ignored outputs/. Received: {output_dir}"
+            f"--output-dir must be under local outputs/. Received: {output_dir}"
         ) from exc
     return path
 
@@ -712,12 +712,10 @@ class MetricTotals:
             "accuracy": self.accuracy_total / self.n_samples,
             "perplexity": self.perplexity_total / self.n_samples,
         }
-        metrics.update(
-            {
-                key: value / self.n_samples
-                for key, value in sorted(self.extra_totals.items(), key=lambda item: item[0])
-            }
-        )
+        metrics.update({
+            key: value / self.n_samples
+            for key, value in sorted(self.extra_totals.items(), key=lambda item: item[0])
+        })
         return metrics
 
 

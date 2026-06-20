@@ -1,0 +1,27 @@
+experiment:
+  name: heston_causal_token_prior_hidden128_additive
+  dataset: heston
+  seed: 0
+
+data:
+  tokenizer_dir: outputs/per_experiment_selection/heston/hidden128_additive_ar/tokenizer/heston_causal_vq_tokenizer_hidden128_seed0
+  token_data_dir: outputs/per_experiment_selection/heston/hidden128_additive_ar/tokens
+
+model:
+  family: causal_token_prior
+  codebook_size: 64
+  sequence_length: 60
+  token_embedding_dim: 128
+  num_layers: 4
+  num_heads: 4
+  mlp_hidden_dim: 256
+  dropout: 0.1
+  bos_token_id: 64
+  prediction_convention: bos_shifted_next_token
+
+training:
+  optimizer: adam
+  learning_rate: 0.0003
+  batch_size: 256
+  eval_batch_size: 256
+  epochs: 100
