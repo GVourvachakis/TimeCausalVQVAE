@@ -17,7 +17,12 @@ also hosts the discrete VQ extension work.
 
 Release notes: [`0.1.0`](https://github.com/GVourvachakis/TimeCausalVQVAE/blob/main/docs/release/0.1.0.md).
 
-![Time-causal VQ-VAE architecture sketch](https://raw.githubusercontent.com/GVourvachakis/TimeCausalVQVAE/main/assets/figures/time_causal_vqvae_pipeline.svg)
+![Discrete time-causal VQ-VAE architecture](https://raw.githubusercontent.com/GVourvachakis/TimeCausalVQVAE/main/assets/figures/time_causal_vqvae_pipeline.svg)
+
+*Discrete time-causal VQ-VAE architecture. The diagram shows the S&P 500/VIX
+input window, causal convolutional encoder and decoder stacks, vector
+quantization, the VIX conditioning branch, and the receptive-field structure
+used to preserve no-anticipation behaviour.*
 
 ## Installation
 
@@ -159,6 +164,10 @@ The benchmark notes live under
 | Token priors | Additive autoregressive priors and causal conv-transformer research variants. | Additive prior is the public S&P500/VIX default; conv-transformer variants are research candidates. |
 | Registry metadata | Selected configs, local checkpoint conventions, metrics, caveats, and no-leakage status. | Metadata only. It does not contain weights. |
 | Notebook demos | Output-stripped notebooks that print guarded commands and read local outputs when available. | Demonstration only. They should not train or evaluate by default. |
+
+Executed notebook previews are available on the `docs/executed-notebook-previews` branch. The
+`main` branch keeps notebooks output-stripped for reproducibility and package size. Preview outputs
+depend on local artefacts and checkpoints and are not the package source of truth.
 
 ## Diagnostics
 
