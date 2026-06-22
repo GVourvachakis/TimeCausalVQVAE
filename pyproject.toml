@@ -1,6 +1,6 @@
 [project]
 name = "time-causal-vae"
-version = "0.1.1.dev0"
+version = "0.1.2"
 description = "Time-causal financial generative models: refactored TC-VAE baselines with causal VQ/RVQ tokenizers, token priors, S&P500/VIX, Hawkes/SVMHJD, multi-dimensional benchmarks, and path-risk diagnostics."
 authors = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
 maintainers = [{ name = "Georgios Vakis", email = "georgios.vakis@iacm.forth.gr" }]
@@ -49,7 +49,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/GVourvachakis/TimeCausalVQVAE"
 Repository = "https://github.com/GVourvachakis/TimeCausalVQVAE"
-Documentation = "https://github.com/GVourvachakis/TimeCausalVQVAE/tree/main/docs"
+Documentation = "https://github.com/GVourvachakis/TimeCausalVQVAE/tree/v0.1.2/docs"
 Issues = "https://github.com/GVourvachakis/TimeCausalVQVAE/issues"
 
 [project.scripts]
@@ -64,6 +64,7 @@ tcvae-select-model = "time_causal_vae.cli.select_model:main"
 
 [tool.poetry]
 packages = [{ include = "time_causal_vae", from = "src" }]
+include = [{ path = "trained_models/multidim_profiles.yaml", format = ["sdist", "wheel"] }]
 
 [tool.poetry.group.dev]
 optional = true
@@ -142,6 +143,6 @@ exclude = ["^src/time_causal_vae/evaluation/external/"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.1.1.dev0"
+version = "0.1.2"
 version_files = ["pyproject.toml:^version", "src/time_causal_vae/version.py:__version__"]
 tag_format = "v$version"

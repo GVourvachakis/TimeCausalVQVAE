@@ -19,9 +19,17 @@ from time_causal_vae.typing import PathLike
 FamilyName = Literal["continuous", "discrete"]
 MultidimProfiles = dict[str, Any]
 
-DEFAULT_MULTIDIM_PROFILES_PATH = (
-    Path(__file__).resolve().parents[3] / "trained_models" / "multidim_profiles.yaml"
-)
+
+def _default_multidim_profiles_path() -> Path:
+    module_path = Path(__file__).resolve()
+    candidates = (
+        module_path.parents[3] / "trained_models" / "multidim_profiles.yaml",
+        module_path.parents[2] / "trained_models" / "multidim_profiles.yaml",
+    )
+    return next((candidate for candidate in candidates if candidate.exists()), candidates[0])
+
+
+DEFAULT_MULTIDIM_PROFILES_PATH = _default_multidim_profiles_path()
 
 
 @dataclass(frozen=True)
@@ -35,6 +43,12 @@ class MultidimProfileSelection:
     public_default: bool
     metadata: dict[str, Any]
 
+    def __getitem__(self, key: str) -> Any:
+        """Return a selected metadata value by key."""
+        if key in {"experiment", "profile", "family", "status", "public_default", "metadata"}:
+            return getattr(self, key)
+        return self.metadata[key]
+
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON/YAML-serialisable representation."""
         return asdict(self)
@@ -42,7 +56,7 @@ class MultidimProfileSelection:
 
 def load_multidim_profiles(path: PathLike | None = None) -> MultidimProfiles:
     """Load experimental multidimensional profile metadata."""
-    profiles_path = Path(path) if path is not None else DEFAULT_MULTIDIM_PROFILES_PATH
+    profiles_path = Path(path) if path is not None else _default_multidim_profiles_path()
     with profiles_path.open("r", encoding="utf-8") as handle:
         loaded = yaml.safe_load(handle) or {}
     if not isinstance(loaded, dict):
